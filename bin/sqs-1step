@@ -1,0 +1,336 @@
+#!/usr/bin/perl
+##----------------------------------------------------------------------------
+
+use strict;
+use warnings;
+use Data::Dumper;
+
+use Getopt::Mixed "nextOption";
+use Config::Simple;
+use Log::Log4perl;
+
+use Amazon::AwsSum::Util qw(get_options vbs hdr line errs force_array);
+use Amazon::AwsSum::SQS;
+
+## ----------------------------------------------------------------------------
+# constants
+
+use constant VERSION => '0.1';
+
+my @IN_OPTS = (
+    'q=s',   # queue name
+    't=s',   # timeout
+    'p=s',   # queue name prefix
+    'u=s',   # queue Url
+    'a=s',   # attribute name
+    'av=s',  # attribute value
+    'm=s',   # message
+    'r=s',   # receipt handle
+    'n=s',   # number
+    'confirm',   'c>confirm',   # confirm deletes
+    'headers',   'H>headers',
+    'verbose',   'v>verbose',
+    'debug',
+    'help',
+    'version',
+);
+
+my %BOOLEAN_ARGS = (
+    confirm => 1,
+    headers => 1,
+    verbose => 1,
+    debug   => 1,
+    help    => 1,
+    version => 1,
+);
+
+use constant COMMANDS => {
+    'addq'   => 1, # CreateQueue
+    'listq'  => 1, # ListQueues
+    'qatt'   => 1, # GetQueueAttributes
+    'sqatt'  => 1, # SetQueueAttributes
+    'delq'   => 1, # DeleteQueue
+    'addmsg' => 1, # SendMessage
+    'getmsg' => 1, # ReceiveMessage
+    'delmsg' => 1, # DeleteMesage
+};
+
+## ----------------------------------------------------------------------------
+
+# hmm, should get rid of this global
+my $cfg = {};
+my $log;
+
+MAIN: {
+    my $args = get_options(\@IN_OPTS, \%BOOLEAN_ARGS);
+
+    # setup the output things (including DEBUG)
+    Amazon::AwsSum::Util::set_vbs( $args->{verbose} );
+    Amazon::AwsSum::Util::set_hdr( $args->{headers} );
+
+    my $log_level = ( $args->{debug} ? 'DEBUG' : 'INFO' );
+
+    my $config=<<"EOF";
+log4perl.logger.Main = $log_level, Screen
+log4perl.appender.Screen        = Log::Log4perl::Appender::Screen
+log4perl.appender.Screen.layout = PatternLayout
+log4perl.appender.Screen.layout.ConversionPattern = %d %20.20c{2}[%5L]: %5p - %m%n
+EOF
+
+    Log::Log4perl::init( \$config );
+    $log = Log::Log4perl->get_logger('Main');
+
+    # do the version and help
+    if ( exists $args->{version} ) {
+        print "$0 ".VERSION."\n";
+        exit;
+    }
+
+    if ( exists $args->{help} ) {
+        usage();
+        exit;
+    }
+
+    line('Input Args');
+    vbs( Dumper($args) );
+
+    # make sure that the command given is valid
+    Getopt::Mixed::abortMsg('specify a command')
+       if @ARGV == 0;
+
+    my $command = shift @ARGV;
+    Getopt::Mixed::abortMsg('specify a valid command')
+       unless defined $command and exists COMMANDS->{$command};
+
+    # load the config
+    Config::Simple->import_from( "$ENV{HOME}/.awssum", $cfg );
+
+    die 'specify an AWS Access Key ID [AwsAccessKeyId] in the config file'
+        unless $cfg->{AwsAccessKeyId};
+    die 'specify an AWS Secret Access Key [AwsSecretAccessKey] in the config file'
+        unless $cfg->{AwsSecretAccessKey};
+
+    line('Normal Output');
+
+    my $sqs = Amazon::AwsSum::SQS->new();
+    $sqs->access_key_id( $cfg->{AwsAccessKeyId} );
+    $sqs->secret_access_key( $cfg->{AwsSecretAccessKey} );
+
+    # now call the relevant command
+    if ( $command eq 'addq' ) {
+        $sqs->CreateQueue({
+            QueueName                => $args->{q},
+            DefaultVisibilityTimeout => $args->{t},
+        });
+        create_queue( $sqs->data );
+    }
+    elsif ( $command eq 'listq' ) {
+        $sqs->ListQueues({
+            QueueNamePrefix => $args->{p},
+        });
+        unless ( $sqs->errs ) {
+            list_queues( $sqs->data );
+        }
+    }
+    elsif ( $command eq 'qatt' ) {
+        $sqs->GetQueueAttributes({
+            QueueUrl      => $args->{u},
+            AttributeName => $args->{a},
+        });
+        get_queue_attributes( $sqs->data );
+    }
+    elsif ( $command eq 'sqatt' ) {
+        $sqs->SetQueueAttributes({
+            QueueUrl       => $args->{u},
+            AttributeName  => $args->{a},
+            AttributeValue => $args->{av},
+        });
+        set_queue_attributes( $sqs->data );
+    }
+    elsif ( $command eq 'delq' ) {
+        $sqs->DeleteQueue({
+            QueueUrl => $args->{u},
+        });
+        delete_queue( $sqs->data );
+    }
+    elsif ( $command eq 'addmsg' ) {
+        $sqs->SendMessage({
+            QueueUrl    => $args->{u},
+            MessageBody => $args->{m},
+        });
+        send_message( $sqs->data );
+    }
+    elsif ( $command eq 'getmsg' ) {
+        $sqs->ReceiveMessage({
+            QueueUrl            => $args->{u},
+            MaxNumberOfMessages => $args->{n},
+            VisibilityTimeout   => $args->{t},
+        });
+        receive_message( $sqs->data );
+    }
+    elsif ( $command eq 'delmsg' ) {
+        $sqs->DeleteMessage({
+            QueueUrl      => $args->{u},
+            ReceiptHandle => $args->{r},
+        });
+        delete_message( $sqs->data );
+    }
+
+    if ( $sqs->errs ) {
+        line('Request Errors');
+        print errs( $sqs->errs );
+    }
+
+    line('HTTP Request');
+    vbs( $sqs->http_request->method . " " . $sqs->http_request->uri );
+    vbs( $sqs->http_request->headers_as_string( "\n" ) );
+    line('HTTP Request Content');
+    vbs( $sqs->http_request->content );
+    line('HTTP Response');
+    vbs( $sqs->http_response->code . ' ' . $sqs->http_response->message );
+    vbs( $sqs->http_response->headers_as_string( "\n" ) );
+    line('HTTP Response Content');
+    vbs( $sqs->http_response->content );
+    line('Data');
+    vbs( Dumper( $sqs->data ));
+    line();
+}
+
+## ----------------------------------------------------------------------------
+# reports
+
+sub create_queue {
+    my ($data) = @_;
+    print_metadata($data);
+
+    # output
+    hdr( "# QueueUrl:\tQueueUrl" );
+    print "QueueUrl:\t$data->{CreateQueueResult}{QueueUrl}\n";
+}
+
+sub list_queues {
+    my ($data) = @_;
+    print_metadata($data);
+
+    # output
+    hdr( "# QueueUrl:\tQueueUrl" );
+
+    force_array( $data->{ListQueuesResult}{QueueUrl} );
+    foreach my $url ( @{$data->{ListQueuesResult}{QueueUrl}} ) {
+        print "QueueUrl:\t$url\n";
+    }
+}
+
+sub get_queue_attributes {
+    my ($data) = @_;
+    print_metadata($data);
+
+    # output
+    hdr( "# Attribute:\tName\tValue" );
+    force_array( $data->{GetQueueAttributesResult}{Attribute} );
+    foreach my $attr ( @{$data->{GetQueueAttributesResult}{Attribute}} ) {
+        print "Attribute:\t$attr->{Name}\t$attr->{Value}\n";
+    }
+}
+
+sub set_queue_attributes {
+    my ($data) = @_;
+    print_metadata($data);
+}
+
+sub delete_queue {
+    my ($data) = @_;
+    print_metadata($data);
+}
+
+sub send_message {
+    my ($data) = @_;
+    print_metadata($data);
+
+    # output
+    hdr( "# Message:\tMD5OfMessageBody\tMessageId" );
+    print "Message:\t$data->{SendMessageResult}{MD5OfMessageBody}\t$data->{SendMessageResult}{MessageId}}\n";
+}
+
+sub receive_message {
+    my ($data) = @_;
+    print_metadata($data);
+
+    # output
+    hdr( "# Message:\tMD5OfMessageBody\tMessageId\tReceiptHandle\tBody" );
+    force_array( $data->{ReceiveMessageResult}{Message} );
+    foreach my $msg ( @{$data->{ReceiveMessageResult}{Message}} ) {
+        print "Message:\t$msg->{MD5OfBody}\t$msg->{MessageId}\t$msg->{ReceiptHandle}\t$msg->{Body}\n";
+    }
+}
+
+sub delete_message {
+    my ($data) = @_;
+    print_metadata($data);
+}
+
+# generic one
+sub print_metadata {
+    my ($data) = @_;
+
+    hdr( "# ResponseMetaData:\tRequestId" );
+    print "ResponseMetaData:\t$data->{ResponseMetadata}{RequestId}\n";
+}
+
+## ----------------------------------------------------------------------------
+# usage
+
+sub usage {
+   print <<"END_USAGE";
+Usage: $0 <COMMAND>
+
+Commands:
+  addq -q QueueName [-t DefaultVisibilityTimeout]
+   * create queue
+     -q the queue name
+     -t the default visibility timeout in secs (default: 30)
+
+  listq [-p QueueNamePrefix]
+   * list queues
+     -p a prefix used to filter the list
+
+  qatt -a All|ApproximateNumberOfMessages|VisibilityTimeout
+   * get queue attributes
+     -u the queue URL you were returned using the CreateQueue command
+     -a one of the above three values
+
+  sqatt -a VisibilityTimeout --av Value
+   * set queue attributes
+     --av a Name=Value pair (Name must be 'VisibilityTimeout'
+
+  delq -u QueueUrl
+   * delete queue
+     -u the queue URL you were returned using the CreateQueue command
+
+  addmsg -u QueueUrl -m Message
+   * Send a Message to the queue
+     -u the queue URL you were returned using the CreateQueue command
+
+  getmsg -u QueueUrl -n MaxNumberOfMessages -t VisibilityTimeout
+   * receive one or more messages from the queue
+     -u the queue URL you were returned using the CreateQueue command
+     -n the number of messages to receive (1-10)
+     -t the timeout to use with these messages (overrides the queue default)
+
+  delmsg -r ReceiptHandle
+   * delete a message from the queue
+     -u the queue URL you were returned using the CreateQueue command
+     -r the receipt handle you were given when receiving messages
+
+Note: for all '-u' options, SQS requires you to use the full URL for certain
+operations. The documentation states that you should store the entire queue URL
+returned when the queue was created and that you use it when necessary. It also
+states that you should not build the URL [from the queue name and the SQS base
+URL] because SQS may change the components that make up the Queue Url.
+
+See <http://code.google.com/p/awssum/> for further information.
+Report bugs at <http://code.google.com/p/awssum/issues/list>.
+END_USAGE
+}
+
+## ----------------------------------------------------------------------------

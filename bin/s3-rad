@@ -1,0 +1,301 @@
+#!/usr/bin/perl
+##----------------------------------------------------------------------------
+
+use strict;
+use warnings;
+use Data::Dumper;
+
+use Getopt::Mixed "nextOption";
+use Config::Simple;
+use Log::Log4perl;
+use File::Slurp;
+use MIME::Types;
+
+use Amazon::AwsSum::Util qw(get_options vbs hdr line errs force_array);
+use Amazon::AwsSum::S3;
+
+## ----------------------------------------------------------------------------
+# constants
+
+use constant VERSION => '0.1';
+
+my @IN_OPTS = (
+    'b=s',   # bucket name
+    'k=s',   # key/file name
+    'p=s',   # prefix
+    'l=s',   # location
+    'n=s',   # generic number (eg. max-keys)
+    'm=s',   # marker
+    'a=s',   # acl - private, public-read, public-read-write, authenticated-read
+    'headers',   'H>headers',
+    'verbose',   'v>verbose',
+    'debug',
+    'help',
+    'version',
+);
+
+my %BOOLEAN_ARGS = (
+    headers => 1,
+    verbose => 1,
+    debug   => 1,
+    help    => 1,
+    version => 1,
+);
+
+use constant COMMANDS => {
+    'list-buck' => 1, # ListBuckets
+    'add-buck'  => 1, # CreateBucket
+    'del-buck'  => 1, # DeleteBucket
+    'list-keys' => 1, # ListKeys
+    'location'  => 1, # BucketLocation
+    'put'       => 1, # PutObject
+    'get'       => 1, # GetObject
+    'head'      => 1, # HeadObject
+    'del'       => 1, # DeleteObject
+    'acl'       => 1, # Acl # for a canned Acl
+    'get-acl'   => 1, # GetAcl # to get an XML ACL
+    'put-acl'   => 1, # PutAcl # to set an XML ACL
+    'get-log'   => 1, # GetLogging # to get a Logging XML file
+    'put-log'   => 1, # PutLogging # to set a Logging XML file
+};
+
+## ----------------------------------------------------------------------------
+
+# hmm, should get rid of this global
+my $cfg = {};
+my $log;
+
+MAIN: {
+    my $args = get_options(\@IN_OPTS, \%BOOLEAN_ARGS);
+
+    # setup the output things (including DEBUG)
+    Amazon::AwsSum::Util::set_vbs( $args->{verbose} );
+    Amazon::AwsSum::Util::set_hdr( $args->{headers} );
+
+    my $log_level = ( $args->{debug} ? 'DEBUG' : 'INFO' );
+
+    my $config=<<"EOF";
+log4perl.logger.Main = $log_level, Screen
+log4perl.appender.Screen        = Log::Log4perl::Appender::Screen
+log4perl.appender.Screen.layout = PatternLayout
+log4perl.appender.Screen.layout.ConversionPattern = %d %20.20c{2}[%5L]: %5p - %m%n
+EOF
+
+    Log::Log4perl::init( \$config );
+    $log = Log::Log4perl->get_logger('Main');
+
+    # do the version and help
+    if ( exists $args->{version} ) {
+        print "$0 ".VERSION."\n";
+        exit;
+    }
+
+    if ( exists $args->{help} ) {
+        usage();
+        exit;
+    }
+
+    line('Input Args');
+    vbs( Dumper($args) );
+
+    # make sure that the command given is valid
+    Getopt::Mixed::abortMsg('specify a command')
+       if @ARGV == 0;
+
+    my $command = shift @ARGV;
+    Getopt::Mixed::abortMsg('specify a valid command')
+       unless defined $command and exists COMMANDS->{$command};
+
+    # load the config
+    Config::Simple->import_from( "$ENV{HOME}/.awssum", $cfg );
+
+    die 'specify an AWS Access Key ID [AwsAccessKeyId] in the config file'
+        unless $cfg->{AwsAccessKeyId};
+    die 'specify an AWS Secret Access Key [AwsSecretAccessKey] in the config file'
+        unless $cfg->{AwsSecretAccessKey};
+
+    line('Normal Output');
+
+    my $s3 = Amazon::AwsSum::S3->new();
+    $s3->access_key_id( $cfg->{AwsAccessKeyId} );
+    $s3->secret_access_key( $cfg->{AwsSecretAccessKey} );
+
+    # now call the relevant command
+    if ( $command eq 'list-buck' ) {
+        $s3->ListBuckets();
+        list_buckets( $s3->data );
+    }
+    elsif ( $command eq 'add-buck' ) {
+        $s3->CreateBucket({
+            Bucket             => $args->{b},
+            LocationConstraint => $args->{l},
+        });
+    }
+    elsif ( $command eq 'del-buck' ) {
+        $s3->DeleteBucket({
+            Bucket => $args->{b},
+        });
+    }
+    elsif ( $command eq 'list-keys' ) {
+        $s3->ListKeys({
+            Bucket  => $args->{b},
+            Prefix  => $args->{p},
+            MaxKeys => $args->{n},
+            Marker  => $args->{m},
+        });
+    }
+    elsif ( $command eq 'location' ) {
+        $s3->BucketLocation({
+            Bucket => $args->{b},
+        });
+    }
+    elsif ( $command eq 'put' ) {
+        Getopt::Mixed::abortMsg('specify a file to put')
+            if @ARGV == 0;
+
+        my $filename = $ARGV[0];
+
+        my ($ext) = $filename =~ m{ \. (.*) \z }xms;
+        my $mimetype = MIME::Types->new()->mimeTypeOf($ext);
+        my $content = read_file( $filename );
+        $s3->PutObject(
+            {
+                Bucket  => $args->{b},
+                Key     => $args->{k},
+                Acl     => $args->{a},
+                defined $mimetype ? (headers => { 'Content-Type' => $mimetype }) : (),
+                content => $content,
+            }
+        );
+    }
+    elsif ( $command eq 'get' ) {
+        Getopt::Mixed::abortMsg('specify a filename to save to')
+            if @ARGV == 0;
+
+        $s3->GetObject({
+            Bucket => $args->{b},
+            Key    => $args->{k},
+        });
+        write_file( $ARGV[0], $s3->http_response->content );
+    }
+    elsif ( $command eq 'head' ) {
+        $s3->HeadObject({
+            Bucket => $args->{b},
+            Key    => $args->{k},
+        });
+    }
+    elsif ( $command eq 'del' ) {
+        $s3->DeleteObject({
+            Bucket => $args->{b},
+            Key    => $args->{k},
+        });
+    }
+    elsif ( $command eq 'acl' ) {
+        $s3->Acl({
+            Bucket => $args->{b},
+            Key    => $args->{k},
+            Acl    => $args->{a},
+        });
+    }
+    elsif ( $command eq 'get-acl' ) {
+        $s3->GetAcl({
+            Bucket => $args->{b},
+            Key    => $args->{k},
+        });
+    }
+    elsif ( $command eq 'put-acl' ) {
+        Getopt::Mixed::abortMsg('specify an XML file to put')
+            if @ARGV == 0;
+
+        Getopt::Mixed::abortMsg('file does not exist')
+            unless -f $ARGV[0];
+
+        my $content = read_file( $ARGV[0] );
+        $s3->PutAcl(
+            {
+                Bucket  => $args->{b},
+                Key     => $args->{k},
+                content => $content,
+            }
+        );
+    }
+    elsif ( $command eq 'get-log' ) {
+        $s3->GetLogging({
+            Bucket => $args->{b},
+        });
+    }
+    elsif ( $command eq 'put-log' ) {
+        Getopt::Mixed::abortMsg('specify an XML file to put')
+            if @ARGV == 0;
+
+        Getopt::Mixed::abortMsg('file does not exist')
+            unless -f $ARGV[0];
+
+        my $content = read_file( $ARGV[0] );
+        $s3->PutLogging(
+            {
+                Bucket  => $args->{b},
+                content => $content,
+            }
+        );
+    }
+
+    if ( $s3->errs ) {
+        line('Request Errors');
+        print errs( $s3->errs );
+    }
+
+    line('HTTP Request');
+    vbs( $s3->http_request->method . " " . $s3->http_request->uri );
+    vbs( $s3->http_request->headers_as_string( "\n" ) );
+    line('HTTP Request Content');
+    vbs( $s3->http_request->content );
+    line('HTTP Response');
+    vbs( $s3->http_response->code . ' ' . $s3->http_response->message );
+    vbs( $s3->http_response->headers_as_string( "\n" ) );
+    line('HTTP Response Content');
+    vbs( $s3->http_response->content );
+    line('Data');
+    vbs( Dumper( $s3->data ));
+    line();
+}
+
+## ----------------------------------------------------------------------------
+# reports
+
+sub list_buckets {
+    my ($data) = @_;
+
+    hdr( "# Bucket:\tCreationDate\tName" );
+    force_array( $data->{Buckets}{Bucket} );
+    foreach my $bucket ( @{$data->{Buckets}{Bucket}} ) {
+        print "Bucket:\t$bucket->{CreationDate}\t$bucket->{Name}\n";
+    }
+    # print_owner($data);
+}
+
+# generic one
+sub print_metadata {
+    my ($data) = @_;
+
+    hdr( "# ResponseMetaData:\tRequestId" );
+    print "ResponseMetaData:\t$data->{ResponseMetadata}{RequestId}\n";
+}
+
+## ----------------------------------------------------------------------------
+# usage
+
+sub usage {
+   print <<"END_USAGE";
+Usage: $0 <COMMAND>
+
+Commands:
+  list-buckets
+   * list all your buckets
+
+See <http://code.google.com/p/awssum/> for further information.
+Report bugs at <http://code.google.com/p/awssum/issues/list>.
+END_USAGE
+}
+
+## ----------------------------------------------------------------------------

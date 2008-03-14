@@ -1,0 +1,38 @@
+h1. Simple Gallery
+
+h2. About the Programs
+
+Before running any program you should review the variables at the top of each file and adjust to your own needs.
+
+Open 2 terminal windows. In the first run this:
+
+pre. $ ./process-images.pl
+
+and watch while it polls the queue.
+
+In the second, upload some images like so:
+
+pre. $ cd images
+$ ../put-image.pl filename.jpg
+
+When you have seen that the images have been processed, you should generate the index file (note, this could also be automated but is not yet done):
+
+pre. $ ./generate-gallery.pl
+
+At any stage, you may report on the processes happening, in the queue and in the bucket:
+
+pre. $ ./report-queue-progress.pl
+$ ./report-bucket-contents.pl
+
+Please remember, that these are just very small example programs. You may add to them as you see fit (and it'd be great if you send me the patches for them). They are not meant to be really nice, nor is the page but just a demonstration of what can be done.
+
+Please see images/README.textile for licensing information regarding the images.
+
+Have fun.
+
+Andy
+
+contact: Andrew Chilton
+website: "http://kapiti.geek.nz/":http://kapiti.geek.nz/
+
+(Ends)

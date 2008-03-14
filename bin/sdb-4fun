@@ -1,0 +1,394 @@
+#!/usr/bin/perl
+##----------------------------------------------------------------------------
+
+use strict;
+use warnings;
+use Data::Dumper;
+
+use Getopt::Mixed "nextOption";
+use Config::Simple;
+use Log::Log4perl;
+use Data::UUID;
+
+use Amazon::AwsSum::Util qw(get_options vbs hdr line errs force_array);
+use Amazon::AwsSum::SimpleDB;
+
+## ----------------------------------------------------------------------------
+# constants
+
+use constant VERSION => '0.1';
+
+my @IN_OPTS = (
+    'a=s',   # attribute
+    'i=s',   # item name
+    'n=s',   # number
+    't=s',   # token
+    'd=s',   # domain name
+    'q=s',   # query exression
+    'v=s',   # attribute value
+    'r=s',   # replace
+    'ap=s',  # attribute pair (of form 'key', 'key=value', '!key=value'
+    'uuid',      'u>uuid',   # generate a uuid for this 'put'
+    'confirm',   'c>confirm',   # confirm
+    'headers',   'H>headers',
+    'verbose',
+    'debug',
+    'help',
+    'version',
+);
+
+my %BOOLEAN_ARGS = (
+    uuid    => 1,
+    confirm => 1,
+    headers => 1,
+    verbose => 1,
+    debug   => 1,
+    help    => 1,
+    version => 1,
+);
+
+use constant COMMANDS => {
+    'add-dom' => 1,
+    'del-dom' => 1,
+    'list-dom' => 1,
+    put => 1,
+    del => 1,
+    get => 1,
+    query => 1,
+};
+
+## ----------------------------------------------------------------------------
+
+# hmm, should get rid of this global
+my $cfg = {};
+my $log;
+
+MAIN: {
+    my $args = get_options(\@IN_OPTS, \%BOOLEAN_ARGS);
+
+    # setup the output things (including DEBUG)
+    Amazon::AwsSum::Util::set_vbs( $args->{verbose} );
+    Amazon::AwsSum::Util::set_hdr( $args->{headers} );
+
+    my $log_level = ( $args->{debug} ? 'DEBUG' : 'INFO' );
+
+    my $config=<<"EOF";
+log4perl.logger.Main = $log_level, Screen
+log4perl.appender.Screen        = Log::Log4perl::Appender::Screen
+log4perl.appender.Screen.layout = PatternLayout
+log4perl.appender.Screen.layout.ConversionPattern = %d %20.20c{2}[%5L]: %5p - %m%n
+EOF
+
+    Log::Log4perl::init( \$config );
+    $log = Log::Log4perl->get_logger('Main');
+
+    # do the version and help
+    if ( exists $args->{version} ) {
+        print "$0 ".VERSION."\n";
+        exit;
+    }
+
+    if ( exists $args->{help} ) {
+        usage();
+        exit;
+    }
+
+    line('Input Args');
+    vbs( Dumper($args) );
+
+    # make sure that the command given is valid
+    Getopt::Mixed::abortMsg('specify a command')
+       if @ARGV == 0;
+
+    my $command = shift @ARGV;
+    Getopt::Mixed::abortMsg('specify a valid command')
+       unless defined $command and exists COMMANDS->{$command};
+
+    # load the config
+    Config::Simple->import_from( "$ENV{HOME}/.awssum", $cfg );
+
+    die 'specify an AWS Access Key ID [AwsAccessKeyId] in the config file'
+        unless $cfg->{AwsAccessKeyId};
+    die 'specify an AWS Secret Access Key [AwsSecretAccessKey] in the config file'
+        unless $cfg->{AwsSecretAccessKey};
+
+    line('Normal Output');
+
+    my $sdb = Amazon::AwsSum::SimpleDB->new();
+    $sdb->access_key_id( $cfg->{AwsAccessKeyId} );
+    $sdb->secret_access_key( $cfg->{AwsSecretAccessKey} );
+
+    # now call the relevant command
+    if ( $command eq 'add-dom' ) {
+        $sdb->CreateDomain({
+            DomainName => $args->{d},
+        });
+        # create_queue( $sdb->data );
+    }
+    elsif ( $command eq 'list-dom' ) {
+        $sdb->ListDomains();
+        unless ( $sdb->errs ) {
+            list_domains( $sdb->data );
+        }
+    }
+    elsif ( $command eq 'del-dom' ) {
+        $sdb->DeleteDomain({
+            DomainName => $args->{d},
+        });
+        # delete_domain( $sdb->data );
+    }
+    elsif ( $command eq 'put' ) {
+        $sdb->PutAttributes({
+            DomainName       => $args->{d},
+            ItemName         => $args->{i},
+            AttributeName    => $args->{a},
+            AttributeValue   => $args->{v},
+            AttributeReplace => $args->{r},
+            AttributePair    => $args->{ap},
+        });
+        # put_attributes( $sdb->data );
+    }
+    elsif ( $command eq 'get' ) {
+        $sdb->GetAttributes({
+            DomainName    => $args->{d},
+            AttributeName => $args->{a},
+        });
+        # get_attributes( $sdb->data );
+    }
+    elsif ( $command eq 'del' ) {
+        $sdb->DeleteAttributes({
+            DomainName     => $args->{d},
+            AttributeName  => $args->{a},
+            AttributeValue => $args->{v},
+            AttributePair  => $args->{ap},
+        });
+        # delete_attributes( $sdb->data );
+    }
+    elsif ( $command eq 'query' ) {
+        $sdb->Query({
+            DomainName       => $args->{d},
+            QueryExpression  => $args->{q},
+            MaxNumberOfItems => $args->{n},
+            NextToken        => $args->{t},
+        });
+        # query( $sdb->data );
+    }
+
+    if ( $sdb->errs ) {
+        line('Request Errors');
+        print errs( $sdb->errs );
+    }
+
+    line('HTTP Request');
+    vbs( $sdb->http_request->method . " " . $sdb->http_request->uri );
+    vbs( $sdb->http_request->headers_as_string( "\n" ) );
+    line('HTTP Response');
+    vbs( $sdb->http_response->code . ' ' . $sdb->http_response->message );
+    vbs( $sdb->http_response->headers_as_string( "\n" ) );
+    line('Content');
+    vbs( $sdb->http_response->content );
+    line('Data');
+    vbs( Dumper( $sdb->data ));
+    line();
+}
+
+## ----------------------------------------------------------------------------
+# actions
+
+sub create_domain {
+    my ($args) = @_;
+
+    unless ( defined $args->{d} ) {
+        msg_and_exit( 'provide a domain name to create' );
+    }
+
+    my $request = { Action => 'CreateDomain' };
+    $request->{DomainName} = $args->{d};
+
+    my $xml = send_request( $request );
+    print_metadata( $xml );
+}
+
+sub list_domains {
+    my ($data) = @_;
+
+    # output
+    hdr( "# Domain:\tName" );
+
+    force_array( $data->{ListDomainsResult}{DomainName} );
+    foreach my $domain_name ( @{$data->{ListDomainsResult}{DomainName}} ) {
+        print "Domain:\t$domain_name\n";
+    }
+}
+
+sub delete_domain {
+    my ($args) = @_;
+
+    unless ( defined $args->{d} ) {
+        msg_and_exit( 'provide a key name to delete' );
+    }
+
+    unless ( defined $args->{confirm} ) {
+        msg_and_exit( 'please confirm this action' );
+    }
+
+    my $request = { Action => 'DeleteDomain' };
+    $request->{DomainName} = $args->{d};
+
+    my $xml = send_request( $request );
+    print_metadata( $xml );
+}
+
+sub put_attributes {
+    my ($args) = @_;
+
+    unless ( defined $args->{d} ) {
+        msg_and_exit( 'provide a domain name to put the attributes into' );
+    }
+
+    # if uuid is defined (and there is no ItemName yet), create one
+    if ( defined $args->{uuid} and !defined $args->{i} ) {
+        $args->{i} = Data::UUID->new->create_str;
+    }
+
+    unless ( defined $args->{i} ) {
+        msg_and_exit( 'provide an item name to use or specify -u for a uuid to be generated' );
+    }
+
+    unless ( defined $args->{av} ) {
+        msg_and_exit( 'specify some attribute=value pairs' );
+    }
+
+    my $request = { Action => 'PutAttributes' };
+    $request->{DomainName} = $args->{d};
+    $request->{ItemName} = $args->{i};
+    $request->{AttributeName} = $args->{a} if defined $args->{a};
+
+    # do all the a/v pairs
+    my $i = 0;
+    $args->{av} = [ $args->{av} ] unless ref $args->{av} eq 'ARRAY';
+    foreach my $av ( @{$args->{av}} ) {
+        my ($a, $v) = split(m{=}xms, $av);
+        if ( $a =~ m{ \A ! }xms ) {
+            $a =~ s{ \A ! }{}gxms;
+            $request->{"Attribute.$i.Replace"} = 'true';
+        }
+        $request->{"Attribute.$i.Name"} = $a;
+        $request->{"Attribute.$i.Value"} = defined $v ? $v : '';
+        $i++;
+    }
+
+    my $xml = send_request( $request );
+    print_metadata( $xml );
+}
+
+sub get_attributes {
+    my ($args) = @_;
+
+    unless ( defined $args->{d} ) {
+        msg_and_exit( 'provide a domain name to query' );
+    }
+
+    unless ( defined $args->{i} ) {
+        msg_and_exit( 'provide an item name to retrieve' );
+    }
+
+    my $request = { Action => 'GetAttributes' };
+    $request->{DomainName} = $args->{d};
+    $request->{ItemName} = $args->{i};
+    add_numeral_parameters( $request, 'AttributeName', $args->{a} );
+
+    my $xml = send_request( $request );
+    print_metadata( $xml );
+
+    # output
+    hdr( "# ATTRIBUTE\tName\tValue" );
+
+    force_array( $xml->{GetAttributesResult}{Attribute} );
+    foreach my $a ( @{$xml->{GetAttributesResult}{Attribute}} ) {
+        print "ATTRIBUTE\t$a->{Name}\t$a->{Value}\n";
+    }
+}
+
+sub delete_attributes {
+    my ($args) = @_;
+
+    unless ( defined $args->{d} ) {
+        msg_and_exit( 'provide a domain name to retrieve the item from' );
+    }
+
+    unless ( defined $args->{i} ) {
+        msg_and_exit( 'provide an item name to retrieve' );
+    }
+
+    my $request = { Action => 'DeleteAttributes' };
+    $request->{DomainName} = $args->{d};
+    $request->{ItemName} = $args->{i};
+
+    # do all the a/v pairs
+    my $i = 0;
+    $args->{av} = [ $args->{av} ] unless ref $args->{av} eq 'ARRAY';
+    foreach my $av ( @{$args->{av}} ) {
+        my ($a, $v) = split(m{=}xms, $av);
+        $request->{"Attribute.$i.Name"} = $a;
+        $request->{"Attribute.$i.Value"} = defined $v ? $v : '';
+        $i++;
+    }
+
+    my $xml = send_request( $request );
+    print_metadata( $xml );
+
+}
+
+sub query {
+    my ($args) = @_;
+
+    unless ( defined $args->{d} ) {
+        msg_and_exit( 'provide a domain name to retrieve the item from' );
+    }
+
+    my $request = { Action => 'Query' };
+    $request->{DomainName} = $args->{d};
+    add_parameter( $request, 'QueryExpression', $args->{q} );
+    add_parameter( $request, 'MaxNumberOfItems', $args->{n} );
+    add_parameter( $request, 'NextToken', $args->{t} );
+
+    my $xml = send_request( $request );
+    print_metadata( $xml );
+
+    # output
+    hdr( "# ITEM\tItemName" );
+
+    force_array( $xml->{QueryResult}{ItemName} );
+    foreach my $i ( @{$xml->{QueryResult}{ItemName}} ) {
+        print "ITEM\t$i\n";
+    }
+}
+
+# generic one
+sub print_metadata {
+    my ($xml) = @_;
+
+    hdr( "# METADATA\tRequestId\tBoxUsage" );
+    vbs( "METADATA\t$xml->{ResponseMetadata}{RequestId}\t$xml->{ResponseMetadata}{BoxUsage}" );
+}
+
+## ----------------------------------------------------------------------------
+# usage
+
+sub usage {
+   print <<"END_USAGE";
+Usage: $0 <COMMAND>
+
+Commands:
+  list [-n number] [-t token]
+   * list domains
+     -n number to list (1..100)
+     -t next token to start from
+
+See <http://code.google.com/p/awssum/> for further information.
+Report bugs at <http://code.google.com/p/awssum/issues/list>.
+END_USAGE
+}
+
+## ----------------------------------------------------------------------------

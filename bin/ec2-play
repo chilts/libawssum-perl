@@ -1,0 +1,573 @@
+#!/usr/bin/perl
+##----------------------------------------------------------------------------
+
+use strict;
+use warnings;
+use Data::Dumper;
+
+use Getopt::Mixed "nextOption";
+use Config::Simple;
+use Log::Log4perl;
+
+use Amazon::AwsSum::Util qw(get_options vbs hdr line errs force_array);
+use Amazon::AwsSum::EC2;
+
+## ----------------------------------------------------------------------------
+# constants
+
+use constant VERSION => '0.1';
+
+my @IN_OPTS = (
+    'a=s',   # attribute
+    'd=s',   # description
+    'i=s',   # image id, instance id
+    'g=s',   # group name
+    'k=s',   # key name
+    'o=s',   # owner id
+    'p=s',   # port range (either 80-88, or 1:1 for icmp)
+    'P=s',   # protocol
+    's=s',   # source subnet
+    't=s',   # icmp type code
+    'u=s',   # source group user
+    'headers',   'H>headers',
+    'verbose',   'v>verbose',
+    'debug',
+    'help',
+    'version',
+);
+
+my %BOOLEAN_ARGS = (
+    headers => 1,
+    verbose => 1,
+    debug   => 1,
+    help    => 1,
+    version => 1,
+);
+
+use constant COMMANDS => {
+    # Images
+    dim => 1,
+    datt => 1,
+    # Keys
+    addkey => 1, dkey => 1, delkey => 1,
+    # Instances
+    din => 1,
+    gcons => 1, reboot => 1,
+    # Groups
+    addgrp => 1, dgrp => 1, delgrp => 1, auth => 1, revoke => 1,
+};
+
+## ----------------------------------------------------------------------------
+
+# hmm, should get rid of this global
+my $cfg = {};
+my $log;
+
+MAIN: {
+    my $args = get_options(\@IN_OPTS, \%BOOLEAN_ARGS);
+
+    # setup the output things (including DEBUG)
+    Amazon::AwsSum::Util::set_vbs( $args->{verbose} || $args->{headers} );
+    Amazon::AwsSum::Util::set_hdr( $args->{headers} );
+
+    my $log_level = ( $args->{debug} ? 'DEBUG' : 'INFO' );
+
+    my $config=<<"EOF";
+log4perl.logger.Main = $log_level, Screen
+log4perl.appender.Screen        = Log::Log4perl::Appender::Screen
+log4perl.appender.Screen.layout = PatternLayout
+log4perl.appender.Screen.layout.ConversionPattern = %d %20.20c{2}[%5L]: %5p - %m%n
+EOF
+
+    Log::Log4perl::init( \$config );
+    $log = Log::Log4perl->get_logger('Main');
+
+    # do the version and help
+    if ( exists $args->{version} ) {
+        print "$0 ".VERSION."\n";
+        exit;
+    }
+
+    if ( exists $args->{help} ) {
+        usage();
+        exit;
+    }
+
+    line('Input Args');
+    vbs( Dumper($args) );
+
+    # make sure that the command given is valid
+    Getopt::Mixed::abortMsg('specify a command')
+       if @ARGV == 0;
+
+    my $command = shift @ARGV;
+    Getopt::Mixed::abortMsg('specify a valid command')
+       unless defined $command and exists COMMANDS->{$command};
+
+    # load the config
+    Config::Simple->import_from( "$ENV{HOME}/.awssum", $cfg );
+
+    die 'specify an AWS Access Key ID [AwsAccessKeyId] in the config file'
+        unless $cfg->{AwsAccessKeyId};
+    die 'specify an AWS Secret Access Key [AwsSecretAccessKey] in the config file'
+        unless $cfg->{AwsSecretAccessKey};
+
+    line('Normal Output');
+
+    my $ec2 = Amazon::AwsSum::EC2->new();
+    $ec2->access_key_id( $cfg->{AwsAccessKeyId} );
+    $ec2->secret_access_key( $cfg->{AwsSecretAccessKey} );
+
+    # now call the relevant command
+    if ( $command eq 'dim' ) {
+        $ec2->DescribeImages({ ImageId => $args->{i} });
+        unless ( $ec2->errs ) {
+            describe_images( $ec2->data );
+        }
+    }
+    elsif ( $command eq 'dkey' ) {
+        $ec2->DescribeKeyPairs({ KeyName => $args->{k} });
+        describe_key_pairs( $ec2->data );
+    }
+    elsif ( $command eq 'addkey' ) {
+        $ec2->CreateKeyPair({ KeyName => $args->{k} });
+        unless ( $ec2->errs ) {
+            create_key_pair( $ec2->data );
+        }
+    }
+    elsif ( $command eq 'delkey' ) {
+        $ec2->DeleteKeyPair({ KeyName => $args->{k} });
+        unless ( $ec2->errs ) {
+            delete_key_pair( $ec2->data, $args );
+        }
+    }
+    elsif ( $command eq 'din' ) {
+        describe_instances( $args );
+    }
+    elsif ( $command eq 'gcons' ) {
+        get_console_output( $args );
+    }
+    elsif ( $command eq 'datt' ) {
+        describe_image_attribute( $args );
+    }
+    elsif ( $command eq 'reboot' ) {
+        reboot_instances( $args );
+    }
+    elsif ( $command eq 'addgrp' ) {
+        create_security_group( $args );
+    }
+    elsif ( $command eq 'dgrp' ) {
+        describe_security_groups( $args );
+    }
+    elsif ( $command eq 'delgrp' ) {
+        delete_security_group( $args );
+    }
+    elsif ( $command eq 'auth' ) {
+        authorize_security_group_ingress( $args );
+    }
+    elsif ( $command eq 'revoke' ) {
+        revoke_security_group_ingress( $args );
+    }
+
+    if ( $ec2->errs ) {
+        line('Request Errors');
+        print errs( $ec2->errs );
+    }
+
+    line('HTTP Request');
+    vbs( $ec2->http_request->method . " " . $ec2->http_request->uri );
+    vbs( $ec2->http_request->headers_as_string( "\n" ) );
+    line('HTTP Response');
+    vbs( $ec2->http_response->code . ' ' . $ec2->http_response->message );
+    vbs( $ec2->http_response->headers_as_string( "\n" ) );
+    line('Content');
+    vbs( $ec2->http_response->content );
+    line('Data');
+    vbs( Dumper( $ec2->data ));
+    line();
+}
+
+## ----------------------------------------------------------------------------
+# reports
+
+sub describe_images {
+    my ($data) = @_;
+
+    # output
+    hdr("Type\tImageID\tLocation\tOwner\tState\tAccessibility\tProductCodes");
+
+    force_array( $data->{imagesSet}{item} );
+    foreach my $item ( @{$data->{imagesSet}{item}} ) {
+        print "IMAGE";
+        cols( $item, qw(imageId imageLocation imageOwnerId imageState) );
+        print "\t", $item->{isPublic} eq 'true' ? 'public' : '???';
+        if ( defined $item->{productCodes} ) {
+            force_array( $item->{productCodes}{item} );
+            foreach my $productCode ( @{$item->{productCodes}{item}} ) {
+                print "\t$productCode->{productCode}";
+            }
+        }
+        print "\n";
+    }
+}
+
+sub describe_key_pairs {
+    my ($data) = @_;
+
+    # output
+    hdr("Type\tKeyName\tFingerprint");
+
+    force_array( $data->{keySet}{item} );
+    foreach ( @{$data->{keySet}{item}} ) {
+        print 'KEYPAIR';
+        cols( $_, qw(keyName keyFingerprint) );
+        print "\n";
+    }
+}
+
+sub delete_key_pair {
+    my ($data, $args) = @_;
+
+    # output
+    hdr("Type\tKeyPair");
+    print "KEYPAIR\t$args->{k}\n";
+}
+
+sub describe_instances {
+    my ($args) = @_;
+
+    my $request = { Action => 'DescribeInstances' };
+    add_numeral_parameters( $request, 'InstanceId', $args->{i} );
+
+    my $xml = send_request( $request );
+
+    # output
+    print STDERR "ToDo: Output format for this command to be done (use --debug for now)\n";
+}
+
+sub get_console_output {
+    my ($args) = @_;
+
+    unless ( defined $args->{i} ) {
+        msg_and_exit( 'provide an instance id to analyse' );
+    }
+
+    if ( ref $args->{i} ) {
+        msg_and_exit( 'provide only one instance id' );
+    }
+
+    my $request = { Action => 'GetConsoleOutput' };
+    $request->{InstanceId} = $args->{i};
+
+    my $xml = send_request( $request );
+
+    # output
+    print STDERR "ToDo: Output format for this command to be done (use --debug for now)\n";
+}
+
+sub create_key_pair {
+    my ($data) = @_;
+
+    # output
+    hdr("Type\tKeyPair");
+    print 'KEYPAIR';
+    cols( $data, qw(keyName keyFingerprint) );
+    print "\n";
+    print $data->{keyMaterial}, "\n";
+}
+
+# not yet complete
+sub describe_image_attribute {
+    my ($args) = @_;
+
+    unless ( defined $args->{i} ) {
+        msg_and_exit( 'provide an image id to analyse' );
+    }
+
+    if ( ref $args->{i} ) {
+        msg_and_exit( 'provide only one image id' );
+    }
+
+    unless ( defined $args->{a} and ( $args->{a} eq 'launchPermission' or $args->{a} eq 'productCodes' ) ) {
+        msg_and_exit( 'attribute value must be launchPermission or productCodes' );
+    }
+
+    my $request = { Action => 'DescribeImageAttribute' };
+    $request->{ImageId} = $args->{i};
+    $request->{Attribute} = $args->{a};
+
+    my $xml = send_request( $request );
+
+    # output
+    print STDERR "ToDo: Output format for this command to be done (use --debug for now)\n";
+}
+
+sub reboot_instances {
+    my ($args) = @_;
+
+    my $request = { Action => 'RebootInstances' };
+    add_numeral_parameters( $request, 'InstanceId', $args->{i} );
+
+    my $xml = send_request( $request );
+
+    # output
+    print STDERR "ToDo: Output format for this command to be done (use --debug for now)\n";
+}
+
+sub create_security_group {
+    my ($args) = @_;
+
+    unless ( defined $args->{g} ) {
+        msg_and_exit( 'provide a group name' );
+    }
+
+    unless ( defined $args->{d} ) {
+        msg_and_exit( 'provide a group description' );
+    }
+
+    my $request = { Action => 'CreateSecurityGroup' };
+    $request->{GroupName} = $args->{g};
+    $request->{GroupDescription} = $args->{d};
+
+    my $xml = send_request( $request );
+
+    # output
+    print STDERR "ToDo: Output format for this command to be done (use --debug for now)\n";
+}
+
+sub describe_security_groups {
+    my ($args) = @_;
+
+    my $request = { Action => 'DescribeSecurityGroups' };
+    add_numeral_parameters( $request, 'GroupName', $args->{g} );
+
+    my $xml = send_request( $request );
+
+    # output
+
+    hdr("FORMAT GROUP\tOwner\tName\tDesccription");
+    hdr("FORMAT PERMISSION\tProtocol\tFromPort\tToPort");
+
+    force_array( $xml->{securityGroupInfo}{item} );
+    foreach my $group ( @{$xml->{securityGroupInfo}{item}} ) {
+        print "GROUP";
+        cols( $group, qw(ownerId groupName groupDescription) );
+        print "\n";
+
+        # now do the permissions
+        force_array( $group->{ipPermissions}{item} );
+        foreach my $permission ( @{$group->{ipPermissions}{item}} ) {
+            print "PERMISSION";
+            cols( $permission, qw(ipProtocol fromPort toPort) );
+            print "\n";
+        }
+    }
+    print STDERR "ToDo: Output format for this command to be completed (use --debug for now)\n";
+}
+
+sub delete_security_group {
+    my ($args) = @_;
+
+    unless ( defined $args->{g} ) {
+        msg_and_exit( 'provide a group name' );
+    }
+
+    my $request = { Action => 'DeleteSecurityGroup' };
+    $request->{GroupName} = $args->{g};
+
+    my $xml = send_request( $request );
+
+    # output
+    print STDERR "ToDo: Output format for this command to be done (use --debug for now)\n";
+}
+
+sub authorize_security_group_ingress {
+    my ($args) = @_;
+
+    unless ( defined $args->{g} ) {
+        msg_and_exit( 'provide a group name' );
+    }
+
+    # we're allowed to do SourceSecurityGroupName+SourceSecurityGroupOwnerId
+    # OR IpProtocol+FromPort+ToPort+CidrIp (but no overlap)
+
+    my @user_group = grep { m{\A (o|u) \z}xms } keys %$args;
+    my @cidr_ip = grep { m{\A (s|p|P|t) \z}xms } keys %$args;
+
+    print "user_group=@user_group\n";
+    print "cidr_ip=@cidr_ip\n";
+
+    my $request = { Action => 'AuthorizeSecurityGroupIngress' };
+    $request->{GroupName} = $args->{g};
+
+    # add them all to the request
+    if ( @user_group ) {
+        add_numeral_parameters( $request, 'SourceSecurityGroupName', $args->{o} );
+        add_numeral_parameters( $request, 'SourceSecurityGroupOwnerId', $args->{u} );
+    }
+    elsif ( @cidr_ip ) {
+        my ($from, $to);
+        if ( $args->{P} eq 'icmp' ) {
+            # must be icmp
+            ($from, $to) = $args->{t} =~ m{\A(-1|\d+):(-1|\d+)\z}xms;
+        }
+        else {
+            # must be tcp or udp
+            ($from, $to) = $args->{p} =~ m{\A(\d+)-(\d+)\z}xms;
+        }
+        $to = $from unless defined $to;
+
+        add_parameter( $request, 'IpProtocol', $args->{P} );
+        add_parameter( $request, 'FromPort', $from );
+        add_parameter( $request, 'ToPort', $to );
+        add_parameter( $request, 'CidrIp', $args->{s} );
+    }
+    else {
+        msg_and_exit( 'you need to specify either the source security group or cidr information' );
+    }
+
+    my $xml = send_request( $request );
+
+    # output
+    print STDERR "ToDo: Output format for this command to be done (use --debug for now)\n";
+}
+
+sub revoke_security_group_ingress {
+    my ($args) = @_;
+
+    unless ( defined $args->{g} ) {
+        msg_and_exit( 'provide a group name' );
+    }
+
+    # we're allowed to do SourceSecurityGroupName+SourceSecurityGroupOwnerId
+    # OR IpProtocol+FromPort+ToPort+CidrIp (but no overlap)
+
+    my @user_group = grep { m{\A (o|u) \z}xms } keys %$args;
+    my @cidr_ip = grep { m{\A (s|p|P|t) \z}xms } keys %$args;
+
+    print "user_group=@user_group\n";
+    print "cidr_ip=@cidr_ip\n";
+
+    my $request = { Action => 'RevokeSecurityGroupIngress' };
+    $request->{GroupName} = $args->{g};
+
+    # add them all to the request
+    if ( @user_group ) {
+        add_numeral_parameters( $request, 'SourceSecurityGroupName', $args->{o} );
+        add_numeral_parameters( $request, 'SourceSecurityGroupOwnerId', $args->{u} );
+    }
+    elsif ( @cidr_ip ) {
+        my ($from, $to);
+        if ( $args->{P} eq 'icmp' ) {
+            # must be icmp
+            ($from, $to) = $args->{t} =~ m{\A(-1|\d+):(-1|\d+)\z}xms;
+        }
+        else {
+            # must be tcp or udp
+            ($from, $to) = $args->{p} =~ m{\A(\d+)-(\d+)\z}xms;
+        }
+        $to = $from unless defined $to;
+
+        add_parameter( $request, 'IpProtocol', $args->{P} );
+        add_parameter( $request, 'FromPort', $from );
+        add_parameter( $request, 'ToPort', $to );
+        add_parameter( $request, 'CidrIp', $args->{s} );
+    }
+    else {
+        msg_and_exit( 'you need to specify either the source security group or cidr information' );
+    }
+
+    my $xml = send_request( $request );
+
+    # output
+    print STDERR "ToDo: Output format for this command to be done (use --debug for now)\n";
+}
+
+## ----------------------------------------------------------------------------
+# response utils
+
+## ----------------------------------------------------------------------------
+# usage
+
+sub usage {
+   print <<"END_USAGE";
+Usage: $0 <COMMAND>
+
+Commands:
+  dim [-i ImageId [-i ...]] [-o Owner [-o ...]] [-x ExecutableBy [-x ...]]
+   * describes the images available
+
+  dkey [-k KeyPair [-k ...]]
+   * describes all the key pairs you have
+
+  addkey -k KeyPair
+   * adds a new keypair using this name
+
+  delkey -k KeyPair
+   * deleted the named keypair
+
+  din [-i InstanceId [-i ...]]
+   * describe these instances (default all)
+
+  gcons [-i InstanceId [-i ...]]
+   * gets the console output for these instances
+
+  datt -i ImageId -a Attribute
+   * describes this attribute (launchPermission|productCodes) for this image
+     -i InstanceId (e.g. i-...)
+     -a 'launchPermission' or 'productCodes'
+
+  reboot [-i InstanceId [-i ...]]
+   * reboots the selected instances
+     -i InstanceId (e.g. i-...)
+
+  addgrp -g GroupName -d Description
+   * adds a security group
+     -g the group name to add
+     -d your textual description
+
+  dgrp [-g GroupName [-g ...]]
+   * describes all or the groups given
+     -g group name
+
+  delgrp -g GroupName
+   * deletes this security group
+     -g group name
+
+  auth [-g GroupName] [-o SourceGroupName] [-u OwnerId] [-P protocol] [-p PortRange | -t IcmpTypeCode] [-s CidrIp]
+   * authorises security group ingress
+     -g group to modify
+     -o security group to authorise access to \_ both required
+     -u owner of the above security group     /
+     -s source subnet (e.g. 1.2.3.4/24)             \
+     -P IP Protocol to authorise (tcp|udp|icmp)      \_ all 4 required
+     -t ICMP type code (1:2, either digit can be -1) /
+     -p port range for tcp|udp (e.g. 80-81)         /
+
+  revoke  [-g GroupName] [-o SourceGroupName] [-u OwnerId] [-P protocol] [-p PortRange | -t IcmpTypeCode] [-s CidrIp]
+   * revokes security group ingress
+     -g group to modify
+     -o security group to revoke access from \_ both required
+     -u owner of the above security group    /
+     -s source subnet (e.g. 1.2.3.4/24)             \
+     -P IP Protocol to revoke (tcp|udp|icmp)      \_ all 4 required
+     -t ICMP type code (1:2, either digit can be -1) /
+     -p port range for tcp|udp (e.g. 80-81)         /
+
+Note: commands related to images are not yet implemented.
+
+See <http://code.google.com/p/awssum/> for further information.
+Report bugs at <http://code.google.com/p/awssum/issues/list>.
+END_USAGE
+}
+
+sub msg_and_exit {
+    my ($msg) = @_;
+    print STDERR $msg, "\n";
+    exit 2;
+}
+
+## ----------------------------------------------------------------------------
+# some output subs
+
+## ----------------------------------------------------------------------------
