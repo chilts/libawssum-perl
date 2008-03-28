@@ -8,7 +8,7 @@ use Data::Dumper;
 use Getopt::Mixed "nextOption";
 use Config::Simple;
 
-use Amazon::AwsSum::Util qw(get_options vbs hdr line errs force_array);
+use Amazon::AwsSum::Util qw(get_options vbs hdr line cols errs force_array);
 use Amazon::AwsSum::EC2;
 
 ## ----------------------------------------------------------------------------
@@ -28,6 +28,7 @@ my @IN_OPTS = (
     's=s',   # source subnet
     't=s',   # icmp type code
     'u=s',   # source group user
+    'z=s',   # zone name
     'headers',   'H>headers',
     'verbose',   'v>verbose',
     'help',
@@ -43,15 +44,26 @@ my %BOOLEAN_ARGS = (
 
 use constant COMMANDS => {
     # Images
-    dim => 1,
-    datt => 1,
-    # Keys
-    addkey => 1, dkey => 1, delkey => 1,
+    'desc-images'     => 1,
+    # Image Attributes
+    'desc-image-attr' => 1,
+    # Key Pairs
+    'add-key'         => 1,
+    'desc-key'        => 1,
+    'del-key'         => 1,
     # Instances
-    din => 1,
-    gcons => 1, reboot => 1,
-    # Groups
-    addgrp => 1, dgrp => 1, delgrp => 1, auth => 1, revoke => 1,
+    'desc-inst'       => 1,
+    # misc
+    'get-con-output'  => 1,
+    'reboot-inst'     => 1,
+    # Security Groups
+    'add-grp'         => 1,
+    'desc-grp'        => 1,
+    'del-grp'         => 1,
+    'auth-grp'        => 1,
+    'revoke-grp'      => 1,
+    # Availability Zones
+    'desc-zone'       => 1,
 };
 
 ## ----------------------------------------------------------------------------
@@ -63,7 +75,7 @@ MAIN: {
     my $args = get_options(\@IN_OPTS, \%BOOLEAN_ARGS);
 
     # setup the output things
-    Amazon::AwsSum::Util::set_vbs( $args->{verbose} || $args->{headers} );
+    Amazon::AwsSum::Util::set_vbs( $args->{verbose} );
     Amazon::AwsSum::Util::set_hdr( $args->{headers} );
 
     # do the version and help
@@ -103,54 +115,60 @@ MAIN: {
     $ec2->secret_access_key( $cfg->{AwsSecretAccessKey} );
 
     # now call the relevant command
-    if ( $command eq 'dim' ) {
+    if ( $command eq 'desc-images' ) {
         $ec2->DescribeImages({ ImageId => $args->{i} });
         unless ( $ec2->errs ) {
-            describe_images( $ec2->data );
+            report_describe_images( $ec2->data );
         }
     }
-    elsif ( $command eq 'dkey' ) {
+    elsif ( $command eq 'desc-key' ) {
         $ec2->DescribeKeyPairs({ KeyName => $args->{k} });
-        describe_key_pairs( $ec2->data );
+        report_describe_key_pairs( $ec2->data );
     }
-    elsif ( $command eq 'addkey' ) {
+    elsif ( $command eq 'add-key' ) {
         $ec2->CreateKeyPair({ KeyName => $args->{k} });
         unless ( $ec2->errs ) {
-            create_key_pair( $ec2->data );
+            report_create_key_pair( $ec2->data );
         }
     }
-    elsif ( $command eq 'delkey' ) {
+    elsif ( $command eq 'del-key' ) {
         $ec2->DeleteKeyPair({ KeyName => $args->{k} });
         unless ( $ec2->errs ) {
-            delete_key_pair( $ec2->data, $args );
+            report_delete_key_pair( $ec2->data, $args );
         }
     }
-    elsif ( $command eq 'din' ) {
+    elsif ( $command eq 'desc-inst' ) {
         describe_instances( $args );
     }
-    elsif ( $command eq 'gcons' ) {
+    elsif ( $command eq 'get-con-output' ) {
         get_console_output( $args );
     }
-    elsif ( $command eq 'datt' ) {
+    elsif ( $command eq 'desc-image-attr' ) {
         describe_image_attribute( $args );
     }
-    elsif ( $command eq 'reboot' ) {
+    elsif ( $command eq 'reboot-inst' ) {
         reboot_instances( $args );
     }
-    elsif ( $command eq 'addgrp' ) {
+    elsif ( $command eq 'add-grp' ) {
         create_security_group( $args );
     }
-    elsif ( $command eq 'dgrp' ) {
+    elsif ( $command eq 'desc-grp' ) {
         describe_security_groups( $args );
     }
-    elsif ( $command eq 'delgrp' ) {
+    elsif ( $command eq 'del-grp' ) {
         delete_security_group( $args );
     }
-    elsif ( $command eq 'auth' ) {
+    elsif ( $command eq 'auth-grp' ) {
         authorize_security_group_ingress( $args );
     }
-    elsif ( $command eq 'revoke' ) {
+    elsif ( $command eq 'revoke-grp' ) {
         revoke_security_group_ingress( $args );
+    }
+    elsif ( $command eq 'desc-zone' ) {
+        $ec2->DescribeAvailabilityZone({ ZoneName => $args->{z} });
+        unless ( $ec2->errs ) {
+            report_desc_zone( $ec2->data );
+        }
     }
 
     if ( $ec2->errs ) {
@@ -174,15 +192,15 @@ MAIN: {
 ## ----------------------------------------------------------------------------
 # reports
 
-sub describe_images {
+sub report_describe_images {
     my ($data) = @_;
 
     # output
-    hdr("Type\tImageID\tLocation\tOwner\tState\tAccessibility\tProductCodes");
+    hdr("# Image:\tType\tImageID\tLocation\tOwner\tState\tAccessibility\tProductCodes");
 
     force_array( $data->{imagesSet}{item} );
     foreach my $item ( @{$data->{imagesSet}{item}} ) {
-        print "IMAGE";
+        print "Image: ";
         cols( $item, qw(imageId imageLocation imageOwnerId imageState) );
         print "\t", $item->{isPublic} eq 'true' ? 'public' : '???';
         if ( defined $item->{productCodes} ) {
@@ -195,26 +213,26 @@ sub describe_images {
     }
 }
 
-sub describe_key_pairs {
+sub report_describe_key_pairs {
     my ($data) = @_;
 
     # output
-    hdr("Type\tKeyName\tFingerprint");
+    hdr("# KeyPair:\tType\tKeyName\tFingerprint");
 
     force_array( $data->{keySet}{item} );
     foreach ( @{$data->{keySet}{item}} ) {
-        print 'KEYPAIR';
+        print 'KeyPair:';
         cols( $_, qw(keyName keyFingerprint) );
         print "\n";
     }
 }
 
-sub delete_key_pair {
+sub report_delete_key_pair {
     my ($data, $args) = @_;
 
     # output
-    hdr("Type\tKeyPair");
-    print "KEYPAIR\t$args->{k}\n";
+    #hdr("KeyPair:\tKeyPair");
+    #print "KeyPair:\t$args->{k}\n";
 }
 
 sub describe_instances {
@@ -226,7 +244,7 @@ sub describe_instances {
     my $xml = send_request( $request );
 
     # output
-    print STDERR "ToDo: Output format for this command to be done (use --debug for now)\n";
+    print STDERR "ToDo: Output format for this command to be done (use --verbose for now)\n";
 }
 
 sub get_console_output {
@@ -246,10 +264,10 @@ sub get_console_output {
     my $xml = send_request( $request );
 
     # output
-    print STDERR "ToDo: Output format for this command to be done (use --debug for now)\n";
+    print STDERR "ToDo: Output format for this command to be done (use --verbose for now)\n";
 }
 
-sub create_key_pair {
+sub report_create_key_pair {
     my ($data) = @_;
 
     # output
@@ -283,7 +301,7 @@ sub describe_image_attribute {
     my $xml = send_request( $request );
 
     # output
-    print STDERR "ToDo: Output format for this command to be done (use --debug for now)\n";
+    print STDERR "ToDo: Output format for this command to be done (use --verbose for now)\n";
 }
 
 sub reboot_instances {
@@ -295,7 +313,7 @@ sub reboot_instances {
     my $xml = send_request( $request );
 
     # output
-    print STDERR "ToDo: Output format for this command to be done (use --debug for now)\n";
+    print STDERR "ToDo: Output format for this command to be done (use --verbose for now)\n";
 }
 
 sub create_security_group {
@@ -316,7 +334,7 @@ sub create_security_group {
     my $xml = send_request( $request );
 
     # output
-    print STDERR "ToDo: Output format for this command to be done (use --debug for now)\n";
+    print STDERR "ToDo: Output format for this command to be done (use --verbose for now)\n";
 }
 
 sub describe_security_groups {
@@ -346,7 +364,7 @@ sub describe_security_groups {
             print "\n";
         }
     }
-    print STDERR "ToDo: Output format for this command to be completed (use --debug for now)\n";
+    print STDERR "ToDo: Output format for this command to be completed (use --verbose for now)\n";
 }
 
 sub delete_security_group {
@@ -362,7 +380,7 @@ sub delete_security_group {
     my $xml = send_request( $request );
 
     # output
-    print STDERR "ToDo: Output format for this command to be done (use --debug for now)\n";
+    print STDERR "ToDo: Output format for this command to be done (use --verbose for now)\n";
 }
 
 sub authorize_security_group_ingress {
@@ -413,7 +431,7 @@ sub authorize_security_group_ingress {
     my $xml = send_request( $request );
 
     # output
-    print STDERR "ToDo: Output format for this command to be done (use --debug for now)\n";
+    print STDERR "ToDo: Output format for this command to be done (use --verbose for now)\n";
 }
 
 sub revoke_security_group_ingress {
@@ -464,7 +482,21 @@ sub revoke_security_group_ingress {
     my $xml = send_request( $request );
 
     # output
-    print STDERR "ToDo: Output format for this command to be done (use --debug for now)\n";
+    print STDERR "ToDo: Output format for this command to be done (use --verbose for now)\n";
+}
+
+sub report_desc_zone {
+    my ($data) = @_;
+
+    # output
+    hdr("# AvailabilityZone:\tName\tState");
+
+    force_array( $data->{availabilityZoneInfo}{item} );
+    foreach my $item ( @{$data->{availabilityZoneInfo}{item}} ) {
+        print "AvailabilityZone: ";
+        cols( $item, qw(zoneName zoneState) );
+        print "\n";
+    }
 }
 
 ## ----------------------------------------------------------------------------
@@ -478,47 +510,47 @@ sub usage {
 Usage: $0 <COMMAND>
 
 Commands:
-  dim [-i ImageId [-i ...]] [-o Owner [-o ...]] [-x ExecutableBy [-x ...]]
+  desc-images [-i ImageId [-i ...]] [-o Owner [-o ...]] [-x ExecutableBy [-x ...]]
    * describes the images available
 
-  dkey [-k KeyPair [-k ...]]
+  desc-key [-k KeyPair [-k ...]]
    * describes all the key pairs you have
 
-  addkey -k KeyPair
+  add-key -k KeyPair
    * adds a new keypair using this name
 
-  delkey -k KeyPair
+  del-key -k KeyPair
    * deleted the named keypair
 
-  din [-i InstanceId [-i ...]]
+  desc-inst [-i InstanceId [-i ...]]
    * describe these instances (default all)
 
-  gcons [-i InstanceId [-i ...]]
+  get-con-output [-i InstanceId [-i ...]]
    * gets the console output for these instances
 
-  datt -i ImageId -a Attribute
+  desc-image-att -i ImageId -a Attribute
    * describes this attribute (launchPermission|productCodes) for this image
      -i InstanceId (e.g. i-...)
      -a 'launchPermission' or 'productCodes'
 
-  reboot [-i InstanceId [-i ...]]
+  reboot-inst [-i InstanceId [-i ...]]
    * reboots the selected instances
      -i InstanceId (e.g. i-...)
 
-  addgrp -g GroupName -d Description
+  add-grp -g GroupName -d Description
    * adds a security group
      -g the group name to add
      -d your textual description
 
-  dgrp [-g GroupName [-g ...]]
+  desc-grp [-g GroupName [-g ...]]
    * describes all or the groups given
      -g group name
 
-  delgrp -g GroupName
+  del-grp -g GroupName
    * deletes this security group
      -g group name
 
-  auth [-g GroupName] [-o SourceGroupName] [-u OwnerId] [-P protocol] [-p PortRange | -t IcmpTypeCode] [-s CidrIp]
+  auth-grp [-g GroupName] [-o SourceGroupName] [-u OwnerId] [-P protocol] [-p PortRange | -t IcmpTypeCode] [-s CidrIp]
    * authorises security group ingress
      -g group to modify
      -o security group to authorise access to \_ both required
@@ -528,7 +560,7 @@ Commands:
      -t ICMP type code (1:2, either digit can be -1) /
      -p port range for tcp|udp (e.g. 80-81)         /
 
-  revoke  [-g GroupName] [-o SourceGroupName] [-u OwnerId] [-P protocol] [-p PortRange | -t IcmpTypeCode] [-s CidrIp]
+  revoke-grp [-g GroupName] [-o SourceGroupName] [-u OwnerId] [-P protocol] [-p PortRange | -t IcmpTypeCode] [-s CidrIp]
    * revokes security group ingress
      -g group to modify
      -o security group to revoke access from \_ both required

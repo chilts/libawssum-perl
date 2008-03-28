@@ -11,7 +11,7 @@ use base qw(Amazon::AwsSum::Service);
 use URI::Escape;
 use DateTime;
 
-sub service_version { '2007-08-29' }
+sub service_version { '2008-02-01' }
 sub decode_xml { 1 }
 sub method { 'GET' }
 
@@ -58,6 +58,14 @@ sub DeleteKeyPair {
 
     $self->action('DeleteKeyPair');
     $self->add_parameter( 'KeyName', $params->{KeyName} );
+    return $self->send();
+}
+
+sub DescribeAvailabilityZone {
+    my ($self, $params) = @_;
+
+    $self->action('DescribeAvailabilityZones');
+    $self->add_numeral_parameters( 'ZoneName', $params->{ZoneName} );
     return $self->send();
 }
 
