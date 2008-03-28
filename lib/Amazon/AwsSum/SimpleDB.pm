@@ -40,14 +40,16 @@ sub CreateDomain {
     }
 
     $self->action('CreateDomain');
-    $self->add_parameter( 'DomainName', $params->{DomainName} );
+    $self->add_param_value( 'DomainName', $params->{DomainName} );
     return $self->send();
 }
 
 sub ListDomains {
-    my ($self) = @_;
+    my ($self, $params) = @_;
 
     $self->action('ListDomains');
+    $self->add_param_value( 'MaxNumberOfDomains', $params->{MaxNumberOfDomains} );
+    $self->add_param_value( 'NextToken', $params->{NextToken} );
     return $self->send();
 }
 
@@ -59,7 +61,7 @@ sub DeleteDomain {
     }
 
     $self->action('DeleteDomain');
-    $self->add_parameter( 'DomainName', $params->{DomainName} );
+    $self->add_param_value( 'DomainName', $params->{DomainName} );
     return $self->send();
 }
 
@@ -70,18 +72,13 @@ sub PutAttributes {
         croak( 'provide a domain name to put the attributes into' );
     }
 
-    # if uuid is defined (and there is no ItemName yet), create one
-    #if ( defined $params->{uuid} and !defined $params->{i} ) {
-    #    $params->{i} = Data::UUID->new->create_str;
-    #}
-
     unless ( defined $params->{ItemName} ) {
         croak( 'provide an item name' );
     }
 
     $self->action('PutAttributes');
-    $self->add_parameter( 'DomainName', $params->{DomainName} );
-    $self->add_parameter( 'ItemName', $params->{ItemName} );
+    $self->add_param_value( 'DomainName', $params->{DomainName} );
+    $self->add_param_value( 'ItemName', $params->{ItemName} );
     if ( defined $params->{AttributePair} ) {
         $self->add_attributes( $params->{AttributePair});
     }
@@ -106,9 +103,9 @@ sub GetAttributes {
     }
 
     $self->action('GetAttributes');
-    $self->add_parameter( 'DomainName', $params->{DomainName} );
-    $self->add_parameter( 'ItemName', $params->{ItemName} );
-    $self->add_numeral_parameters( 'Attribute', 'Name', $params->{AttributeName} );
+    $self->add_param_value( 'DomainName', $params->{DomainName} );
+    $self->add_param_value( 'ItemName', $params->{ItemName} );
+    $self->add_param_value( 'AttributeName', $params->{AttributeName} );
     return $self->send();
 }
 
@@ -124,8 +121,8 @@ sub DeleteAttributes {
     }
 
     $self->action('DeleteAttributes');
-    $self->add_parameter( 'DomainName', $params->{DomainName} );
-    $self->add_parameter( 'ItemName', $params->{ItemName} );
+    $self->add_param_value( 'DomainName', $params->{DomainName} );
+    $self->add_param_value( 'ItemName', $params->{ItemName} );
     if ( defined $params->{AttributePair} ) {
         $self->add_attributes( $params->{AttributePair});
     }
@@ -143,11 +140,11 @@ sub Query {
         croak( 'provide a domain name to query against' );
     }
 
-    $self->action('DeleteAttributes');
-    $self->add_parameter( 'DomainName', $params->{DomainName} );
-    $self->add_parameter( 'QueryExpression', $params->{QueryExpression} );
-    $self->add_parameter( 'MaxNumberOfItems', $params->{MaxNumberOfItems} );
-    $self->add_parameter( 'NextToken', $params->{NextToken} );
+    $self->action('Query');
+    $self->add_param_value( 'DomainName', $params->{DomainName} );
+    $self->add_param_value( 'QueryExpression', $params->{QueryExpression} );
+    $self->add_param_value( 'MaxNumberOfItems', $params->{MaxNumberOfItems} );
+    $self->add_param_value( 'NextToken', $params->{NextToken} );
     return $self->send();
 }
 
@@ -159,6 +156,9 @@ sub add_attributes {
 
     return unless defined $attribute_pair;
 
+    $attribute_pair = [ $attribute_pair ]
+        unless ref $attribute_pair eq 'ARRAY';
+
     # all av values should be of the form:
     # - key
     # - key=value
@@ -168,11 +168,10 @@ sub add_attributes {
         my ($replace, $name, undef, $value) = $ap =~ m{ \A (!?) ([^=]+) (= (.*))? \z }xms;
 
         if ( defined $name ) {
-            $self->add_parameter( "Attribute.$i.Name", $name );
-            $self->add_parameter( "Attribute.$i.Value", $value )
+            $self->add_param_value( "Attribute.$i.Name", $name );
+            $self->add_param_value( "Attribute.$i.Value", $value )
                 if defined $value;
-            $self->add_parameter( "Attribute.$i.Replace", $replace )
-                if defined $replace;
+            $self->add_param_value( "Attribute.$i.Replace", $replace ? 'true' : 'false' );
         }
         else {
             croak "invalid attribute pair '$ap'";

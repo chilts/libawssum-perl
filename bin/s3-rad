@@ -29,7 +29,6 @@ my @IN_OPTS = (
     'a=s',   # acl - private, public-read, public-read-write, authenticated-read
     'headers',   'H>headers',
     'verbose',   'v>verbose',
-    'debug',
     'help',
     'version',
 );
@@ -37,7 +36,6 @@ my @IN_OPTS = (
 my %BOOLEAN_ARGS = (
     headers => 1,
     verbose => 1,
-    debug   => 1,
     help    => 1,
     version => 1,
 );
@@ -63,26 +61,13 @@ use constant COMMANDS => {
 
 # hmm, should get rid of this global
 my $cfg = {};
-my $log;
 
 MAIN: {
     my $args = get_options(\@IN_OPTS, \%BOOLEAN_ARGS);
 
-    # setup the output things (including DEBUG)
+    # setup the output things
     Amazon::AwsSum::Util::set_vbs( $args->{verbose} );
     Amazon::AwsSum::Util::set_hdr( $args->{headers} );
-
-    my $log_level = ( $args->{debug} ? 'DEBUG' : 'INFO' );
-
-    my $config=<<"EOF";
-log4perl.logger.Main = $log_level, Screen
-log4perl.appender.Screen        = Log::Log4perl::Appender::Screen
-log4perl.appender.Screen.layout = PatternLayout
-log4perl.appender.Screen.layout.ConversionPattern = %d %20.20c{2}[%5L]: %5p - %m%n
-EOF
-
-    Log::Log4perl::init( \$config );
-    $log = Log::Log4perl->get_logger('Main');
 
     # do the version and help
     if ( exists $args->{version} ) {
@@ -293,8 +278,8 @@ Commands:
   list-buckets
    * list all your buckets
 
-See <http://code.google.com/p/awssum/> for further information.
-Report bugs at <http://code.google.com/p/awssum/issues/list>.
+See <http://github.com/andychilton/awssum/> for further information.
+Report bugs to <andychilton -at- gmail -dot- com>.
 END_USAGE
 }
 

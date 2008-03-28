@@ -120,6 +120,14 @@ sub add_parameter {
     $self->{params}{$name} = $val;
 }
 
+sub add_param_value {
+    my ($self, $name, $val) = @_;
+
+    return unless defined $val;
+
+    $self->{params}{$name} = $val;
+}
+
 sub add_numeral_parameters {
     my ($self, $name, $val) = @_;
 
