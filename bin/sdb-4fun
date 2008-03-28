@@ -7,7 +7,6 @@ use Data::Dumper;
 
 use Getopt::Mixed "nextOption";
 use Config::Simple;
-use Data::UUID;
 
 use Amazon::AwsSum::Util qw(get_options vbs hdr line errs force_array);
 use Amazon::AwsSum::SimpleDB;
