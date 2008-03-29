@@ -17,7 +17,7 @@ use Amazon::AwsSum::EC2;
 use constant VERSION => '0.1';
 
 my @IN_OPTS = (
-    'a=s',   # attribute
+    'a=s',   # attribute, address
     'd=s',   # description
     'i=s',   # image id, instance id
     'g=s',   # group name
@@ -62,6 +62,10 @@ use constant COMMANDS => {
     'del-grp'         => 1,
     'auth-grp'        => 1,
     'revoke-grp'      => 1,
+    # Addresses
+    'alloc-addr'      => 1,
+    'desc-addr'       => 1,
+    'rel-addr'        => 1,
     # Availability Zones
     'desc-zone'       => 1,
 };
@@ -163,6 +167,24 @@ MAIN: {
     }
     elsif ( $command eq 'revoke-grp' ) {
         revoke_security_group_ingress( $args );
+    }
+    elsif ( $command eq 'alloc-addr' ) {
+        $ec2->AllocateAddress();
+        unless ( $ec2->errs ) {
+            report_alloc_addr( $ec2->data );
+        }
+    }
+    elsif ( $command eq 'desc-addr' ) {
+        $ec2->DescribeAddresses({ PublicIp => $args->{a} });
+        unless ( $ec2->errs ) {
+            report_desc_addr( $ec2->data );
+        }
+    }
+    elsif ( $command eq 'rel-addr' ) {
+        $ec2->ReleaseAddress({ PublicIp => $args->{a} });
+        unless ( $ec2->errs ) {
+            report_rel_addr( $ec2->data );
+        }
     }
     elsif ( $command eq 'desc-zone' ) {
         $ec2->DescribeAvailabilityZone({ ZoneName => $args->{z} });
@@ -485,6 +507,33 @@ sub revoke_security_group_ingress {
     print STDERR "ToDo: Output format for this command to be done (use --verbose for now)\n";
 }
 
+sub report_alloc_addr {
+    my ($data) = @_;
+
+    # output
+    hdr("# Address:\tPublicIp");
+    print "Address:\t$data->{publicIp}\n";
+}
+
+sub report_desc_addr {
+    my ($data) = @_;
+
+    # output
+    hdr("# Address:\tPublicIp");
+
+    force_array( $data->{addressesSet}{item} );
+    foreach my $item ( @{$data->{addressesSet}{item}} ) {
+        print "Address:\t$item->{publicIp}\n";
+    }
+}
+
+sub report_rel_addr {
+    my ($data) = @_;
+
+    hdr("# Return:\tResult");
+    print "Return:\t$data->{return}\n";
+}
+
 sub report_desc_zone {
     my ($data) = @_;
 
@@ -569,6 +618,21 @@ Commands:
      -P IP Protocol to revoke (tcp|udp|icmp)      \_ all 4 required
      -t ICMP type code (1:2, either digit can be -1) /
      -p port range for tcp|udp (e.g. 80-81)         /
+
+  alloc-addr
+   * allocate an elastic IP address
+
+  desc-addr [-a ip-address]
+   * describe addresses
+     -a ip address to describe
+
+  rel-addr -a ip-address
+   * release address
+     -a ip address to release
+
+  desc-zone [-z zone-name]
+   * describe availability zones
+     -z zone name
 
 Note: commands related to images are not yet implemented.
 

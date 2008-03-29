@@ -61,6 +61,33 @@ sub DeleteKeyPair {
     return $self->send();
 }
 
+sub AllocateAddress {
+    my ($self, $params) = @_;
+
+    $self->action('AllocateAddress');
+    return $self->send();
+}
+
+sub DescribeAddresses {
+    my ($self, $params) = @_;
+
+    $self->action('DescribeAddresses');
+    $self->add_numeral_parameters( 'PublicIp', $params->{PublicIp} );
+    return $self->send();
+}
+
+sub ReleaseAddress {
+    my ($self, $params) = @_;
+
+    unless ( defined $params->{PublicIp} ) {
+        croak( 'provide an address to release' );
+    }
+
+    $self->action('ReleaseAddress');
+    $self->add_parameter( 'PublicIp', $params->{PublicIp} );
+    return $self->send();
+}
+
 sub DescribeAvailabilityZone {
     my ($self, $params) = @_;
 
