@@ -142,16 +142,22 @@ MAIN: {
         }
     }
     elsif ( $command eq 'desc-inst' ) {
-        describe_instances( $args );
-    }
-    elsif ( $command eq 'get-con-output' ) {
-        get_console_output( $args );
-    }
-    elsif ( $command eq 'desc-image-attr' ) {
-        describe_image_attribute( $args );
+        $ec2->DescribeInstances({ InstanceId => $args->{i} });
+        unless ( $ec2->errs ) {
+            report_describe_instances( $args );
+        }
     }
     elsif ( $command eq 'reboot-inst' ) {
         reboot_instances( $args );
+    }
+    elsif ( $command eq 'desc-image-attr' ) {
+        $ec2->DescribeImageAttribute({
+            ImageId   => $args->{i},
+            Attribute => $args->{a},
+        });
+        unless ( $ec2->errs ) {
+            report_describe_image_attribute( $args );
+        }
     }
     elsif ( $command eq 'add-grp' ) {
         create_security_group( $args );
@@ -191,6 +197,9 @@ MAIN: {
         unless ( $ec2->errs ) {
             report_desc_zone( $ec2->data );
         }
+    }
+    elsif ( $command eq 'get-con-output' ) {
+        get_console_output( $args );
     }
 
     if ( $ec2->errs ) {
@@ -257,16 +266,10 @@ sub report_delete_key_pair {
     #print "KeyPair:\t$args->{k}\n";
 }
 
-sub describe_instances {
-    my ($args) = @_;
+sub report_describe_instances {
+    my ($data) = @_;
 
-    my $request = { Action => 'DescribeInstances' };
-    add_numeral_parameters( $request, 'InstanceId', $args->{i} );
-
-    my $xml = send_request( $request );
-
-    # output
-    print STDERR "ToDo: Output format for this command to be done (use --verbose for now)\n";
+    print STDERR "ToDo: report_describe_instances\n";
 }
 
 sub get_console_output {
@@ -300,30 +303,10 @@ sub report_create_key_pair {
     print $data->{keyMaterial}, "\n";
 }
 
-# not yet complete
-sub describe_image_attribute {
-    my ($args) = @_;
+sub report_describe_image_attribute {
+    my ($data) = @_;
 
-    unless ( defined $args->{i} ) {
-        msg_and_exit( 'provide an image id to analyse' );
-    }
-
-    if ( ref $args->{i} ) {
-        msg_and_exit( 'provide only one image id' );
-    }
-
-    unless ( defined $args->{a} and ( $args->{a} eq 'launchPermission' or $args->{a} eq 'productCodes' ) ) {
-        msg_and_exit( 'attribute value must be launchPermission or productCodes' );
-    }
-
-    my $request = { Action => 'DescribeImageAttribute' };
-    $request->{ImageId} = $args->{i};
-    $request->{Attribute} = $args->{a};
-
-    my $xml = send_request( $request );
-
-    # output
-    print STDERR "ToDo: Output format for this command to be done (use --verbose for now)\n";
+    print STDERR "ToDo: report_describe_image_attribute\n";
 }
 
 sub reboot_instances {
@@ -559,32 +542,43 @@ sub usage {
 Usage: $0 <COMMAND>
 
 Commands:
-  desc-images [-i ImageId [-i ...]] [-o Owner [-o ...]] [-x ExecutableBy [-x ...]]
+  (reg-image)
+
+  desc-images [-i ImageId]... [-o Owner]... [-x ExecutableBy]...
    * describes the images available
 
-  desc-key [-k KeyPair [-k ...]]
-   * describes all the key pairs you have
+  (dereg-image)
+
+  (run-inst)
+
+  desc-inst [-i InstanceId]...
+   * describe these instances (default all)
+
+  (term-inst)
+
+  reboot-inst [-i InstanceId]...
+   * reboots the selected instances
+     -i InstanceId (e.g. 'i-28a64341')
+
+  (conf-prod-inst)
 
   add-key -k KeyPair
    * adds a new keypair using this name
 
+  desc-key [-k KeyPair]...
+   * describes all the key pairs you have
+
   del-key -k KeyPair
    * deleted the named keypair
 
-  desc-inst [-i InstanceId [-i ...]]
-   * describe these instances (default all)
-
-  get-con-output [-i InstanceId [-i ...]]
-   * gets the console output for these instances
+  (mod-image-attr)
 
   desc-image-att -i ImageId -a Attribute
    * describes this attribute (launchPermission|productCodes) for this image
      -i InstanceId (e.g. i-...)
      -a 'launchPermission' or 'productCodes'
 
-  reboot-inst [-i InstanceId [-i ...]]
-   * reboots the selected instances
-     -i InstanceId (e.g. i-...)
+  (reset-image-attr)
 
   add-grp -g GroupName -d Description
    * adds a security group
@@ -630,11 +624,18 @@ Commands:
    * release address
      -a ip address to release
 
+  (assoc-addr)
+
+  (disassoc-addr)
+
   desc-zone [-z zone-name]
    * describe availability zones
      -z zone name
 
-Note: commands related to images are not yet implemented.
+  get-con-output [-i InstanceId]...
+   * gets the console output for these instances
+
+Note: commands in brackets are not yet implemented.
 
 See <http://github.com/andychilton/awssum/> for further information.
 Report bugs to <andychilton -at- gmail -dot- com>.

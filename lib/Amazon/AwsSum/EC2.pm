@@ -29,6 +29,14 @@ sub DescribeImages {
     return $self->send();
 }
 
+sub DescribeInstances {
+    my ($self, $params) = @_;
+
+    $self->action('DescribeInstances');
+    $self->add_numeral_parameters( 'InstanceId', $params->{InstanceId} );
+    return $self->send();
+}
+
 sub DescribeKeyPairs {
     my ($self, $params) = @_;
 
@@ -58,6 +66,23 @@ sub DeleteKeyPair {
 
     $self->action('DeleteKeyPair');
     $self->add_parameter( 'KeyName', $params->{KeyName} );
+    return $self->send();
+}
+
+sub DescribeImageAttribute {
+    my ($self, $params) = @_;
+
+    unless ( defined $params->{ImageId} ) {
+        croak( 'provide an image id' );
+    }
+
+    unless ( defined $params->{Attribute} ) {
+        croak( 'provide an attribute name' );
+    }
+
+    $self->action('DescribeImageAttribute');
+    $self->add_parameter( 'ImageId', $params->{ImageId} );
+    $self->add_parameter( 'Attribute', $params->{Attribute} );
     return $self->send();
 }
 
