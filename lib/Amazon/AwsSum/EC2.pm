@@ -86,11 +86,40 @@ sub DescribeImageAttribute {
     return $self->send();
 }
 
+sub CreateSecurityGroup {
+    my ($self, $params) = @_;
+
+    unless ( defined $params->{GroupName} ) {
+        croak( 'provide a group name' );
+    }
+
+    unless ( defined $params->{GroupDescription} ) {
+        croak( 'provide a group description' );
+    }
+
+    $self->action('CreateSecurityGroup');
+    $self->add_parameter( 'GroupName', $params->{GroupName} );
+    $self->add_parameter( 'GroupDescription', $params->{GroupDescription} );
+    return $self->send();
+}
+
 sub DescribeSecurityGroups {
     my ($self, $params) = @_;
 
     $self->action('DescribeSecurityGroups');
     $self->add_numeral_parameters( 'GroupName', $params->{GroupName} );
+    return $self->send();
+}
+
+sub DeleteSecurityGroup {
+    my ($self, $params) = @_;
+
+    unless ( defined $params->{GroupName} ) {
+        croak( 'provide a group name' );
+    }
+
+    $self->action('DeleteSecurityGroup');
+    $self->add_parameter( 'GroupName', $params->{GroupName} );
     return $self->send();
 }
 

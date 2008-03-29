@@ -29,6 +29,7 @@ my @IN_OPTS = (
     't=s',   # icmp type code
     'u=s',   # source group user
     'z=s',   # zone name
+    'd=s',   # (group) description
     'headers',   'H>headers',
     'verbose',   'v>verbose',
     'help',
@@ -162,7 +163,13 @@ MAIN: {
         }
     }
     elsif ( $command eq 'add-grp' ) {
-        create_security_group( $args );
+        $ec2->CreateSecurityGroup({
+            GroupName        => $args->{g},
+            GroupDescription => $args->{d},
+        });
+        unless ( $ec2->errs ) {
+            report_create_security_group( $ec2->data );
+        }
     }
     elsif ( $command eq 'desc-grp' ) {
         $ec2->DescribeSecurityGroups({
@@ -173,7 +180,12 @@ MAIN: {
         }
     }
     elsif ( $command eq 'del-grp' ) {
-        delete_security_group( $args );
+        $ec2->DeleteSecurityGroup({
+            GroupName => $args->{g},
+        });
+        unless ( $ec2->errs ) {
+            report_delete_security_group( $ec2->data );
+        }
     }
     elsif ( $command eq 'auth-grp' ) {
         authorize_security_group_ingress( $args );
@@ -329,24 +341,8 @@ sub reboot_instances {
 }
 
 sub report_create_security_group {
-    my ($args) = @_;
-
-    unless ( defined $args->{g} ) {
-        msg_and_exit( 'provide a group name' );
-    }
-
-    unless ( defined $args->{d} ) {
-        msg_and_exit( 'provide a group description' );
-    }
-
-    my $request = { Action => 'CreateSecurityGroup' };
-    $request->{GroupName} = $args->{g};
-    $request->{GroupDescription} = $args->{d};
-
-    my $xml = send_request( $request );
-
-    # output
-    print STDERR "ToDo: report_create_security_group()\n";
+    my ($data) = @_;
+    report_result($data);
 }
 
 sub report_describe_security_groups {
@@ -373,20 +369,9 @@ sub report_describe_security_groups {
     print STDERR "ToDo: complete report_describe_security_group()\n";
 }
 
-sub delete_security_group {
-    my ($args) = @_;
-
-    unless ( defined $args->{g} ) {
-        msg_and_exit( 'provide a group name' );
-    }
-
-    my $request = { Action => 'DeleteSecurityGroup' };
-    $request->{GroupName} = $args->{g};
-
-    my $xml = send_request( $request );
-
-    # output
-    print STDERR "ToDo: Output format for this command to be done (use --verbose for now)\n";
+sub report_delete_security_group {
+    my ($data) = @_;
+    report_result($data);
 }
 
 sub authorize_security_group_ingress {
@@ -513,9 +498,7 @@ sub report_desc_addr {
 
 sub report_rel_addr {
     my ($data) = @_;
-
-    hdr("# Return:\tResult");
-    print "Return:\t$data->{return}\n";
+    report_result($data);
 }
 
 sub report_desc_zone {
@@ -532,8 +515,13 @@ sub report_desc_zone {
     }
 }
 
-## ----------------------------------------------------------------------------
-# response utils
+# generic one
+sub report_result {
+    my ($data) = @_;
+
+    hdr("# Return:\tResult");
+    print "Return:\t$data->{return}\n";
+}
 
 ## ----------------------------------------------------------------------------
 # usage
