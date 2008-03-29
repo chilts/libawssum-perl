@@ -371,16 +371,9 @@ sub report_describe_image_attribute {
     print STDERR "ToDo: report_describe_image_attribute\n";
 }
 
-sub reboot_instances {
+sub report_reboot_instances {
     my ($args) = @_;
-
-    my $request = { Action => 'RebootInstances' };
-    add_numeral_parameters( $request, 'InstanceId', $args->{i} );
-
-    my $xml = send_request( $request );
-
-    # output
-    print STDERR "ToDo: Output format for this command to be done (use --verbose for now)\n";
+    print STDERR "ToDo: report_reboot_instances()\n";
 }
 
 sub report_create_security_group {
