@@ -8,12 +8,33 @@ use Carp;
 
 use base qw(Amazon::AwsSum::Service);
 
+use List::Util qw(reduce);
 use URI::Escape;
 use DateTime;
 
 sub service_version { '2008-02-01' }
 sub decode_xml { 1 }
 sub method { 'GET' }
+
+## ----------------------------------------------------------------------------
+# constants
+
+my $allowed = {
+    AuthorizeSecurityGroupIngress => {
+        IpProtocol => {
+            tcp  => 1,
+            udp  => 1,
+            icmp => 1,
+        },
+    },
+    RevokeSecurityGroupIngress => {
+        IpProtocol => {
+            tcp  => 1,
+            udp  => 1,
+            icmp => 1,
+        },
+    },
+};
 
 ## ----------------------------------------------------------------------------
 # commands
@@ -120,6 +141,92 @@ sub DeleteSecurityGroup {
 
     $self->action('DeleteSecurityGroup');
     $self->add_parameter( 'GroupName', $params->{GroupName} );
+    return $self->send();
+}
+
+sub AuthorizeSecurityGroupIngress {
+    my ($self, $params) = @_;
+
+    unless ( defined $params->{GroupName} ) {
+        croak( 'provide a group name' );
+    }
+
+    # we're allowed to do:
+    #    SourceSecurityGroupName+SourceSecurityGroupOwnerId
+    # OR
+    #    IpProtocol+FromPort+ToPort+CidrIp (but no overlap)
+    # see: http://docs.amazonwebservices.com/AWSEC2/2008-02-01/DeveloperGuide/
+
+    my @user_group = ( qw(SourceSecurityGroupName SourceSecurityGroupOwnerId) );
+    my @cidr_ip = ( qw(IpProtocol FromPort ToPort CidrIp) );
+
+    my $user_group = reduce { defined $params->{$b} ? $a+1 : $a } (0, @user_group);
+    my $cidr_ip = reduce { defined $params->{$b} ? $a+1 : $a } (0, @cidr_ip);
+
+    unless ( $user_group || $cidr_ip ) {
+        croak( 'provide either a User/Group pair or a CIDR IP permission' );
+    }
+
+    if ( $user_group && $cidr_ip ) {
+        croak( 'provide only a User/Group pair OR a CIDR IP permission - not both' );
+    }
+
+    if ( $cidr_ip ) {
+        unless ( exists $allowed->{AuthorizeSecurityGroupIngress}{IpProtocol}{$params->{IpProtocol}} ) {
+            my $vals = join(', ', keys %{$allowed->{AuthorizeSecurityGroupIngress}{IpProtocol}});
+            croak( 'provide an allowed value for IpProtocol: ' . $vals );
+        }
+    }
+
+    # all is good
+    $self->action('AuthorizeSecurityGroupIngress');
+    foreach ( qw(GroupName SourceSecurityGroupName SourceSecurityGroupOwnerId IpProtocol FromPort ToPort CidrIp) ) {
+        # only add it if it's defined, hence calling 'add_param_value'
+        $self->add_param_value( $_, $params->{$_} );
+    }
+    return $self->send();
+}
+
+sub RevokeSecurityGroupIngress {
+    my ($self, $params) = @_;
+
+    unless ( defined $params->{GroupName} ) {
+        croak( 'provide a group name' );
+    }
+
+    # we're allowed to do:
+    #    SourceSecurityGroupName+SourceSecurityGroupOwnerId
+    # OR
+    #    IpProtocol+FromPort+ToPort+CidrIp (but no overlap)
+    # see: http://docs.amazonwebservices.com/AWSEC2/2008-02-01/DeveloperGuide/
+
+    my @user_group = ( qw(SourceSecurityGroupName SourceSecurityGroupOwnerId) );
+    my @cidr_ip = ( qw(IpProtocol FromPort ToPort CidrIp) );
+
+    my $user_group = reduce { defined $params->{$b} ? $a+1 : $a } (0, @user_group);
+    my $cidr_ip = reduce { defined $params->{$b} ? $a+1 : $a } (0, @cidr_ip);
+
+    unless ( $user_group || $cidr_ip ) {
+        croak( 'provide either a User/Group pair or a CIDR IP permission' );
+    }
+
+    if ( $user_group && $cidr_ip ) {
+        croak( 'provide only a User/Group pair OR a CIDR IP permission - not both' );
+    }
+
+    if ( $cidr_ip ) {
+        unless ( exists $allowed->{RevokeSecurityGroupIngress}{IpProtocol}{$params->{IpProtocol}} ) {
+            my $vals = join(', ', keys %{$allowed->{RevokeSecurityGroupIngress}{IpProtocol}});
+            croak( 'provide an allowed value for IpProtocol: ' . $vals );
+        }
+    }
+
+    # all is good
+    $self->action('RevokeSecurityGroupIngress');
+    foreach ( qw(GroupName SourceSecurityGroupName SourceSecurityGroupOwnerId IpProtocol FromPort ToPort CidrIp) ) {
+        # only add it if it's defined, hence calling 'add_param_value'
+        $self->add_param_value( $_, $params->{$_} );
+    }
     return $self->send();
 }
 

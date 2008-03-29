@@ -25,7 +25,7 @@ my @IN_OPTS = (
     'o=s',   # owner id
     'p=s',   # port range (either 80-88, or 1:1 for icmp)
     'P=s',   # protocol
-    's=s',   # source subnet
+    's=s',   # source subnet (Cidr)
     't=s',   # icmp type code
     'u=s',   # source group user
     'z=s',   # zone name
@@ -187,11 +187,52 @@ MAIN: {
             report_delete_security_group( $ec2->data );
         }
     }
-    elsif ( $command eq 'auth-grp' ) {
-        authorize_security_group_ingress( $args );
-    }
-    elsif ( $command eq 'revoke-grp' ) {
-        revoke_security_group_ingress( $args );
+    elsif ( $command eq 'auth-grp' or $command eq 'revoke-grp' ) {
+        # do some initial processing of the arguments
+        my ($from, $to);
+        if ( defined $args->{P} ) {
+            if ( $args->{P} eq 'icmp' ) {
+                ($from, $to) = split(/:/, $args->{t}, 2);
+            }
+            elsif ( $args->{P} =~ m{ \A (tcp|udp) \z }xms ) {
+                ($from, $to) = split(/-/, $args->{p}, 2);
+            }
+            else {
+                # neither, but the call below will catch this
+            }
+            $to = $from unless defined $to;
+        }
+
+        if ( $command eq 'auth-grp' ) {
+            # now the request
+            $ec2->AuthorizeSecurityGroupIngress({
+                GroupName                  => $args->{g},
+                SourceSecurityGroupName    => $args->{o},
+                SourceSecurityGroupOwnerId => $args->{u},
+                IpProtocol                 => $args->{P},
+                FromPort                   => $from,
+                ToPort                     => $to,
+                CidrIp                     => $args->{s},
+            });
+            unless ( $ec2->errs ) {
+                report_authorize_security_group_ingress( $ec2->data );
+            }
+        }
+        else {
+            # revoke-grp
+            $ec2->RevokeSecurityGroupIngress({
+                GroupName                  => $args->{g},
+                SourceSecurityGroupName    => $args->{o},
+                SourceSecurityGroupOwnerId => $args->{u},
+                IpProtocol                 => $args->{P},
+                FromPort                   => $from,
+                ToPort                     => $to,
+                CidrIp                     => $args->{s},
+            });
+            unless ( $ec2->errs ) {
+                report_revoke_security_group_ingress( $ec2->data );
+            }
+        }
     }
     elsif ( $command eq 'alloc-addr' ) {
         $ec2->AllocateAddress();
@@ -324,7 +365,6 @@ sub report_create_key_pair {
 
 sub report_describe_image_attribute {
     my ($data) = @_;
-
     print STDERR "ToDo: report_describe_image_attribute\n";
 }
 
@@ -374,106 +414,14 @@ sub report_delete_security_group {
     report_result($data);
 }
 
-sub authorize_security_group_ingress {
-    my ($args) = @_;
-
-    unless ( defined $args->{g} ) {
-        msg_and_exit( 'provide a group name' );
-    }
-
-    # we're allowed to do SourceSecurityGroupName+SourceSecurityGroupOwnerId
-    # OR IpProtocol+FromPort+ToPort+CidrIp (but no overlap)
-
-    my @user_group = grep { m{\A (o|u) \z}xms } keys %$args;
-    my @cidr_ip = grep { m{\A (s|p|P|t) \z}xms } keys %$args;
-
-    print "user_group=@user_group\n";
-    print "cidr_ip=@cidr_ip\n";
-
-    my $request = { Action => 'AuthorizeSecurityGroupIngress' };
-    $request->{GroupName} = $args->{g};
-
-    # add them all to the request
-    if ( @user_group ) {
-        add_numeral_parameters( $request, 'SourceSecurityGroupName', $args->{o} );
-        add_numeral_parameters( $request, 'SourceSecurityGroupOwnerId', $args->{u} );
-    }
-    elsif ( @cidr_ip ) {
-        my ($from, $to);
-        if ( $args->{P} eq 'icmp' ) {
-            # must be icmp
-            ($from, $to) = $args->{t} =~ m{\A(-1|\d+):(-1|\d+)\z}xms;
-        }
-        else {
-            # must be tcp or udp
-            ($from, $to) = $args->{p} =~ m{\A(\d+)-(\d+)\z}xms;
-        }
-        $to = $from unless defined $to;
-
-        add_parameter( $request, 'IpProtocol', $args->{P} );
-        add_parameter( $request, 'FromPort', $from );
-        add_parameter( $request, 'ToPort', $to );
-        add_parameter( $request, 'CidrIp', $args->{s} );
-    }
-    else {
-        msg_and_exit( 'you need to specify either the source security group or cidr information' );
-    }
-
-    my $xml = send_request( $request );
-
-    # output
-    print STDERR "ToDo: Output format for this command to be done (use --verbose for now)\n";
+sub report_authorize_security_group_ingress {
+    my ($data) = @_;
+    report_result($data);
 }
 
-sub revoke_security_group_ingress {
-    my ($args) = @_;
-
-    unless ( defined $args->{g} ) {
-        msg_and_exit( 'provide a group name' );
-    }
-
-    # we're allowed to do SourceSecurityGroupName+SourceSecurityGroupOwnerId
-    # OR IpProtocol+FromPort+ToPort+CidrIp (but no overlap)
-
-    my @user_group = grep { m{\A (o|u) \z}xms } keys %$args;
-    my @cidr_ip = grep { m{\A (s|p|P|t) \z}xms } keys %$args;
-
-    print "user_group=@user_group\n";
-    print "cidr_ip=@cidr_ip\n";
-
-    my $request = { Action => 'RevokeSecurityGroupIngress' };
-    $request->{GroupName} = $args->{g};
-
-    # add them all to the request
-    if ( @user_group ) {
-        add_numeral_parameters( $request, 'SourceSecurityGroupName', $args->{o} );
-        add_numeral_parameters( $request, 'SourceSecurityGroupOwnerId', $args->{u} );
-    }
-    elsif ( @cidr_ip ) {
-        my ($from, $to);
-        if ( $args->{P} eq 'icmp' ) {
-            # must be icmp
-            ($from, $to) = $args->{t} =~ m{\A(-1|\d+):(-1|\d+)\z}xms;
-        }
-        else {
-            # must be tcp or udp
-            ($from, $to) = $args->{p} =~ m{\A(\d+)-(\d+)\z}xms;
-        }
-        $to = $from unless defined $to;
-
-        add_parameter( $request, 'IpProtocol', $args->{P} );
-        add_parameter( $request, 'FromPort', $from );
-        add_parameter( $request, 'ToPort', $to );
-        add_parameter( $request, 'CidrIp', $args->{s} );
-    }
-    else {
-        msg_and_exit( 'you need to specify either the source security group or cidr information' );
-    }
-
-    my $xml = send_request( $request );
-
-    # output
-    print STDERR "ToDo: Output format for this command to be done (use --verbose for now)\n";
+sub report_revoke_security_group_ingress {
+    my ($data) = @_;
+    report_result($data);
 }
 
 sub report_alloc_addr {
