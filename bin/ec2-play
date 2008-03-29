@@ -372,7 +372,7 @@ sub report_describe_image_attribute {
 }
 
 sub report_reboot_instances {
-    my ($args) = @_;
+    my ($data) = @_;
     print STDERR "ToDo: report_reboot_instances()\n";
 }
 
