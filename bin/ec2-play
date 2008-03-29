@@ -151,7 +151,10 @@ MAIN: {
         }
     }
     elsif ( $command eq 'reboot-inst' ) {
-        reboot_instances( $args );
+        $ec2->RebootInstances({ InstanceId => $args->{i} });
+        unless ( $ec2->errs ) {
+            report_reboot_instances( $ec2->data );
+        }
     }
     elsif ( $command eq 'desc-image-attr' ) {
         $ec2->DescribeImageAttribute({

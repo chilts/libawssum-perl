@@ -58,6 +58,14 @@ sub DescribeInstances {
     return $self->send();
 }
 
+sub RebootInstances {
+    my ($self, $params) = @_;
+
+    $self->action('RebootInstances');
+    $self->add_numeral_parameters( 'InstanceId', $params->{InstanceId} );
+    return $self->send();
+}
+
 sub DescribeKeyPairs {
     my ($self, $params) = @_;
 

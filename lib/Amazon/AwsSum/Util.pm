@@ -75,7 +75,7 @@ sub cols {
 sub errs {
     my ($errs) = @_;
     foreach ( @$errs ) {
-        print "$_->{Code}: $_->{Message}\n";
+        print STDERR "$_->{Code}: $_->{Message}\n";
     }
 }
 
