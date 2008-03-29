@@ -127,7 +127,9 @@ MAIN: {
     }
     elsif ( $command eq 'desc-key' ) {
         $ec2->DescribeKeyPairs({ KeyName => $args->{k} });
-        report_describe_key_pairs( $ec2->data );
+        unless ( $ec2->errs ) {
+            report_describe_key_pairs( $ec2->data );
+        }
     }
     elsif ( $command eq 'add-key' ) {
         $ec2->CreateKeyPair({ KeyName => $args->{k} });
