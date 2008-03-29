@@ -146,7 +146,7 @@ MAIN: {
     elsif ( $command eq 'desc-inst' ) {
         $ec2->DescribeInstances({ InstanceId => $args->{i} });
         unless ( $ec2->errs ) {
-            report_describe_instances( $args );
+            report_describe_instances( $ec2->data );
         }
     }
     elsif ( $command eq 'reboot-inst' ) {
@@ -158,14 +158,19 @@ MAIN: {
             Attribute => $args->{a},
         });
         unless ( $ec2->errs ) {
-            report_describe_image_attribute( $args );
+            report_describe_image_attribute( $ec2->data );
         }
     }
     elsif ( $command eq 'add-grp' ) {
         create_security_group( $args );
     }
     elsif ( $command eq 'desc-grp' ) {
-        describe_security_groups( $args );
+        $ec2->DescribeSecurityGroups({
+            GroupName => $args->{g},
+        });
+        unless ( $ec2->errs ) {
+            report_describe_security_groups( $ec2->data );
+        }
     }
     elsif ( $command eq 'del-grp' ) {
         delete_security_group( $args );
@@ -323,7 +328,7 @@ sub reboot_instances {
     print STDERR "ToDo: Output format for this command to be done (use --verbose for now)\n";
 }
 
-sub create_security_group {
+sub report_create_security_group {
     my ($args) = @_;
 
     unless ( defined $args->{g} ) {
@@ -341,37 +346,31 @@ sub create_security_group {
     my $xml = send_request( $request );
 
     # output
-    print STDERR "ToDo: Output format for this command to be done (use --verbose for now)\n";
+    print STDERR "ToDo: report_create_security_group()\n";
 }
 
-sub describe_security_groups {
-    my ($args) = @_;
-
-    my $request = { Action => 'DescribeSecurityGroups' };
-    add_numeral_parameters( $request, 'GroupName', $args->{g} );
-
-    my $xml = send_request( $request );
-
+sub report_describe_security_groups {
+    my ($data) = @_;
     # output
 
-    hdr("FORMAT GROUP\tOwner\tName\tDesccription");
-    hdr("FORMAT PERMISSION\tProtocol\tFromPort\tToPort");
+    hdr("# Group:\tOwner\tName\tDesccription");
+    hdr("# Permission:\tProtocol\tFromPort\tToPort");
 
-    force_array( $xml->{securityGroupInfo}{item} );
-    foreach my $group ( @{$xml->{securityGroupInfo}{item}} ) {
-        print "GROUP";
+    force_array( $data->{securityGroupInfo}{item} );
+    foreach my $group ( @{$data->{securityGroupInfo}{item}} ) {
+        print "Group:";
         cols( $group, qw(ownerId groupName groupDescription) );
         print "\n";
 
         # now do the permissions
         force_array( $group->{ipPermissions}{item} );
         foreach my $permission ( @{$group->{ipPermissions}{item}} ) {
-            print "PERMISSION";
+            print "Permission:";
             cols( $permission, qw(ipProtocol fromPort toPort) );
             print "\n";
         }
     }
-    print STDERR "ToDo: Output format for this command to be completed (use --verbose for now)\n";
+    print STDERR "ToDo: complete report_describe_security_group()\n";
 }
 
 sub delete_security_group {

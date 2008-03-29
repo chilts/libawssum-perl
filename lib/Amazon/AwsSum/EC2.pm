@@ -86,6 +86,14 @@ sub DescribeImageAttribute {
     return $self->send();
 }
 
+sub DescribeSecurityGroups {
+    my ($self, $params) = @_;
+
+    $self->action('DescribeSecurityGroups');
+    $self->add_numeral_parameters( 'GroupName', $params->{GroupName} );
+    return $self->send();
+}
+
 sub AllocateAddress {
     my ($self, $params) = @_;
 
