@@ -58,10 +58,44 @@ sub DescribeInstances {
     return $self->send();
 }
 
+sub RunInstances {
+    my ($self, $params) = @_;
+
+    unless ( defined $params->{ImageId} ) {
+        croak( 'provide an image id' );
+    }
+
+    unless ( defined $params->{MinCount} ) {
+        croak( 'provide a min count' );
+    }
+
+    unless ( defined $params->{MaxCount} ) {
+        croak( 'provide a max count' );
+    }
+
+    $self->action('RunInstances');
+    $self->add_param_value( 'ImageId', $params->{ImageId} );
+    $self->add_param_value( 'MinCount', $params->{MinCount} );
+    $self->add_param_value( 'MaxCount', $params->{MaxCount} );
+    $self->add_param_value( 'SecurityGroup', $params->{SecurityGroup} );
+    $self->add_param_value( 'KeyName', $params->{KeyName} );
+    $self->add_param_value( 'Placement.AvailabilityZone', $params->{AvailabilityZone} );
+
+    return $self->send();
+}
+
 sub RebootInstances {
     my ($self, $params) = @_;
 
     $self->action('RebootInstances');
+    $self->add_numeral_parameters( 'InstanceId', $params->{InstanceId} );
+    return $self->send();
+}
+
+sub TerminateInstances {
+    my ($self, $params) = @_;
+
+    $self->action('TerminateInstances');
     $self->add_numeral_parameters( 'InstanceId', $params->{InstanceId} );
     return $self->send();
 }
@@ -261,7 +295,36 @@ sub ReleaseAddress {
     }
 
     $self->action('ReleaseAddress');
-    $self->add_parameter( 'PublicIp', $params->{PublicIp} );
+    $self->add_param_value( 'PublicIp', $params->{PublicIp} );
+    return $self->send();
+}
+
+sub AssociateAddress {
+    my ($self, $params) = @_;
+
+    unless ( defined $params->{InstanceId} ) {
+        croak( 'provide an instance id' );
+    }
+
+    unless ( defined $params->{PublicIp} ) {
+        croak( 'provide an address' );
+    }
+
+    $self->action('AssociateAddress');
+    $self->add_param_value( 'InstanceId', $params->{InstanceId} );
+    $self->add_param_value( 'PublicIp', $params->{PublicIp} );
+    return $self->send();
+}
+
+sub DisassociateAddress {
+    my ($self, $params) = @_;
+
+    unless ( defined $params->{PublicIp} ) {
+        croak( 'provide an address' );
+    }
+
+    $self->action('DisassociateAddress');
+    $self->add_param_value( 'PublicIp', $params->{PublicIp} );
     return $self->send();
 }
 
@@ -270,6 +333,18 @@ sub DescribeAvailabilityZone {
 
     $self->action('DescribeAvailabilityZones');
     $self->add_numeral_parameters( 'ZoneName', $params->{ZoneName} );
+    return $self->send();
+}
+
+sub GetConsoleOutput {
+    my ($self, $params) = @_;
+
+    unless ( defined $params->{InstanceId} ) {
+        croak( 'provide an instance id' );
+    }
+
+    $self->action('GetConsoleOutput');
+    $self->add_param_value( 'InstanceId', $params->{InstanceId} );
     return $self->send();
 }
 

@@ -54,6 +54,8 @@ use constant COMMANDS => {
     'del-key'         => 1,
     # Instances
     'desc-inst'       => 1,
+    'run-inst'        => 1,
+    'term-inst'       => 1,
     # misc
     'get-con-output'  => 1,
     'reboot-inst'     => 1,
@@ -67,6 +69,8 @@ use constant COMMANDS => {
     'alloc-addr'      => 1,
     'desc-addr'       => 1,
     'rel-addr'        => 1,
+    'assoc-addr'      => 1,
+    'disassoc-addr'   => 1,
     # Availability Zones
     'desc-zone'       => 1,
 };
@@ -148,6 +152,29 @@ MAIN: {
         $ec2->DescribeInstances({ InstanceId => $args->{i} });
         unless ( $ec2->errs ) {
             report_describe_instances( $ec2->data );
+        }
+    }
+    elsif ( $command eq 'run-inst' ) {
+        # some pre-processing of input args
+        $args->{n} ||= 1;
+        my ($min, $max) = split('-', $args->{n}, 2);
+        $max = $min unless defined $max;
+
+        $ec2->RunInstances({
+            ImageId          => $args->{i},
+            MinCount         => $min,
+            MaxCount         => $max,
+            SecurityGroup    => $args->{g},
+            KeyName          => $args->{k},
+            # UserData         => $args->{d},
+            # InstanceType     => $args->{t},
+            AvailabilityZone => $args->{z},
+            # KernelId         => $args->{kernel},
+            # RamdiskId        => $args->{ramdisk},
+            # BlockDeviceMapping => $args->{blockdevicemapping},
+        });
+        unless ( $ec2->errs ) {
+            report_run_instances( $ec2->data );
         }
     }
     elsif ( $command eq 'reboot-inst' ) {
@@ -237,6 +264,14 @@ MAIN: {
             }
         }
     }
+    elsif ( $command eq 'term-inst' ) {
+        $ec2->TerminateInstances({
+            InstanceId => $args->{i},
+        });
+        unless ( $ec2->errs ) {
+            report_terminate_instances( $ec2->data );
+        }
+    }
     elsif ( $command eq 'alloc-addr' ) {
         $ec2->AllocateAddress();
         unless ( $ec2->errs ) {
@@ -255,6 +290,23 @@ MAIN: {
             report_rel_addr( $ec2->data );
         }
     }
+    elsif ( $command eq 'assoc-addr' ) {
+        $ec2->AssociateAddress({
+            InstanceId => $args->{i},
+            PublicIp   => $args->{a},
+        });
+        unless ( $ec2->errs ) {
+            report_assoc_addr( $ec2->data );
+        }
+    }
+    elsif ( $command eq 'disassoc-addr' ) {
+        $ec2->DisassociateAddress({
+            PublicIp => $args->{a}
+        });
+        unless ( $ec2->errs ) {
+            report_disassoc_addr( $ec2->data );
+        }
+    }
     elsif ( $command eq 'desc-zone' ) {
         $ec2->DescribeAvailabilityZone({ ZoneName => $args->{z} });
         unless ( $ec2->errs ) {
@@ -262,7 +314,12 @@ MAIN: {
         }
     }
     elsif ( $command eq 'get-con-output' ) {
-        get_console_output( $args );
+        $ec2->GetConsoleOutput({
+            InstanceId => $args->{i}
+        });
+        unless ( $ec2->errs ) {
+            report_get_console_output( $ec2->data );
+        }
     }
 
     if ( $ec2->errs ) {
@@ -332,27 +389,60 @@ sub report_delete_key_pair {
 sub report_describe_instances {
     my ($data) = @_;
 
-    print STDERR "ToDo: report_describe_instances\n";
+
+    force_array( $data->{reservationSet}{item} );
+    foreach my $r ( @{$data->{reservationSet}{item}} ) {
+        hdr("# Reservation:\tReservationId\tOwnerId\tGroupSet...");
+        # ToDo: loop through the GroupSet (assume just one for now)
+        print "Reservation:\t$r->{reservationId}\t$r->{ownerId}\t$r->{groupSet}{item}{groupId}\n";
+
+        hdr("# Instance:\tInstanceId\tImageId\tPrivateDnsName\tDnsName\tInstanceState.Name\tInstanceState.Code\tInstanceType\tLaunchTime\tPlacement.AvailabilityZone");
+
+        force_array( $r->{instancesSet}{item} );
+        foreach my $i ( @{$r->{instancesSet}{item}} ) {
+            print "Instance:";
+            print "\t$i->{instanceId}";
+            print "\t$i->{imageId}";
+            print "\t";
+            print "$i->{privateDnsName}"
+                unless ref $i->{privateDnsName};
+            print "\t";
+            print "$i->{dnsName}"
+                unless ref $i->{dnsName};
+            print "\t$i->{instanceState}{name}";
+            print "\t$i->{instanceState}{code}";
+            print "\t$i->{instanceType}";
+            print "\t$i->{launchTime}";
+            print "\t";
+            print "$i->{placement}{availabilityZone}"
+                unless ref $i->{placement}{availabilityZone};
+            print "\n";
+        }
+    }
 }
 
-sub get_console_output {
-    my ($args) = @_;
+sub report_run_instances {
+    my ($data) = @_;
 
-    unless ( defined $args->{i} ) {
-        msg_and_exit( 'provide an instance id to analyse' );
+    hdr("# Reservation:\tReservationId\tOwnerId\tGroupSet...");
+    # ToDo: loop through the GroupSet (assume just one for now)
+    print "Reservation:\t$data->{reservationId}\t$data->{ownerId}\t$data->{groupSet}{item}{groupId}\n";
+
+    hdr("# Instance:\tInstanceId\tImageId\tPrivateDnsName\tDnsName\tInstanceState.Name\tInstanceState.Code\tInstanceType\tLaunchTime\tPlacement.AvailabilityZone");
+    force_array( $data->{instancesSet}{item} );
+    foreach my $i ( @{$data->{instancesSet}{item}} ) {
+        print "Instance:";
+        print "\t$i->{instanceId}";
+        print "\t$i->{imageId}";
+        print "\t$i->{privateDnsName}";
+        print "\t$i->{dnsName}";
+        print "\t$i->{instanceState}{name}";
+        print "\t$i->{instanceState}{code}";
+        print "\t$i->{instanceType}";
+        print "\t$i->{launchTime}";
+        print "\t$i->{placement}{availabilityZone}";
+        print "\n";
     }
-
-    if ( ref $args->{i} ) {
-        msg_and_exit( 'provide only one instance id' );
-    }
-
-    my $request = { Action => 'GetConsoleOutput' };
-    $request->{InstanceId} = $args->{i};
-
-    my $xml = send_request( $request );
-
-    # output
-    print STDERR "ToDo: Output format for this command to be done (use --verbose for now)\n";
 }
 
 sub report_create_key_pair {
@@ -386,7 +476,7 @@ sub report_describe_security_groups {
     # output
 
     hdr("# Group:\tOwner\tName\tDesccription");
-    hdr("# Permission:\tProtocol\tFromPort\tToPort");
+    hdr("# Permission:\tProtocol\tFromPort\tToPort\tCidrIp...");
 
     force_array( $data->{securityGroupInfo}{item} );
     foreach my $group ( @{$data->{securityGroupInfo}{item}} ) {
@@ -399,10 +489,14 @@ sub report_describe_security_groups {
         foreach my $permission ( @{$group->{ipPermissions}{item}} ) {
             print "Permission:";
             cols( $permission, qw(ipProtocol fromPort toPort) );
+
+            force_array( $permission->{ipRanges}{item} );
+            foreach my $iprange ( @{$permission->{ipRanges}{item}} ) {
+                cols( $iprange, qw(cidrIp) );
+            }
             print "\n";
         }
     }
-    print STDERR "ToDo: complete report_describe_security_group()\n";
 }
 
 sub report_delete_security_group {
@@ -418,6 +512,24 @@ sub report_authorize_security_group_ingress {
 sub report_revoke_security_group_ingress {
     my ($data) = @_;
     report_result($data);
+}
+
+sub report_terminate_instances {
+    my ($data) = @_;
+
+    # output
+    hdr("# Instance:\tInstanceId\tPrevState.Code\tPrevState.Name\tShutdownState.Code\tShutdownState.Name");
+
+    force_array( $data->{instancesSet}{item} );
+    foreach my $i ( @{$data->{instancesSet}{item}} ) {
+        print "Instance:\t$i->{instanceId}";
+        print "\t$i->{previousState}{code}";
+        print "\t$i->{previousState}{name}";
+        print "\t$i->{shutdownState}{code}";
+        print "\t$i->{shutdownState}{name}";
+        print "\n";
+    }
+
 }
 
 sub report_alloc_addr {
@@ -436,11 +548,23 @@ sub report_desc_addr {
 
     force_array( $data->{addressesSet}{item} );
     foreach my $item ( @{$data->{addressesSet}{item}} ) {
-        print "Address:\t$item->{publicIp}\n";
+        print "Address:\t$item->{publicIp}";
+        print "\t$item->{instanceId}" unless ref $item->{instanceId};
+        print "\n";
     }
 }
 
 sub report_rel_addr {
+    my ($data) = @_;
+    report_result($data);
+}
+
+sub report_assoc_addr {
+    my ($data) = @_;
+    report_result($data);
+}
+
+sub report_disassoc_addr {
     my ($data) = @_;
     report_result($data);
 }
@@ -457,6 +581,18 @@ sub report_desc_zone {
         cols( $item, qw(zoneName zoneState) );
         print "\n";
     }
+}
+
+sub report_get_console_output {
+    my ($data) = @_;
+
+    hdr("# ConsoleOutput:\tInstanceId\tTimestamp");
+    print "ConsoleOutput:\t$data->{instanceId}\t$data->{timestamp}\n";
+
+    print "\n";
+    print STDERR "ToDo: this output needs to be decoded\n";
+    # print $data->{output};
+    print "\n";
 }
 
 # generic one
@@ -482,12 +618,21 @@ Commands:
 
   (dereg-image)
 
-  (run-inst)
+  run-inst -i ImageId -n number-range [-g Group] [-k KeyName] [-z Zone]
+   * run instances
+    -i the image to use for the instances
+    -n the number range (e.g. 1, 5, 5-10)
+    -g the security group name to use for these instances
+    -k the keypair to use for these instances
+    -z the zone these instances should be started
 
   desc-inst [-i InstanceId]...
    * describe these instances (default all)
+    -i the instance id to describe
 
-  (term-inst)
+  term-inst [-i InstanceId]...
+   * terminate these instances
+    -i the instance id to terminate
 
   reboot-inst [-i InstanceId]...
    * reboots the selected instances
@@ -557,9 +702,14 @@ Commands:
    * release address
      -a ip address to release
 
-  (assoc-addr)
+  assoc-addr -i instance-id -p ip-address
+   * associate an IP address to an instance
+     -i the instance id to assign the IP address to
+     -p the IP address to assign to the instance
 
-  (disassoc-addr)
+  disassoc-addr -p ip-address
+   * disassociate an IP address from the instance it is assigned to
+     -p the IP address to disassociate
 
   desc-zone [-z zone-name]
    * describe availability zones
