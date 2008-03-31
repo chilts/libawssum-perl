@@ -301,7 +301,7 @@ Commands:
      -n the number of messages to receive (1-10)
      -t the timeout to use with these messages (overrides the queue default)
 
-  delmsg -r ReceiptHandle
+  delmsg -u QueueUrl -r ReceiptHandle
    * delete a message from the queue
      -u the queue URL you were returned using the CreateQueue command
      -r the receipt handle you were given when receiving messages
