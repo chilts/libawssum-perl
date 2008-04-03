@@ -448,11 +448,11 @@ sub report_run_instances {
 sub report_create_key_pair {
     my ($data) = @_;
 
-    # output
-    hdr("Type\tKeyPair");
-    print 'KEYPAIR';
-    cols( $data, qw(keyName keyFingerprint) );
-    print "\n";
+    # output - ToDo: decide what to do here
+    # hdr("Type\tKeyPair");
+    # print 'KEYPAIR';
+    # cols( $data, qw(keyName keyFingerprint) );
+    # print "\n";
     print $data->{keyMaterial}, "\n";
 }
 
