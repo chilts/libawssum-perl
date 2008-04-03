@@ -9,7 +9,7 @@ use Carp;
 use base qw(Class::Accessor);
 __PACKAGE__->mk_accessors(qw{
     access_key_id secret_access_key
-    method params headers request content
+    method params headers request content expect
     url
     http_header http_request http_response
     data action errs _ua
@@ -214,6 +214,12 @@ sub prepare_request {
 
 sub process_response {
     my ($self) = @_;
+
+    if ( $self->http_response->code ne $self->expect ) {
+        $self->data( XMLin( $self->http_response->content ));
+        $self->process_errs();
+        return;
+    }
 
     # see if we should decode the XML for this service/message
     if ( $self->decode_xml and $self->http_response->content ) {

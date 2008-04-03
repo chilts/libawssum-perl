@@ -14,6 +14,7 @@ use DateTime;
 sub service_version { '2007-11-07' }
 sub decode_xml { 1 }
 sub method { 'GET' }
+sub expect { 200 }
 
 ## ----------------------------------------------------------------------------
 # constants

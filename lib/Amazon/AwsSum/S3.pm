@@ -132,6 +132,7 @@ sub PutObject {
     $self->method( 'PUT' );
     $self->bucket( $params->{Bucket} );
     $self->key( $params->{Key} );
+    $self->expect( 200 );
 
     # we might have been given a 'Content-Type' header
     $self->headers( $params->{headers} )
