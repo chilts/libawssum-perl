@@ -44,7 +44,7 @@ $s3->ListKeys({
 my $data = $s3->data;
 
 foreach my $obj ( @{$data->{Contents}} ) {
-    next if $obj->{Key} eq 'index.html';
+    next if $obj->{Key} =~ m{ \.html \z }xms;
     next if $obj->{Key} =~ m{ \A [tsml]_ }xms;
 
     print "...making HTML for '$obj->{Key}'\n";
