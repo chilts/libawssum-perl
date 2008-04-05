@@ -38,6 +38,8 @@ sub ListBuckets {
     # $self->headers({});
     # $self->params({});
     $self->decode_xml(1);
+    $self->expect( 200 );
+
     return $self->send();
 }
 
@@ -75,6 +77,7 @@ sub DeleteBucket {
     $self->action('DeleteBucket');
     $self->bucket( $params->{Bucket} );
     $self->method( 'DELETE' );
+
     return $self->send();
 }
 
@@ -94,6 +97,8 @@ sub ListKeys {
     $self->add_parameter( 'marker', $params->{Marker} );
     $self->add_parameter( 'delimeter', $params->{Delimeter} );
     $self->decode_xml(1);
+    $self->expect( 200 );
+
     return $self->send();
 }
 
@@ -144,6 +149,7 @@ sub PutObject {
 
     # set the content
     $self->content( $params->{content} );
+
     return $self->send();
 }
 
@@ -164,6 +170,8 @@ sub GetObject {
     $self->bucket( $params->{Bucket} );
     $self->key( $params->{Key} );
     $self->decode_xml(0);
+    $self->expect( 200 );
+
     return $self->send();
 }
 
@@ -184,6 +192,8 @@ sub HeadObject {
     $self->bucket( $params->{Bucket} );
     $self->key( $params->{Key} );
     $self->decode_xml(0);
+    $self->expect( 200 );
+
     return $self->send();
 }
 
@@ -204,6 +214,8 @@ sub DeleteObject {
     $self->bucket( $params->{Bucket} );
     $self->key( $params->{Key} );
     $self->decode_xml(0);
+    $self->expect( 204 );
+
     return $self->send();
 }
 
@@ -232,6 +244,7 @@ sub Acl {
     $self->sub_resource( 'acl' );
     $self->add_header('x-amz-acl', $params->{Acl});
     $self->decode_xml(0);
+
     return $self->send();
 }
 

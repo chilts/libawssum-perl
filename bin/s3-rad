@@ -168,6 +168,9 @@ MAIN: {
             Bucket => $args->{b},
             Key    => $args->{k},
         });
+        unless ( $s3->errs ) {
+            print $s3->http_response->headers_as_string( "\n" );
+        }
     }
     elsif ( $command eq 'del' ) {
         $s3->DeleteObject({
