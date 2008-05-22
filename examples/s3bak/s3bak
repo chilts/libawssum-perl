@@ -498,7 +498,7 @@ sub get_local_filenames {
 }
 
 sub config_filename {
-    my $filename = "~/.s3bak";
+    my $filename = "~/.awssum";
     # from Recipe 7.3
     $filename =~ s{ ^ ~ ( [^/]* ) }{
         $1 ? (getpwnam($1))[7]
