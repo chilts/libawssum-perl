@@ -134,7 +134,7 @@ MAIN: {
 
     }
     elsif ( $command eq 'contents' ) {
-        t "List bucket contents/keys";
+        t "List bucket contents";
         contents( $s3, $args->{bucket}, $args->{prefix} );
 
     }
@@ -517,7 +517,7 @@ Commands:
   buckets
     - lists all of your buckets
 
-  keys -b bucket -p prefix
+  contents -b bucket -p prefix
     - lists all keys in a bucket
 
   put -b bucket [-a acl] filenames...
