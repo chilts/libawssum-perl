@@ -63,6 +63,9 @@ sub CreateBucket {
     if ( defined $params->{LocationConstraint} && $params->{LocationConstraint} eq 'EU' ) {
         $self->content("<CreateBucketConfiguration><LocationConstraint>EU</LocationConstraint></CreateBucketConfiguration>");
     }
+    $self->expect( 200 );
+    $self->decode_xml(0);
+
     return $self->send();
 }
 
@@ -77,6 +80,8 @@ sub DeleteBucket {
     $self->action('DeleteBucket');
     $self->bucket( $params->{Bucket} );
     $self->method( 'DELETE' );
+    $self->expect( 204 );
+    $self->decode_xml(0);
 
     return $self->send();
 }

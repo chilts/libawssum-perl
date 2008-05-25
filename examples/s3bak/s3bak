@@ -58,7 +58,9 @@ use constant BOOLEAN_ARGS => {
 };
 
 use constant COMMANDS => {
+    create   => 1,
     buckets  => 1,
+    remove   => 1,
     contents => 1,
     put      => 1,
     get      => 1,
@@ -128,9 +130,19 @@ MAIN: {
     }
 
     # now call the relevant command
-    if ( $command eq 'buckets' ) {
+    if ( $command eq 'create' ) {
+        t "Create a new bucket";
+        create( $s3, $args->{bucket}, $args->{location} );
+
+    }
+    elsif ( $command eq 'buckets' ) {
         t "List all buckets";
         buckets( $s3 );
+
+    }
+    elsif ( $command eq 'remove' ) {
+        t "Remove this bucket";
+        remove( $s3, $args->{bucket} );
 
     }
     elsif ( $command eq 'contents' ) {
@@ -187,6 +199,19 @@ MAIN: {
 ## ----------------------------------------------------------------------------
 # commands
 
+sub create {
+    my ($s3, $bucket, $location) = @_;
+
+    $s3->CreateBucket({
+        Bucket             => $bucket,
+        LocationConstraint => $location,
+    });
+    if ( $s3->errs ) {
+        print_error_code( $s3->data );
+        exit 2;
+    }
+}
+
 sub buckets {
     my ($s3) = @_;
 
@@ -199,6 +224,18 @@ sub buckets {
     my $data = $s3->data;
     foreach my $bucket ( @{$data->{Buckets}{Bucket}} ) {
         print "$bucket->{CreationDate}   $bucket->{Name}\n";
+    }
+}
+
+sub remove {
+    my ($s3, $bucket) = @_;
+
+    $s3->DeleteBucket({
+        Bucket => $bucket,
+    });
+    if ( $s3->errs ) {
+        print_error_code( $s3->data );
+        exit 2;
     }
 }
 
@@ -514,8 +551,14 @@ sub usage {
 Usage: $0 command [-b bucket] [-f] [-a acl] [files...]
 
 Commands:
+  create -b bucket
+    - create a new bucket
+
   buckets
     - lists all of your buckets
+
+  remove -b bucket
+    - removes the named bucket
 
   contents -b bucket -p prefix
     - lists all keys in a bucket
