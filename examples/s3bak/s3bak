@@ -122,11 +122,12 @@ MAIN: {
     $s3->access_key_id( $cfg->{AwsAccessKeyId} );
     $s3->secret_access_key( $cfg->{AwsSecretAccessKey} );
 
+
     # check that we have a bucket name for certain commands
     if ( $command ne 'buckets' ) {
         t "Check we have a bucket name to use";
         Getopt::Mixed::abortMsg("specify a bucket for this command")
-           unless exists $args->{bucket};
+           unless (exists $args->{bucket} || $cfg->{BucketDefault});
     }
 
     # now call the relevant command
@@ -147,46 +148,46 @@ MAIN: {
     }
     elsif ( $command eq 'contents' ) {
         t "List bucket contents";
-        contents( $s3, $args->{bucket}, $args->{prefix} );
+        contents( $s3, $args->{bucket} || $cfg->{BucketDefault}, $args->{prefix} );
 
     }
     elsif ( $command eq 'put' ) {
         t "Put a file";
         my @filenames = @ARGV;
-        put( $s3, $args->{bucket}, $args->{acl}, \@filenames );
+        put( $s3, $args->{bucket} || $cfg->{BucketDefault}, $args->{acl}, \@filenames );
 
     }
     elsif ( $command eq 'get' ) {
         t "Get these files";
         my @filenames = @ARGV;
-        get( $s3, $args->{bucket}, \@filenames );
+        get( $s3, $args->{bucket} || $cfg->{BucketDefault}, \@filenames );
 
     }
     elsif ( $command eq 'del' ) {
         t "Deleting keys from a bucket";
         my @filenames = @ARGV;
-        del( $s3, $args->{bucket}, \@filenames );
+        del( $s3, $args->{bucket} || $cfg->{BucketDefault}, \@filenames );
 
     }
     elsif ( $command eq 'del-using-prefix' ) {
         t "Deleting keys from a bucket using a prefix";
-        del_using_prefix( $s3, $args->{bucket}, $args->{prefix} );
+        del_using_prefix( $s3, $args->{bucket} || $cfg->{BucketDefault}, $args->{prefix} );
 
     }
     elsif ( $command eq 'bakup' ) {
         t "Backup all these local files to S3";
         my @filenames = @ARGV;
-        bakup( $s3, $args->{bucket}, $args->{force}, \@filenames, $args->{test} );
+        bakup( $s3, $args->{bucket} || $cfg->{BucketDefault}, $args->{force}, \@filenames, $args->{test} );
 
     }
     elsif ( $command eq 'bakdown' ) {
         t "Retrieving any locally unknown files from S3";
-        bakdown( $s3, $args->{bucket}, $args->{force}, $args->{prefix}, $args->{test} );
+        bakdown( $s3, $args->{bucket} || $cfg->{BucketDefault}, $args->{force}, $args->{prefix}, $args->{test} );
 
     }
     elsif ( $command eq 'diff' ) {
         t "Performs a diff between local and the bucket";
-        diff( $s3, $args->{bucket}, $args->{prefix} );
+        diff( $s3, $args->{bucket} || $cfg->{BucketDefault}, $args->{prefix} );
 
     }
     else {
@@ -560,28 +561,35 @@ Commands:
   remove -b bucket
     - removes the named bucket
 
-  contents -b bucket -p prefix
+  contents [-b bucket] -p prefix
     - lists all keys in a bucket
+    - if no bucket specified, tries to use BucketDefault from the config
 
-  put -b bucket [-a acl] filenames...
+  put [-b bucket] [-a acl] filenames...
     - unconditionally puts files to S3
+    - if no bucket specified, tries to use BucketDefault from the config
 
-  get -b bucket filenames...
+  get [-b bucket] filenames...
     - unconditionally gets files from S3
+    - if no bucket specified, tries to use BucketDefault from the config
 
-  del -b bucket filenames...
+  del [-b bucket] filenames...
     - unconditionally deletes files in S3
+    - if no bucket specified, tries to use BucketDefault from the config
 
-  bakup [-f] [-t] filenames...
+  bakup [-f] [-t] [-b bucket] filenames...
    - uploads all local files which do not exist in S3
+    - if no bucket specified, tries to use BucketDefault from the config
    (use -f to force a file up if it exists in S3)
 
-  bakdown [-f] [-t] [-p prefix]
+  bakdown [-f] [-t] [-b bucket] [-p prefix]
    - downloads all S3 files which do not exist locally
+    - if no bucket specified, tries to use BucketDefault from the config
    (use -f to force a file down if it exists locally)
 
-  diff -b bucket [-p prefix]
+  diff [-b bucket] [-p prefix]
    - performs and reports a diff between S3 and local
+    - if no bucket specified, tries to use BucketDefault from the config
 
 Options:
   -b, --bucket bucket      the bucket to use for this operation
