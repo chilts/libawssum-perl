@@ -578,17 +578,17 @@ Commands:
     - if no bucket specified, tries to use BucketDefault from the config
 
   bakup [-f] [-t] [-b bucket] filenames...
-   - uploads all local files which do not exist in S3
+    - uploads all local files which do not exist in S3
     - if no bucket specified, tries to use BucketDefault from the config
    (use -f to force a file up if it exists in S3)
 
   bakdown [-f] [-t] [-b bucket] [-p prefix]
-   - downloads all S3 files which do not exist locally
+    - downloads all S3 files which do not exist locally
     - if no bucket specified, tries to use BucketDefault from the config
    (use -f to force a file down if it exists locally)
 
   diff [-b bucket] [-p prefix]
-   - performs and reports a diff between S3 and local
+    - performs and reports a diff between S3 and local
     - if no bucket specified, tries to use BucketDefault from the config
 
 Options:
