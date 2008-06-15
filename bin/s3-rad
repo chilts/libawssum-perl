@@ -7,7 +7,6 @@ use Data::Dumper;
 
 use Getopt::Mixed "nextOption";
 use Config::Simple;
-use Log::Log4perl;
 use File::Slurp;
 use MIME::Types;
 
@@ -22,11 +21,14 @@ use constant VERSION => '0.1';
 my @IN_OPTS = (
     'b=s',   # bucket name
     'k=s',   # key/file name
+    'B=s',   # source bucket (for 'copy')
+    'K=s',   # source key (for 'copy')
     'p=s',   # prefix
     'l=s',   # location
     'n=s',   # generic number (eg. max-keys)
-    'm=s',   # marker
+    'm=s',   # marker (for 'list-keys'), metadata directive ('copy')
     'a=s',   # acl - private, public-read, public-read-write, authenticated-read
+    'c=s',   # Content-Type (for 'copy')
     'headers',   'H>headers',
     'verbose',   'v>verbose',
     'help',
@@ -47,6 +49,7 @@ use constant COMMANDS => {
     'list-keys' => 1, # ListKeys
     'location'  => 1, # BucketLocation
     'put'       => 1, # PutObject
+    'copy'      => 1, # CopyObject
     'get'       => 1, # GetObject
     'head'      => 1, # HeadObject
     'del'       => 1, # DeleteObject
@@ -108,7 +111,7 @@ MAIN: {
     # now call the relevant command
     if ( $command eq 'list-buck' ) {
         $s3->ListBuckets();
-        list_buckets( $s3->data );
+        report_list_buckets( $s3->data );
     }
     elsif ( $command eq 'add-buck' ) {
         $s3->CreateBucket({
@@ -128,6 +131,7 @@ MAIN: {
             MaxKeys => $args->{n},
             Marker  => $args->{m},
         });
+        report_list_keys( $s3->data );
     }
     elsif ( $command eq 'location' ) {
         $s3->BucketLocation({
@@ -152,6 +156,21 @@ MAIN: {
                 content => $content,
             }
         );
+    }
+    elsif ( $command eq 'copy' ) {
+        $s3->CopyObject(
+            {
+                Bucket  => $args->{b},
+                Key     => $args->{k},
+                SourceBucket => $args->{B},
+                SourceKey    => $args->{K},
+                MetadataDirective => $args->{m},
+                ContentType => $args->{c},
+            }
+        );
+        unless ( $s3->errs ) {
+            report_copy( $s3->data );
+        }
     }
     elsif ( $command eq 'get' ) {
         Getopt::Mixed::abortMsg('specify a filename to save to')
@@ -251,7 +270,7 @@ MAIN: {
 ## ----------------------------------------------------------------------------
 # reports
 
-sub list_buckets {
+sub report_list_buckets {
     my ($data) = @_;
 
     hdr( "# Bucket:\tCreationDate\tName" );
@@ -260,6 +279,23 @@ sub list_buckets {
         print "Bucket:\t$bucket->{CreationDate}\t$bucket->{Name}\n";
     }
     # print_owner($data);
+}
+
+sub report_list_keys {
+    my ($data) = @_;
+
+    hdr( "# Key: ETag\tLastModified\tKey" );
+    force_array( $data->{Contents} );
+    foreach my $key ( @{$data->{Contents}} ) {
+        print "Key:\t$key->{ETag}\t$key->{LastModified}\t$key->{Key}\n";
+    }
+}
+
+sub report_copy {
+    my ($data) = @_;
+
+    hdr( "# CopyResult: ETag\tLastModified" );
+    print "CopyResult:\t$data->{ETag}\t$data->{LastModified}\n";
 }
 
 # generic one

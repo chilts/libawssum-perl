@@ -158,6 +158,53 @@ sub PutObject {
     return $self->send();
 }
 
+sub CopyObject {
+    my ($self, $params) = @_;
+    $self->reset();
+
+    unless ( defined $params->{Bucket} ) {
+        croak( 'provide a bucket name to copy this object from' );
+    }
+
+    unless ( defined $params->{Key} ) {
+        croak( 'provide a key name to copy from' );
+    }
+
+    $params->{SourceBucket} = $params->{Bucket}
+        unless defined $params->{SourceBucket};
+
+    $params->{SourceKey} = $params->{Key}
+        unless defined $params->{SourceKey};
+
+    if ( defined $params->{MetadataDirective} ) {
+        $self->add_header('x-amz-metadata-directive', $params->{MetadataDirective});
+    }
+
+    if ( defined $params->{ContentType} ) {
+        $self->add_header('Content-Type', $params->{ContentType});
+    }
+
+    $self->action('CopyObject');
+    $self->method( 'PUT' );
+    $self->bucket( $params->{Bucket} );
+    $self->key( $params->{Key} );
+    $self->decode_xml(1);
+    $self->expect( 200 );
+
+    # we might have been given a 'Content-Type' header
+    #$self->headers( $params->{headers} )
+    #    if defined $params->{headers};
+
+    # now add in our Acl
+    my $source = "/$params->{SourceBucket}/$params->{SourceKey}";
+    $self->add_header('x-amz-copy-source', $source);
+
+    # set the content
+    $self->content( $params->{content} );
+
+    return $self->send();
+}
+
 sub GetObject {
     my ($self, $params) = @_;
     $self->reset();
