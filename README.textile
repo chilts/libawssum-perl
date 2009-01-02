@@ -1,0 +1,15 @@
+# Overview
+
+Project AwsSum is a set of libraries that can help you talk to the Amazon Web
+Services. They look simple yet provide the majority of the functionality of the
+services themselves (more being added all the time).
+
+# Quick Start
+
+ToDo.
+
+# Future Work
+
+Currently, Project AwsSum is still young and therefore not yet feature
+complete. I wish to expand this so every command for all the relevant services
+have been added.
