@@ -246,7 +246,10 @@ sub contents {
     my $contents = get_contents($s3, $bucket, $prefix);
 
     foreach ( @$contents ) {
-        print "$_->{LastModified}   $_->{ETag}   '$_->{Key}' ($_->{Size})\n";
+        # '2009-05-04T10:32:09.000Z' -> '2009-05-04 10:32:09'
+        $_->{LastModified} =~ s{T}{ }gxms;
+        $_->{LastModified} =~ s{ \.\d\d\dZ \z }{}gxms;
+        print "$_->{ETag}   $_->{Size}   $_->{LastModified}   $_->{Key}\n";
     }
 }
 
