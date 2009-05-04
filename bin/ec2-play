@@ -389,7 +389,6 @@ sub report_delete_key_pair {
 sub report_describe_instances {
     my ($data) = @_;
 
-
     force_array( $data->{reservationSet}{item} );
     foreach my $r ( @{$data->{reservationSet}{item}} ) {
         hdr("# Reservation:\tReservationId\tOwnerId\tGroupSet...");
