@@ -131,7 +131,9 @@ MAIN: {
             MaxKeys => $args->{n},
             Marker  => $args->{m},
         });
-        report_list_keys( $s3->data );
+        unless ( $s3->errs ) {
+            report_list_keys( $s3->data );
+        }
     }
     elsif ( $command eq 'location' ) {
         $s3->BucketLocation({
