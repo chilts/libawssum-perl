@@ -310,7 +310,7 @@ sub bakup {
 sub bakdown {
     my ($s3, $bucket, $force, $prefix, $test) = @_;
 
-    my $keys = get_keys($s3, $bucket);
+    my $keys = get_keys($s3, $bucket, $prefix);
     t "s3_files = " . d($keys);
 
     # download all files from S3
