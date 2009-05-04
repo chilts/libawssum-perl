@@ -443,7 +443,9 @@ sub generate_signature {
         $data .= $self->bucket . '/';
     }
     if ( $self->key ) {
-        $data .= uri_escape($self->key);
+        # this should be URI Escaped, but the new URI::Escape is too aggressive
+        # since it encodes '/' into '%2F' which is not required
+        $data .= $self->key;
     }
     if ( $self->sub_resource ) {
         $data .= '?' . $self->sub_resource;
