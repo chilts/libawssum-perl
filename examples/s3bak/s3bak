@@ -513,6 +513,7 @@ sub del_object {
         print_error_code( $s3->data );
         exit 2;
     }
+    print Dumper($s3);
 }
 
 sub print_error_code {
