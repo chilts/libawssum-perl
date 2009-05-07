@@ -17,7 +17,7 @@
 use strict;
 use warnings;
 use Carp;
-use Data::Dumper;
+
 use Log::TraceMessages qw(t d);
 use Getopt::Mixed "nextOption";
 use Config::Simple;
@@ -516,7 +516,6 @@ sub del_object {
         print_error_code( $s3->data );
         exit 2;
     }
-    print Dumper($s3);
 }
 
 sub print_error_code {
