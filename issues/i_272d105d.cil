@@ -1,0 +1,9 @@
+Summary: Add a 's3bak sync' command to s3bak
+Status: New
+CreatedBy: Andrew Chilton <andychilton@gmail.com>
+AssignedTo: Andrew Chilton <andychilton@gmail.com>
+Label: Milestone-v0.01
+Inserted: 2010-01-29T11:46:28
+Updated: 2010-01-29T11:46:28
+
+Just like u1sync, make it so that 's3bak sync' does everything you need.
