@@ -316,8 +316,21 @@ sub usage {
 Usage: $0 <COMMAND>
 
 Commands:
-  list-buckets
-   * list all your buckets
+  list-buck
+  add-buck -b bucket -l location
+  del-buck -b bucket
+  list-keys -b bucket
+  location -b bucket
+  put -b bucket -k key -a acl file
+  copy -b bucket -k key -B source-bucket -K source-key -m metadata -c content-type
+  get -b bucket -k key
+  head -b bucket -k key
+  del -b bucket -k key
+  acl -b bucket -k key -a acl
+  get-acl -b bucket -k key
+  put-acl -b bucket -k key xml-filename
+  get-log -b bucket
+  put-log -b bucket xml-filename
 
 See <http://github.com/andychilton/awssum/> for further information.
 Report bugs to <andychilton -at- gmail -dot- com>.

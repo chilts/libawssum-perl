@@ -13,6 +13,7 @@ __PACKAGE__->mk_accessors( qw(bucket key sub_resource) );
 use URI::Escape;
 use HTTP::Date;
 
+# Docs: http://developer.amazonwebservices.com/connect/entry.jspa?externalID=123&categoryID=48
 sub service_version { '2006-03-01' }
 
 my $allowed = {
