@@ -1,0 +1,685 @@
+#!/usr/bin/perl
+## ----------------------------------------------------------------------------
+#
+# The following notice applies only to the main program 's3syncit'.
+#
+# Copyright (c) 2008-2010 Andrew Chilton <andy@chilts.org>
+#
+# This code is hereby licensed for public consumption under either the
+# GNU GPL v2 or greater, or Larry Wall's Artistic license - your choice.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+#
+## ----------------------------------------------------------------------------
+
+use strict;
+use warnings;
+
+use Carp;
+use Time::Local;
+use DateTime;
+use Log::TraceMessages qw(t d);
+use Getopt::Mixed "nextOption";
+use Config::Simple;
+use MIME::Types;
+use XML::Simple;
+use File::Slurp;
+use File::Find ();
+use File::Basename;
+use File::stat;
+use File::Touch;
+use File::Copy;
+use Digest::MD5 qw(md5_hex);
+
+use Amazon::AwsSum::S3;
+
+$Log::TraceMessages::On = 0;
+
+use constant VERSION => '0.1';
+use constant CONFIG => '.s3syncit/config';
+
+## ----------------------------------------------------------------------------
+
+my @IN_OPTS = qw(
+                  force    f>force
+                  test     t>test
+                  verbose  v>verbose
+                  debug    d>debug
+                  help
+                  version
+);
+
+use constant BOOLEAN_ARGS => {
+    force   => 1,
+    test    => 1,
+    verbose => 1,
+    debug   => 1,
+    help    => 1,
+    version => 1
+};
+
+use constant COMMANDS => {
+    sync    => 1,
+    resolve => 1,
+};
+
+## ----------------------------------------------------------------------------
+
+MAIN: {
+    my $args = {};
+    Getopt::Mixed::init( @IN_OPTS );
+    while( my($opt, $val, $pretty) = nextOption() ) {
+        $args->{$opt} = exists BOOLEAN_ARGS->{$opt} ? 1 : $val;
+    }
+    Getopt::Mixed::cleanup();
+
+    $Log::TraceMessages::On = 1 if $args->{debug};
+    set_verbose( $args->{verbose} );
+
+    t "Check for 'version' and 'help'";
+
+    # do the version and help
+    if ( exists $args->{version} ) {
+        print "$0 ".VERSION."\n";
+        exit;
+    }
+
+    if ( exists $args->{help} ) {
+        usage();
+        exit;
+    }
+
+    # make sure that the command given is valid
+    Getopt::Mixed::abortMsg('specify a command')
+       if @ARGV == 0;
+
+    my $command = shift @ARGV;
+    Getopt::Mixed::abortMsg('specify a valid command')
+       unless defined $command and exists COMMANDS->{$command};
+
+    # get the config information
+    t "Load the config";
+    my $cfg = {};
+    Config::Simple->import_from( CONFIG, $cfg );
+
+    # now check we have everything we need
+    t "Check we have an 'Access Key ID' and a 'Secret Access Key'";
+    Getopt::Mixed::abortMsg('specify an AWS Access Key ID [AwsAccessKeyId] in the config file')
+       unless $cfg->{AwsAccessKeyId};
+    Getopt::Mixed::abortMsg('specify an AWS Secret Access Key [AwsSecretAccessKey] in the config file')
+       unless $cfg->{AwsSecretAccessKey};
+
+    # now we are here, we should make the connection object (doesn't _actually_ connect)
+    t "Make the connection object";
+    my $s3 = Amazon::AwsSum::S3->new();
+    $s3->access_key_id( $cfg->{AwsAccessKeyId} );
+    $s3->secret_access_key( $cfg->{AwsSecretAccessKey} );
+
+    # now call the relevant command
+    if ( $command eq 'sync' ) {
+        t "Does a sync of the local system with the bucket";
+        sync( $s3, $args, $cfg );
+
+    }
+    elsif ( $command eq 'resolve' ) {
+        t "Resolving one file over the other";
+        my $filename = shift @ARGV;
+        resolve( $s3, $args, $cfg, $filename );
+
+    }
+    else {
+        print STDERR "Program Error: command unrecognised";
+    }
+
+    exit;
+}
+
+## ----------------------------------------------------------------------------
+# commands
+
+sub sync {
+    my ($s3, $args, $cfg) = @_;
+
+    my $test = $args->{test};
+    my $bucket = $cfg->{Bucket};
+
+    # 1) get all the remote files
+    my $remote = get_sync_filelist( $s3, $bucket );
+    write_sync_filelist('.s3syncit/remote', $remote)
+        unless $test;
+
+    # 2) get all the local files
+    my $local = find_sync_filelist();
+    write_sync_filelist('.s3syncit/local', $local)
+        unless $test;
+
+    # 3) get what we _think_ is already on S3 (stored locally)
+    my $last = read_sync_filelist('.s3syncit/last');
+
+
+    # ---
+
+    # ToDo: if you can see any *.remote files, don't allow sync to be run
+
+    # ---
+
+
+    # firstly, check all the keys which are local AND remote
+    my $common_keys = get_common_keys( $local, $remote );
+    print "Common keys:\n";
+    foreach my $key ( @$common_keys ) {
+        # we know that all of these keys are both local and remote
+        print "* $key\n";
+
+        # check if the MD5s are the same
+        if ( $remote->{$key}{md5} eq $local->{$key}{md5} ) {
+            v("  - the remote and local MD5s are the same");
+            v("  ▶ (1) NOTHING TO DO");
+            # save this to our last view
+            unless ( $test ) {
+                $last->{$key} = $remote->{$key};
+            }
+            next;
+        }
+
+        v("  - the remote and local MD5s are different");
+
+        # if we have never seen this before ... there is a conflict
+        unless ( defined $last->{$key} ) {
+            # didn't know about this key last time.
+            # also, we know the remote and local MD5s are different
+            v("  = (4) remote and local are different - CONFLICT");
+            print "  - conflict (both local and remote have been edited)\n";
+            print "  ↓ downloading '$key' as '$key.remote'\n";
+            unless ( $test ) {
+                my $contents = get_object_contents($s3, $bucket, $key);
+                write_file( "$key.remote", $contents );
+            }
+            next;
+        }
+
+        # we _did_ know about this key
+        v("  - we knew about this key last time too");
+
+        # see if the MD5 is the same as what we've seen before
+        if ( $local->{$key}{md5} eq $last->{$key}{md5} ) {
+            # it's the same, therefore the one on the remote is new ...
+            v("  = (2) DOWNLOADING NEWER $key FROM REMOTE");
+            print "  ↓ downloading updated file\n";
+            unless ( $test ) {
+                get_object_and_write($s3, $bucket, $key);
+                $last->{$key} = $remote->{$key};
+            }
+        }
+        elsif ( $remote->{$key}{md5} eq $last->{$key}{md5} ) {
+            v("  = (5) remote and last are the same, so this is a newly edited file to be uploaded");
+            print "  ↑ uploading new update\n";
+            unless ( $test ) {
+                put_object($s3, $bucket, undef, $key);
+                $remote->{$key} = $local->{$key};
+                $last->{$key} = $local->{$key};
+            }
+        }
+        else {
+            v("  = (3) remote, local and last are all different - CONFLICT");
+            print "  ↓ conflict, getting as '$key.remote'\n";
+            unless ( $test ) {
+                my $contents = get_object_contents($s3, $bucket, $key);
+                write_file( "$key.remote", $contents );
+            }
+        }
+    }
+
+    # secondly, go through the keys that are only on the remote
+    my $remote_only_keys = keys_in_but_not_in( $remote, $local );
+    print "Remote only keys:\n";
+    foreach my $key ( @$remote_only_keys ) {
+        print "* $key\n";
+
+        # see if we knew about this key last time
+        if ( exists $last->{$key} ) {
+            v("  - yep, seen this key before");
+
+            if ( $remote->{$key}{md5} eq $last->{$key}{md5} ) {
+                # we are deleting this file from the remote
+                v("  = (6) REMOVING $key FROM REMOTE");
+                print "  - deleting key on remote\n";
+                unless ( $test ) {
+                    del_object($s3, $bucket, $key);
+                    delete $last->{$key};
+                    delete $remote->{$key};
+                }
+            }
+            else {
+                # remote AND last are different, we have a conflict
+                v("  = (10) local has been deleted, but remote and last are different - CONFLICT");
+                v("  = (10) MAKING EMPTY LOCAL");
+                print "  ↓ conflict, getting remote as '$key.remote'\n";
+                unless ( $test ) {
+                    my $contents = get_object_contents($s3, $bucket, $key);
+                    write_file( "$key.remote", $contents );
+                    touch( $key );
+                }
+            }
+        }
+        else {
+            v("  - never seen this before, downloading");
+            v("  = (7) DOWNLOADING $key FROM REMOTE");
+            print "  ↓ downloading new file\n";
+            unless ( $test ) {
+                get_object_and_write($s3, $bucket, $key);
+                $last->{$key} = $remote->{$key};
+            }
+        }
+    }
+
+    # finally, go through the keys that are only local
+    my $local_only_keys = keys_in_but_not_in( $local, $remote );
+    print "Local only keys:\n";
+    foreach my $key ( @$local_only_keys ) {
+        print "* $key\n";
+
+        # check to see if we have ever seen this file before
+        if ( exists $last->{$key} ) {
+            v("  - yep, seen this file before, must have been deleted remotely");
+
+            if ( $local->{$key}{md5} eq $last->{$key}{md5} ) {
+                v("  = (8) REMOVING $key LOCALLY");
+                print "  ← removing local file\n";
+                unless ( $test ) {
+                    unlink $key;
+                    delete $last->{$key};
+                    delete $local->{$key};
+                }
+            }
+            else {
+                v("  = (10) remote has been deleted, but also local has changed - CONFLICT");
+                v("  = (10) MAKING EMPTY LOCAL");
+                print "  ← CONFLICT: making empty conflict file\n";
+                unless ( $test ) {
+                    touch( "$key.remote" );
+                }
+            }
+        }
+        else {
+            v("  - never seen this before, due to be uploaded");
+            v("  = (9) UPLOADING $key TO THE REMOTE");
+            print "  ↑ uploading\n";
+            unless ( $test ) {
+                put_object($s3, $bucket, undef, $key);
+                $remote->{$key} = $local->{$key};
+                $last->{$key} = $local->{$key};
+            }
+        }
+    }
+
+    write_sync_filelist('.s3syncit/last', $last)
+        unless $test;
+}
+
+sub resolve {
+    my ($s3, $args, $cfg, $filename) = @_;
+
+    my $test = $args->{test};
+    my $bucket = $cfg->{Bucket};
+
+    my $remote = read_sync_filelist('.s3syncit/remote');
+    my $local = read_sync_filelist('.s3syncit/local');
+    my $last = read_sync_filelist('.s3syncit/last');
+
+    unless ( -f $filename ) {
+        print STDERR "File $filename does not exist\n";
+        exit 2;
+    }
+
+    # get the $key, $local and $remote filenames
+    my $key = $filename;
+    $key =~ s{ \.remote \z }{}xms;
+    my $local_filename = $key;
+    my $remote_filename = "$local_filename.remote";
+
+    # make it easier to check what we're doing
+    my $in_favour = ($filename =~ m{ \.remote \z }xms) ? 'remote' : 'local';
+
+    print "* $filename\n";
+    if ( $in_favour eq 'local' ) {
+        # resolving in favour of the local
+
+        # if we favour a zero size remote, then we're deleting the local
+        if ( size_of($local_filename) == 0 ) {
+            print "Deleting remote key '$key'\n";
+            unless ( $test ) {
+                del_object($s3, $bucket, $key);
+                unlink $local_filename;
+                unlink $remote_filename;
+                delete $local->{$key};
+                delete $last->{$key};
+                delete $remote->{$key};
+            }
+        }
+        else {
+            print "Favouring local file over remote and uploading\n";
+            unless ( $test ) {
+                unlink $remote_filename;
+                put_object($s3, $bucket, undef, $key);
+                $remote->{$key} = $local->{$key};
+                $last->{$key} = $local->{$key};
+            }
+        }
+    }
+    else {
+        # resolving in favour of the remote
+
+        # if we favour a zero size remote, then we're deleting the local
+        if ( size_of($remote_filename) == 0 ) {
+            print "Deleting local file '$local_filename'\n";
+            unless ( $test ) {
+                unlink $remote_filename;
+                unlink $local_filename;
+                delete $local->{$key};
+                delete $last->{$key};
+                delete $remote->{$key};
+            }
+        }
+        else {
+            # copy the remote file over the local
+            print "Copying remote file on top of '$local_filename'\n";
+            unless ( $test ) {
+                copy($remote_filename, $local_filename);
+                unlink $remote_filename;
+                $local->{$key} = $remote->{$key};
+                $last->{$key} = $remote->{$key};
+            }
+        }
+    }
+
+    # save all the files
+    unless ( $test ) {
+        write_sync_filelist('.s3syncit/local', $local);
+        write_sync_filelist('.s3syncit/last', $last);
+        write_sync_filelist('.s3syncit/remote', $remote);
+    }
+}
+
+sub size_of {
+    my ($filename) = @_;
+    my $stat = stat($filename);
+    return $stat->size();
+}
+
+## ----------------------------------------------------------------------------
+# helpful S3 utility functions
+
+sub get_common_keys {
+    my ( $local, $remote ) = @_;
+    my @common_keys;
+    foreach my $key ( keys %$local ) {
+        push @common_keys, $key
+            if exists $remote->{$key};
+    }
+    return \@common_keys;
+}
+
+sub keys_in_but_not_in {
+    my ( $keys, $not_in ) = @_;
+    my @keys;
+    foreach my $key ( keys %$keys ) {
+        push @keys, $key
+            unless exists $not_in->{$key};
+    }
+    return \@keys;
+}
+
+sub get_contents {
+    my ($s3, $bucket, $prefix) = @_;
+
+    my $marker;
+
+    my @contents;
+    my $complete = 0;
+
+    # keep doing this until complete
+    until ( $complete ) {
+        $s3->ListKeys({
+            Bucket => $bucket,
+            Prefix => $prefix,
+            Marker => $marker,
+        });
+
+        if ( $s3->errs ) {
+            print_error_code( $s3->data );
+            exit 2;
+        }
+
+        my $data = $s3->data;
+        if ( ref $data->{Contents} eq 'HASH' ) {
+            $data->{Contents} = [ $data->{Contents} ];
+        }
+        foreach my $entry ( @{$data->{Contents}} ) {
+            $entry->{ETag} =~ s{ \A \" }{}gxms;
+            $entry->{ETag} =~ s{ \" \z }{}gxms;
+            push @contents, $entry;
+        }
+
+        # check to see if we are complete
+        if ( $data->{IsTruncated} eq 'true' ) {
+            # set the last one we just did
+            $marker = $data->{Contents}[-1]{Key};
+        }
+        else {
+            $complete = 1;
+        }
+    }
+    return \@contents;
+}
+
+sub put_object {
+    my ($s3, $bucket, $acl, $key) = @_;
+
+    t "put_object():";
+    t "  bucket   = $bucket";
+    t "  acl      = " . (defined $acl ? $acl : '[undef]');
+    t "  key      = $key";
+
+    # do some initial figuring out
+    my ($ext) = $key =~ m{ \. (.*) \z }xms;
+    my $mimetype = MIME::Types->new()->mimeTypeOf($ext);
+
+    t "  ext      = " . ($ext || '[undef]');
+    t "  mimetype = " . ($mimetype || '[undef]');
+
+    my $content = read_file( $key );
+
+    # now do the upload
+    $s3->PutObject({
+        Bucket  => $bucket,
+        Key     => $key,
+        defined $acl ? (Acl => $acl) : (),
+        defined $mimetype ? (headers => { 'Content-Type' => $mimetype }) : (),
+        content => $content,
+    });
+    if ( $s3->errs ) {
+        print_error_code( $s3->data );
+        exit 2;
+    }
+}
+
+sub get_object_contents {
+    my ($s3, $bucket, $key) = @_;
+
+    $s3->GetObject({
+        Bucket => $bucket,
+        Key    => $key,
+    });
+    if ( $s3->errs ) {
+        print_error_code( $s3->data );
+        exit 2;
+    }
+
+    return $s3->http_response->content;
+}
+
+sub get_object_and_write {
+    my ($s3, $bucket, $key) = @_;
+
+    # get the parts of the key/filename
+    my ($name, $path) = fileparse($key);
+
+    system('mkdir', '-p', $path) == 0
+        or die "system failed: $?";
+
+    $s3->GetObject({
+        Bucket => $bucket,
+        Key    => $key,
+    });
+    if ( $s3->errs ) {
+        print_error_code( $s3->data );
+        exit 2;
+    }
+
+    write_file( $key, $s3->http_response->content );
+}
+
+sub del_object {
+    my ($s3, $bucket, $key) = @_;
+
+    $s3->DeleteObject({
+        Bucket => $bucket,
+        Key    => $key,
+    });
+    if ( $s3->errs ) {
+        print_error_code( $s3->data );
+        exit 2;
+    }
+}
+
+sub print_error_code {
+    my ($data) = @_;
+    print STDERR "Error: $data->{Code} - $data->{Message}\n";
+}
+
+## ----------------------------------------------------------------------------
+# sync helpers
+
+# gets the S3 keys/files
+sub get_sync_filelist {
+    my ($s3, $bucket) = @_;
+
+    my $contents = get_contents($s3, $bucket);
+    my $remote = {};
+    foreach my $content ( @$contents ) {
+        next if $content->{Key} =~ m{ \.s3syncit\/.* }xms;
+        $content->{LastModified} =~ s{ \. \d\d\dZ \Z }{Z}gxms;
+        my $file = {
+            key   => $content->{Key},
+            size  => $content->{Size},
+            md5   => $content->{ETag},
+            mtime => $content->{LastModified},
+        };
+        $remote->{$content->{Key}} = $file;
+    }
+
+    return $remote;
+}
+
+# finds the local files
+sub find_sync_filelist {
+    my $filenames = [];
+    File::Find::find({
+        no_chdir => 1,
+        wanted => sub {
+            my ($dev,$ino,$mode,$nlink,$uid,$gid) = lstat($_);
+
+            s{ \A \./ }{}gxms;                # remove leading './'
+            return unless -f;                 # skip non-files
+            return if m{ ~ \z }xms;           # skip backup files
+            return if m{ \A \.s3syncit/ }xms; # skip internal files
+            return if m{ \.remote \z }xms;    # skip conflict files
+
+            # save this filename
+            push @$filenames, $_;
+        }
+    }, '.');
+
+    my $local = {};
+    foreach my $filename ( @$filenames ) {
+        my $stat_info = stat($filename);
+        my $file = {
+            key   => $filename,
+            size  => $stat_info->size(),
+            md5   => md5_hex(read_file($filename)),
+            mtime => DateTime->from_epoch( epoch => $stat_info->mtime() )->set_time_zone( 'Zulu' ) . 'Z',
+        };
+        $local->{$filename} = $file;
+    }
+
+    return $local;
+}
+
+sub read_sync_filelist {
+    my ($filename) = @_;
+
+    return {} unless -f $filename;
+
+    # read file in
+    my @lines = read_file($filename);
+    chomp @lines;
+
+    # loop through lines recreating the $file list
+    my $file = {};
+    foreach my $line ( @lines ) {
+        my ($md5, $mtime, $size, $key) = split(/\s/, $line, 4);
+        $file->{$key} = {
+            key   => $key,
+            size  => $size,
+            md5   => $md5,
+            mtime => $mtime,
+        };
+    }
+    return $file;
+}
+
+sub write_sync_filelist {
+    my ($filename, $file) = @_;
+    my @out;
+    my @list = sort { $a->{key} cmp $b->{key} } map { $file->{$_} } keys %$file;
+    foreach my $item ( @list ) {
+        push @out, "$item->{md5} $item->{mtime} $item->{size} $item->{key}\n";
+    }
+    write_file( $filename, @out );
+}
+
+## ----------------------------------------------------------------------------
+# utility subs
+
+sub usage {
+   print <<"END_USAGE";
+Usage: $0 command [-b bucket] [-f] [-a acl] [files...]
+
+Commands:
+
+  sync
+    - syncs your local dir to the remote bucket on S3
+
+Options:
+  -f, --force              forces s3bak to do something it would not usually do
+  -t, --test               just runs the program, doesn\'t save any state
+  -v, --verbose            turns on verbose
+  -d, --debug              prints out lots of info along the way
+      --help               prints help then quits
+      --version            prints version information then quits
+
+See <http://www.chilts.org/project/awssum/> for further information.
+Report bugs to <andychilton -at- gmail -dot- com>.
+END_USAGE
+}
+
+{
+    my $VERBOSE;
+    sub set_verbose { $VERBOSE = $_[0] }
+    sub v { print @_, "\n" if $VERBOSE }
+}
+
+## ----------------------------------------------------------------------------
