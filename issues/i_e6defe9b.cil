@@ -1,0 +1,9 @@
+Summary: Don't do a sync if conflict files are around
+Status: New
+CreatedBy: Andrew Chilton <andychilton@gmail.com>
+AssignedTo: Andrew Chilton <andychilton@gmail.com>
+Inserted: 2010-02-02T10:35:40
+Updated: 2010-02-02T10:35:40
+
+If you can see any *.conflict files, don't allow a sync (in s3syncit) to be
+done.
