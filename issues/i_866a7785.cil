@@ -1,0 +1,9 @@
+Summary: Add a recreate remote or local option
+Status: New
+CreatedBy: Andrew Chilton <andychilton@gmail.com>
+AssignedTo: Andrew Chilton <andychilton@gmail.com>
+Inserted: 2010-02-02T21:35:47
+Updated: 2010-02-02T21:35:47
+
+Not sure why, just means you can do some diffs on those files locally, esp. if
+you have lots of changes to do.
