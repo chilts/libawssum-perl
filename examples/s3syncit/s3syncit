@@ -412,20 +412,22 @@ sub size_of {
 ## ----------------------------------------------------------------------------
 # helpful S3 utility functions
 
+# returns the list sorted
 sub get_common_keys {
     my ( $local, $remote ) = @_;
     my @common_keys;
-    foreach my $key ( keys %$local ) {
+    foreach my $key ( sort keys %$local ) {
         push @common_keys, $key
             if exists $remote->{$key};
     }
     return \@common_keys;
 }
 
+# returns the list sorted
 sub keys_in_but_not_in {
     my ( $keys, $not_in ) = @_;
     my @keys;
-    foreach my $key ( keys %$keys ) {
+    foreach my $key ( sort keys %$keys ) {
         push @keys, $key
             unless exists $not_in->{$key};
     }
