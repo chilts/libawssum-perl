@@ -1,0 +1,22 @@
+Summary: Make s3syncit do renames correctly
+Status: New
+CreatedBy: Andrew Chilton <andychilton@gmail.com>
+AssignedTo: Andrew Chilton <andychilton@gmail.com>
+Inserted: 2010-02-03T11:31:23
+Updated: 2010-02-03T11:31:23
+
+My imagination says this:
+
+* if a file has been deleted locally
+* look to see what it's MD5 was $last
+* see if that same MD5 is present in $remote
+* if that file no longer exists in $local, then it's probably a rename
+
+Also:
+
+* if a file has been deleted remotely
+* look to see what the MD5 was $last
+* see if that same MD5 is present in $local
+* if that file no longer exists in $remote, then it's probably a rename
+
+Please check this logic with tests, but otherwise, I think it's good to go.
