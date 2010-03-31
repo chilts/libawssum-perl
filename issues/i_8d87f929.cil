@@ -1,0 +1,8 @@
+Summary: Do S3 Versioning
+Status: New
+CreatedBy: Andrew Chilton <andychilton@gmail.com>
+AssignedTo: Andrew Chilton <andychilton@gmail.com>
+Inserted: 2010-03-31T05:36:54
+Updated: 2010-03-31T05:36:54
+
+S3 now supports versioning. Do whatever it needs to make it work.
