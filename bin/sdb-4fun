@@ -283,7 +283,7 @@ Commands:
    * delete a domain
      -d the domain name to delete
 
-  put -d name -i name [-a attr] [-v value] [-r 0|1] [--ap [!]attr=val]
+  put -d name -i name [-a attr] [-v value] [-r false|true] [--ap [!]attr=val]
    * put attributes
      -d domain name the item is in
      -i the item name to put these sttributes into
