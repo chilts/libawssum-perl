@@ -270,7 +270,7 @@ sub usage {
 Usage: $0 <COMMAND>
 
 Commands:
-  list [-n number] [-t token]
+  list-dom [-n number] [-t token]
    * list domains
      -n number to list (1..100)
      -t next token to start from
