@@ -1,0 +1,9 @@
+Summary: Add the ability to do 'Expected.X.Name' for SimpleDB
+Status: New
+CreatedBy: Andrew Chilton <andychilton@gmail.com>
+AssignedTo: Andrew Chilton <andychilton@gmail.com>
+Inserted: 2010-04-01T23:45:31
+Updated: 2010-04-01T23:45:31
+
+From the API, you can now tell SimpleDB what you expect a value to be when
+putting some data. If the value isn't what you expect, then it will fail.
