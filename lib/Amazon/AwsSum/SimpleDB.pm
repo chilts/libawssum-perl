@@ -35,6 +35,7 @@ my $allowed = {
 
 sub CreateDomain {
     my ($self, $params) = @_;
+    $self->reset();
 
     unless ( defined $params->{DomainName} ) {
         croak( 'provide a domain name to create' );
@@ -47,6 +48,7 @@ sub CreateDomain {
 
 sub ListDomains {
     my ($self, $params) = @_;
+    $self->reset();
 
     $self->action('ListDomains');
     $self->add_param_value( 'MaxNumberOfDomains', $params->{MaxNumberOfDomains} );
@@ -56,6 +58,7 @@ sub ListDomains {
 
 sub DeleteDomain {
     my ($self, $params) = @_;
+    $self->reset();
 
     unless ( defined $params->{DomainName} ) {
         croak( 'provide a key name to delete' );
@@ -68,6 +71,7 @@ sub DeleteDomain {
 
 sub PutAttributes {
     my ($self, $params) = @_;
+    $self->reset();
 
     unless ( defined $params->{DomainName} ) {
         croak( 'provide a domain name to put the attributes into' );
@@ -94,6 +98,7 @@ sub PutAttributes {
 
 sub GetAttributes {
     my ($self, $params) = @_;
+    $self->reset();
 
     unless ( defined $params->{DomainName} ) {
         croak( 'provide a domain name to query' );
@@ -112,6 +117,7 @@ sub GetAttributes {
 
 sub DeleteAttributes {
     my ($self, $params) = @_;
+    $self->reset();
 
     unless ( defined $params->{DomainName} ) {
         croak( 'provide a domain name which this item is in' );
@@ -136,6 +142,7 @@ sub DeleteAttributes {
 
 sub Query {
     my ($self, $params) = @_;
+    $self->reset();
 
     unless ( defined $params->{DomainName} ) {
         croak( 'provide a domain name to query against' );
@@ -150,7 +157,15 @@ sub Query {
 }
 
 ## ----------------------------------------------------------------------------
-# utils
+# override certain base functionality
+
+sub reset {
+    my ($self) = @_;
+
+    foreach ( qw(method headers data params http_response action url http_header http_request errs) ) {
+        $self->{$_} = undef;
+    }
+}
 
 sub add_attributes {
     my ($self, $attribute_pair) = @_;
