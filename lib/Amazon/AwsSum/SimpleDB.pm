@@ -96,6 +96,60 @@ sub PutAttributes {
     return $self->send();
 }
 
+sub BatchPutAttributes {
+    my ($self, $domain_name, @items) = @_;
+
+    unless ( @items ) {
+        croak( 'provide at least one set of params to put' );
+    }
+
+    # firstly, check that all the DomainNames are the same
+    foreach my $item ( @items ) {
+        if ( $item->{DomainName} ne $domain_name ) {
+            croak( 'not all of these items are meant for the same domain' );
+        }
+    }
+
+    # then check that they all have an item name
+    foreach my $item ( @items ) {
+        croak( 'provide an item name' )
+            unless defined $item->{ItemName};
+    }
+
+    $self->action('BatchPutAttributes');
+    $self->add_param_value( 'DomainName', $domain_name );
+
+    # okay, loop through the @items
+    my $y = 1;
+    foreach my $item ( @items ) {
+        # firstly, add the item name
+        $self->add_param_value( "Item.$y.ItemName", $item->{ItemName} );
+
+        # now add the params for this item
+        my $x = 1;
+        foreach my $k ( keys %$item ) {
+            # skip the control keys
+            next if $k =~ m{ \A [A-Z] }xms;
+
+            # add all the params in
+            if ( ref $item->{$k} eq 'ARRAY' ) {
+                foreach my $v ( @{$item->{$k}} ) {
+                    $self->add_param_value( "Item.$y.Attribute.$x.Name", $k);
+                    $self->add_param_value( "Item.$y.Attribute.$x.Value", $v);
+                    $x++;
+                }
+            }
+            else {
+                $self->add_param_value( "Item.$y.Attribute.$x.Name", $k);
+                $self->add_param_value( "Item.$y.Attribute.$x.Value", $item->{$k});
+            }
+            $x++;
+        }
+        $y++;
+    }
+    return $self->send();
+}
+
 sub GetAttributes {
     my ($self, $params) = @_;
     $self->reset();
