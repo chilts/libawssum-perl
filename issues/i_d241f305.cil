@@ -1,0 +1,12 @@
+Summary: Add new commands for SQS
+Status: New
+CreatedBy: Andrew Chilton <andychilton@gmail.com>
+AssignedTo: Andrew Chilton <andychilton@gmail.com>
+Inserted: 2010-04-09T11:32:08
+Updated: 2010-04-09T11:32:08
+
+They look like:
+
+* AddPermission
+* ChangeMessageVisibility
+* RemovePermission
