@@ -3,11 +3,13 @@ package Amazon::AwsSum::Util;
 
 use strict;
 use warnings;
+use Data::Dumper;
 
 use Exporter 'import';
-our @EXPORT_OK = qw(get_options vbs hdr dbg line cols errs force_array);
+our @EXPORT_OK = qw(get_options vbs hdr dbg sep line cols errs force_array table);
 
 use Getopt::Mixed "nextOption";
+use List::Util qw(max sum);
 
 # for logging stuff
 my ($vbs, $dbg, $hdr);
@@ -58,6 +60,11 @@ sub set_hdr { $hdr = $_[0] }
 sub vbs { print $_[0], "\n" if $vbs }
 sub hdr { print $_[0], "\n" if $hdr }
 
+sub sep {
+    my ($hdr) = @_;
+    print "=== $hdr ===\n";
+}
+
 sub line {
     my ($hdr) = @_;
     return unless $vbs;
@@ -77,6 +84,69 @@ sub errs {
     foreach ( @$errs ) {
         print STDERR "$_->{Code}: $_->{Message}\n";
     }
+}
+
+sub table {
+    my ($headers, @rows) = @_;
+    # $headers is an arrayref of strings
+    # @rows is an array of arrayrefs of straings
+
+    # get the number of columns to be printed out
+    my $cols = scalar @$headers;
+    my @column_lengths = map { length } @$headers;
+
+    # check all the data
+    foreach my $row ( @rows ) {
+        my $i = 0;
+        foreach my $data ( @$row ) {
+            $column_lengths[$i] = max($column_lengths[$i], length($data))
+                if defined $data;
+            $i++;
+        }
+    }
+
+    # get the total length of the table
+    my $total = sum(@column_lengths) + (@column_lengths * 3) + 1;
+
+    # now print it out
+    table_line(\@column_lengths);
+    table_row( $cols, \@column_lengths, $headers );
+    table_line(\@column_lengths);
+    foreach my $row ( @rows ) {
+        table_row( $cols, \@column_lengths, $row );
+    }
+    table_line(\@column_lengths);
+}
+
+sub table_line {
+    my ($column_lengths) = @_;
+
+    # print out the headers
+    print '+-';
+    print join('-+-', map { '-' x $_ } @$column_lengths);
+    print '-+';
+    print "\n";
+}
+
+sub table_row {
+    my ($cols, $column_lengths, $data) = @_;
+
+    print '|';
+    # print join(' | ', map { $_ . (' ' x ($column_lengths->[$i] - length($_))) } @$data);
+    for my $i ( 0..$cols-1 ) {
+    # foreach my $str ( @$data ) {
+        my $str = defined $data->[$i] ? $data->[$i] : '';
+        print " $str";
+        print ' ' x ($column_lengths->[$i] - length($str));
+        print " |";
+
+
+        # print "| $str" . (' ' x ($column_lengths->[$i] - length($str)));
+        # print '-' x $column_lengths->[$i];
+        $i++;
+    }
+    #print " |\n";
+    print "\n";
 }
 
 ## ----------------------------------------------------------------------------
