@@ -26,6 +26,7 @@ my @IN_OPTS = (
     'm=s',   # message
     'r=s',   # receipt handle
     'n=s',   # number
+    'file=s', # Config File to use
     'confirm',   'c>confirm',   # confirm deletes
     'headers',   'H>headers',
     'verbose',   'v>verbose',
@@ -87,7 +88,7 @@ MAIN: {
        unless defined $command and exists COMMANDS->{$command};
 
     # load the config
-    Config::Simple->import_from( "$ENV{HOME}/.awssum", $cfg );
+    Config::Simple->import_from( $args->{file} || "$ENV{HOME}/.awssum", $cfg );
 
     die 'specify an AWS Access Key ID [AwsAccessKeyId] in the config file'
         unless $cfg->{AwsAccessKeyId};
