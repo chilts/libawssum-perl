@@ -1,0 +1,309 @@
+#!/usr/bin/perl
+##----------------------------------------------------------------------------
+
+# Looking at:
+# http://docs.amazonwebservices.com/AmazonCloudFront/latest/DeveloperGuide/index.html?RESTAuthentication.html
+# also
+# http://net.tutsplus.com/articles/general/supercharge-website-performance-with-aws-s3-and-cloudfront/
+
+use strict;
+use warnings;
+use Data::Dumper;
+
+use Getopt::Mixed "nextOption";
+use Config::Simple;
+
+use Amazon::AwsSum::Util qw(get_options vbs hdr sep line cols errs force_array table);
+use Amazon::AwsSum::CloudFront;
+
+## ----------------------------------------------------------------------------
+# constants
+
+use constant VERSION => '0.1';
+
+my @IN_OPTS = (
+    'b=s',   # bucket name
+    'c=s',   # cname
+    'd=s',   # distribution_id
+    'E=s',   # ETag
+    'C=s',   # CallerReference
+    'enabled',   'e>enabled', #enabled
+    'file=s', # Config File to use
+    'verbose',
+    'help',
+    'version',
+);
+
+my %BOOLEAN_ARGS = (
+    # CloudFront options
+    enabled => 1,
+    # standard options
+    verbose => 1,
+    help    => 1,
+    version => 1,
+);
+
+use constant COMMANDS => {
+    'add-dist'      => 1, # CreateDistribution
+    'get-dist-list' => 1, # GetDistributionList
+    'get-dist'      => 1, # GetDistribution
+    'get-dist-conf' => 1, # GetDistributionConfig
+    'put-dist-conf' => 1, # PutDistributionConfig
+    'del-dist'      => 1, # DeleteDistribution
+};
+
+## ----------------------------------------------------------------------------
+
+# hmm, should get rid of this global
+my $cfg = {};
+
+MAIN: {
+    my $args = get_options(\@IN_OPTS, \%BOOLEAN_ARGS);
+
+    # setup the output things
+    Amazon::AwsSum::Util::set_vbs( $args->{verbose} );
+
+    # do the version and help
+    if ( exists $args->{version} ) {
+        print "$0 ".VERSION."\n";
+        exit;
+    }
+
+    if ( exists $args->{help} ) {
+        usage();
+        exit;
+    }
+
+    line('Input Args');
+    vbs( Dumper($args) );
+
+    # make sure that the command given is valid
+    Getopt::Mixed::abortMsg('specify a command')
+       if @ARGV == 0;
+
+    my $command = shift @ARGV;
+    Getopt::Mixed::abortMsg('specify a valid command')
+       unless defined $command and exists COMMANDS->{$command};
+
+    # load the config
+    Config::Simple->import_from( $args->{file} || "$ENV{HOME}/.awssum", $cfg );
+
+    die 'specify an AWS Access Key ID [AwsAccessKeyId] in the config file'
+        unless $cfg->{AwsAccessKeyId};
+    die 'specify an AWS Secret Access Key [AwsSecretAccessKey] in the config file'
+        unless $cfg->{AwsSecretAccessKey};
+
+    line('Normal Output');
+
+    my $cf = Amazon::AwsSum::CloudFront->new();
+    $cf->access_key_id( $cfg->{AwsAccessKeyId} );
+    $cf->secret_access_key( $cfg->{AwsSecretAccessKey} );
+
+    # now call the relevant command
+    if ( $command eq 'add-dist' ) {
+        $cf->CreateDistribution({
+            Bucket  => $args->{b},
+            CNAME   => $args->{c},
+            Enabled => $args->{enabled},
+        });
+        unless ( $cf->errs ) {
+            report_create_distribution( $cf->http_response->headers, $cf->data );
+        }
+    }
+    elsif ( $command eq 'get-dist-list' ) {
+        $cf->GetDistributionList({
+            # Marker   => ???
+            # MaxItems => ???
+        });
+        unless ( $cf->errs ) {
+            report_get_distribution_list( $cf->http_response->headers, $cf->data );
+        }
+    }
+    elsif ( $command eq 'get-dist' ) {
+        $cf->GetDistribution({
+            DistributionID => $args->{d},
+        });
+        unless ( $cf->errs ) {
+            report_get_distribution( $cf->http_response->headers, $cf->data );
+        }
+    }
+    elsif ( $command eq 'get-dist-conf' ) {
+        $cf->GetDistributionConfig({
+            DistributionID => $args->{d},
+        });
+        unless ( $cf->errs ) {
+            report_get_distribution_config( $cf->http_response->headers, $cf->data );
+        }
+    }
+    elsif ( $command eq 'put-dist-conf' ) {
+        $cf->PutDistributionConfig({
+            Bucket         => $args->{b},
+            DistributionID => $args->{d},
+            CNAME          => $args->{c},
+            Enabled        => $args->{enabled},
+            IfMatch        => $args->{E},
+            CallerReference => $args->{C},
+        });
+        unless ( $cf->errs ) {
+            report_get_distribution_config( $cf->http_response->headers, $cf->data );
+        }
+    }
+    elsif ( $command eq 'del-dist' ) {
+        $cf->DeleteDistribution({
+            DistributionID => $args->{d},
+            IfMatch        => $args->{E},
+        });
+        unless ( $cf->errs ) {
+            report_delete_distribution( $cf->http_response->headers, $cf->data );
+        }
+    }
+
+    if ( $cf->errs ) {
+        line('Request Errors');
+        print errs( $cf->errs );
+    }
+
+    line('HTTP Request');
+    vbs( $cf->http_request->method . " " . $cf->http_request->uri );
+    vbs( $cf->http_request->headers_as_string( "\n" ) );
+    line('Request Content');
+    vbs( $cf->http_request->content );
+    line('HTTP Response');
+    vbs( $cf->http_response->code . ' ' . $cf->http_response->message );
+    vbs( $cf->http_response->headers_as_string( "\n" ) );
+    line('Response Content');
+    vbs( $cf->http_response->content );
+    line('Data');
+    vbs( Dumper( $cf->data ));
+    line();
+}
+
+## ----------------------------------------------------------------------------
+# actions
+
+sub report_create_distribution {
+    my ($headers, $data) = @_;
+    print_metadata( $headers );
+
+    my (@cols, @rows);
+
+    sep('Distribution');
+    @cols = ( qw(Id Status LastModifiedTime DomainName) );
+    $rows[0] = [ map { $data->{$_} } @cols ];
+    table( \@cols, @rows );
+
+    sep('Distribution Config');
+    @cols = ( qw(Origin CallerReference CNAME Enabled) );
+    $rows[0] = map { [ @$_{ $data->{DistributionConfig}{$_} } ] } @cols;
+    table( \@cols, @rows );
+}
+
+sub report_get_distribution_list {
+    my ($headers, $data) = @_;
+    print_metadata( $headers );
+
+    my (@cols, @rows);
+
+    sep('Distribution Summary');
+    force_array( $data->{DistributionSummary} );
+    @cols = ( qw(Id Status Enabled Origin DomainName LastModifiedTime) );
+    @rows = map { [ @$_{ @cols } ] } @{$data->{DistributionSummary}};
+    table( \@cols, @rows );
+}
+
+sub report_get_distribution {
+    my ($headers, $data) = @_;
+    print_metadata( $headers );
+
+    my (@cols, @rows);
+
+    sep('Distribution');
+    @cols = ( qw(Id Status LastModifiedTime DomainName) );
+    $rows[0] = [ map { $data->{$_} } @cols ];
+    table( \@cols, @rows );
+
+    sep('Distribution Config');
+    @cols = ( qw(Origin CallerReference CNAME Enabled) );
+    $rows[0] = [ map { $data->{DistributionConfig}{$_} } @cols ];
+    table( \@cols, @rows );
+}
+
+sub report_get_distribution_config {
+    my ($headers, $data) = @_;
+    print_metadata( $headers );
+
+    my (@cols, @rows);
+
+    sep('Distribution Config');
+    @cols = ( qw(Origin CallerReference CNAME Enabled) );
+    $rows[0] = [ map { $data->{$_} } @cols ];
+    table( \@cols, @rows );
+}
+
+sub report_delete_distribution {
+    my ($headers, $data) = @_;
+    print_metadata( $headers );
+}
+
+sub print_metadata {
+    my ($headers) = @_;
+
+    sep('MetaData');
+    table(
+        [ 'RequestId', 'ETag' ],
+        [
+            $headers->header('x-amzn-requestid'),
+            $headers->header('ETag'),
+        ]
+    );
+}
+
+sub report {
+    my ($name, @values) = @_;
+    print "$name: " . join("\t", @values) . "\n";
+}
+
+## ----------------------------------------------------------------------------
+# usage
+
+sub usage {
+   print <<"END_USAGE";
+Usage: $0 <COMMAND>
+
+Commands:
+  add-dist -b bucket [-e] [-c cname]
+   * create distribution
+     -b bucket to use for this distribution
+     -c cname alias to associate with this distribution
+     -e whether the distribution is enabled to accept end user requests for content
+
+  get-dist-list
+   * get distribution list
+
+  get-dist -d distribution-id
+   * get distribution
+     -d distribution id which was provided when it was created
+
+  get-dist-conf -d distribution-id
+   * get distribution config
+     -d distribution id which was provided when it was created
+
+  put-dist-conf -d distribution-id -b bucket -E ETag [-e] [-c cname] [-C caller-reference]
+   * put distribution config
+     -b bucket to use for this distribution (can not be changed, take from get-dist-conf)
+     -C caller reference (can not be changed, take from get-dist-conf)
+     -E ETag taken from get-dist-conf
+     -c cname alias to associate with this distribution
+     -e whether the distribution is enabled to accept end user requests for content
+
+  del-dist -d distribution-id
+   * delete distribution
+     -d distribution id which was provided when it was created
+     -E ETag taken from get-dist-conf (after you have disabled the distribution)
+
+See <http://github.com/andychilton/awssum/> for further information.
+Report bugs to <andychilton -at- gmail -dot- com>.
+END_USAGE
+}
+
+## ----------------------------------------------------------------------------

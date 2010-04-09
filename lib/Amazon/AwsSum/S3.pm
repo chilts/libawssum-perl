@@ -145,9 +145,10 @@ sub PutObject {
     $self->key( $params->{Key} );
     $self->expect( 200 );
 
-    # we might have been given a 'Content-Type' header
-    $self->headers( $params->{headers} )
-        if defined $params->{headers};
+    # add the Content-Type, Cache-Control or Expires headers if we have any
+    $self->add_header('Content-Type', $params->{ContentType});
+    $self->add_header('Cache-Control', $params->{CacheControl});
+    $self->add_header('Expires', $params->{Expires});
 
     # now add in our Acl
     $self->add_header('x-amz-acl', $params->{Acl})

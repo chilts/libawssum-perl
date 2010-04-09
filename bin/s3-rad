@@ -10,7 +10,7 @@ use Config::Simple;
 use File::Slurp;
 use MIME::Types;
 
-use Amazon::AwsSum::Util qw(get_options vbs hdr line errs force_array);
+use Amazon::AwsSum::Util qw(get_options vbs sep hdr line errs force_array table);
 use Amazon::AwsSum::S3;
 
 ## ----------------------------------------------------------------------------
@@ -29,6 +29,9 @@ my @IN_OPTS = (
     'm=s',   # marker (for 'list-keys'), metadata directive ('copy')
     'a=s',   # acl - private, public-read, public-read-write, authenticated-read
     'c=s',   # Content-Type (for 'copy')
+    'C=s',   # CacheControl header
+    'e=s',   # Expires header
+    'file=s', # Config File to use
     'headers',   'H>headers',
     'verbose',   'v>verbose',
     'help',
@@ -95,7 +98,7 @@ MAIN: {
        unless defined $command and exists COMMANDS->{$command};
 
     # load the config
-    Config::Simple->import_from( "$ENV{HOME}/.awssum", $cfg );
+    Config::Simple->import_from( $args->{file} || "$ENV{HOME}/.awssum", $cfg );
 
     die 'specify an AWS Access Key ID [AwsAccessKeyId] in the config file'
         unless $cfg->{AwsAccessKeyId};
@@ -154,7 +157,9 @@ MAIN: {
                 Bucket  => $args->{b},
                 Key     => $args->{k},
                 Acl     => $args->{a},
-                defined $mimetype ? (headers => { 'Content-Type' => $mimetype }) : (),
+                ContentType => $mimetype,
+                CacheControl => $args->{C},
+                Expires => $args->{e},
                 content => $content,
             }
         );
@@ -285,6 +290,24 @@ sub report_list_buckets {
 
 sub report_list_keys {
     my ($data) = @_;
+
+    my (@cols, @rows);
+
+    sep('Keys');
+    force_array( $data->{Contents} );
+    @cols = ( qw(ETag LastModified Key) );
+    @rows = map { [ @$_{ @cols } ] } @{$data->{Contents}};
+    # @rows = [ map { $headers->header($_) } ('x-amzn-requestid', 'ETag') ];
+    table( \@cols, @rows );
+
+    return;
+
+    sep('Distribution Summary');
+    force_array( $data->{DistributionSummary} );
+    @cols = ( qw(Id Status Enabled Origin DomainName LastModifiedTime) );
+    @rows = map { [ @$_{ @cols } ] } @{$data->{DistributionSummary}};
+    table( \@cols, @rows );
+
 
     hdr( "# Key: ETag\tLastModified\tKey" );
     force_array( $data->{Contents} );
