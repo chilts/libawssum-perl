@@ -8,7 +8,7 @@ use Data::Dumper;
 use Getopt::Mixed "nextOption";
 use Config::Simple;
 
-use Amazon::AwsSum::Util qw(get_options vbs hdr line errs force_array);
+use Amazon::AwsSum::Util qw(get_options vbs sep line errs force_array table);
 use Amazon::AwsSum::SQS;
 
 ## ----------------------------------------------------------------------------
@@ -28,7 +28,6 @@ my @IN_OPTS = (
     'n=s',   # number
     'file=s', # Config File to use
     'confirm',   'c>confirm',   # confirm deletes
-    'headers',   'H>headers',
     'verbose',   'v>verbose',
     'help',
     'version',
@@ -43,27 +42,23 @@ my %BOOLEAN_ARGS = (
 );
 
 use constant COMMANDS => {
-    'addq'   => 1, # CreateQueue
-    'listq'  => 1, # ListQueues
-    'qatt'   => 1, # GetQueueAttributes
-    'sqatt'  => 1, # SetQueueAttributes
-    'delq'   => 1, # DeleteQueue
-    'addmsg' => 1, # SendMessage
-    'getmsg' => 1, # ReceiveMessage
-    'delmsg' => 1, # DeleteMesage
+    'add-queue'       => 1, # CreateQueue
+    'list-queues'     => 1, # ListQueues
+    'get-queue-attrs' => 1, # GetQueueAttributes
+    'set-queue-attrs' => 1, # SetQueueAttributes
+    'del-queue'       => 1, # DeleteQueue
+    'add-msg'         => 1, # SendMessage
+    'get-msg'         => 1, # ReceiveMessage
+    'del-msg'         => 1, # DeleteMesage
 };
 
 ## ----------------------------------------------------------------------------
-
-# hmm, should get rid of this global
-my $cfg = {};
 
 MAIN: {
     my $args = get_options(\@IN_OPTS, \%BOOLEAN_ARGS);
 
     # setup the output things
     Amazon::AwsSum::Util::set_vbs( $args->{verbose} );
-    Amazon::AwsSum::Util::set_hdr( $args->{headers} );
 
     # do the version and help
     if ( exists $args->{version} ) {
@@ -88,6 +83,7 @@ MAIN: {
        unless defined $command and exists COMMANDS->{$command};
 
     # load the config
+    my $cfg = {};
     Config::Simple->import_from( $args->{file} || "$ENV{HOME}/.awssum", $cfg );
 
     die 'specify an AWS Access Key ID [AwsAccessKeyId] in the config file'
@@ -102,14 +98,14 @@ MAIN: {
     $sqs->secret_access_key( $cfg->{AwsSecretAccessKey} );
 
     # now call the relevant command
-    if ( $command eq 'addq' ) {
+    if ( $command eq 'add-queue' ) {
         $sqs->CreateQueue({
             QueueName                => $args->{q},
             DefaultVisibilityTimeout => $args->{t},
         });
         create_queue( $sqs->data );
     }
-    elsif ( $command eq 'listq' ) {
+    elsif ( $command eq 'list-queues' ) {
         $sqs->ListQueues({
             QueueNamePrefix => $args->{p},
         });
@@ -117,14 +113,14 @@ MAIN: {
             list_queues( $sqs->data );
         }
     }
-    elsif ( $command eq 'qatt' ) {
+    elsif ( $command eq 'get-queue-attrs' ) {
         $sqs->GetQueueAttributes({
             QueueUrl      => $args->{u},
             AttributeName => $args->{a},
         });
         get_queue_attributes( $sqs->data );
     }
-    elsif ( $command eq 'sqatt' ) {
+    elsif ( $command eq 'set-queue-attrs' ) {
         $sqs->SetQueueAttributes({
             QueueUrl       => $args->{u},
             AttributeName  => $args->{a},
@@ -132,20 +128,20 @@ MAIN: {
         });
         set_queue_attributes( $sqs->data );
     }
-    elsif ( $command eq 'delq' ) {
+    elsif ( $command eq 'del-queue' ) {
         $sqs->DeleteQueue({
             QueueUrl => $args->{u},
         });
         delete_queue( $sqs->data );
     }
-    elsif ( $command eq 'addmsg' ) {
+    elsif ( $command eq 'add-msg' ) {
         $sqs->SendMessage({
             QueueUrl    => $args->{u},
             MessageBody => $args->{m},
         });
         send_message( $sqs->data );
     }
-    elsif ( $command eq 'getmsg' ) {
+    elsif ( $command eq 'get-msg' ) {
         $sqs->ReceiveMessage({
             QueueUrl            => $args->{u},
             MaxNumberOfMessages => $args->{n},
@@ -153,7 +149,7 @@ MAIN: {
         });
         receive_message( $sqs->data );
     }
-    elsif ( $command eq 'delmsg' ) {
+    elsif ( $command eq 'del-msg' ) {
         $sqs->DeleteMessage({
             QueueUrl      => $args->{u},
             ReceiptHandle => $args->{r},
@@ -188,34 +184,42 @@ sub create_queue {
     my ($data) = @_;
     print_metadata($data);
 
-    # output
-    hdr( "# QueueUrl:\tQueueUrl" );
-    print "QueueUrl:\t$data->{CreateQueueResult}{QueueUrl}\n";
+    my (@cols, @rows);
+
+    sep('Queue');
+    @cols = ( qw(QueueURL) );
+    $rows[0] = [ $data->{CreateQueueResult}{QueueUrl} ];
+    table( \@cols, @rows );
 }
 
 sub list_queues {
     my ($data) = @_;
     print_metadata($data);
 
-    # output
-    hdr( "# QueueUrl:\tQueueUrl" );
+    my (@cols, @rows);
 
-    force_array( $data->{ListQueuesResult}{QueueUrl} );
-    foreach my $url ( @{$data->{ListQueuesResult}{QueueUrl}} ) {
-        print "QueueUrl:\t$url\n";
-    }
+    sep('Queue URLs');
+    @cols = ( qw(QueueUrl) );
+    @rows = map { [ $_ ] } @{$data->{ListQueuesResult}{QueueUrl}};
+    table( \@cols, @rows );
+
+    sep('Distribution Summary');
+    force_array( $data->{DistributionSummary} );
+    @cols = ( qw(Id Status Enabled Origin DomainName LastModifiedTime) );
+    @rows = map { [ @$_{ @cols } ] } @{$data->{DistributionSummary}};
+    table( \@cols, @rows );
 }
 
 sub get_queue_attributes {
     my ($data) = @_;
     print_metadata($data);
 
-    # output
-    hdr( "# Attribute:\tName\tValue" );
-    force_array( $data->{GetQueueAttributesResult}{Attribute} );
-    foreach my $attr ( @{$data->{GetQueueAttributesResult}{Attribute}} ) {
-        print "Attribute:\t$attr->{Name}\t$attr->{Value}\n";
-    }
+    my (@cols, @rows);
+
+    sep('Queue Attributes');
+    @cols = ( qw(VisibilityTimeout ApproximateNumberOfMessages) );
+    @rows = ( [ $data->{GetQueueAttributesResult}{Attribute}[0]{Value}, $data->{GetQueueAttributesResult}{Attribute}[1]{Value} ] );
+    table( \@cols, @rows );
 }
 
 sub set_queue_attributes {
@@ -232,21 +236,25 @@ sub send_message {
     my ($data) = @_;
     print_metadata($data);
 
-    # output
-    hdr( "# Message:\tMD5OfMessageBody\tMessageId" );
-    print "Message:\t$data->{SendMessageResult}{MD5OfMessageBody}\t$data->{SendMessageResult}{MessageId}}\n";
+    my (@cols, @rows);
+
+    sep('Receive Message Result');
+    @cols = ( qw(MessageId MD5OfMessageBody) );
+    $rows[0] = [ @{$data->{SendMessageResult}}{@cols} ];
+    table( \@cols, @rows );
 }
 
 sub receive_message {
     my ($data) = @_;
     print_metadata($data);
 
-    # output
-    hdr( "# Message:\tMD5OfMessageBody\tMessageId\tReceiptHandle\tBody" );
+    my (@cols, @rows);
+
+    sep('Receive Message Result');
     force_array( $data->{ReceiveMessageResult}{Message} );
-    foreach my $msg ( @{$data->{ReceiveMessageResult}{Message}} ) {
-        print "Message:\t$msg->{MD5OfBody}\t$msg->{MessageId}\t$msg->{ReceiptHandle}\t$msg->{Body}\n";
-    }
+    @cols = ( qw(MessageId ReceiptHandle MD5OfBody Body) );
+    @rows = map { [ @$_{ @cols } ] } @{$data->{ReceiveMessageResult}{Message}};
+    table( \@cols, @rows );
 }
 
 sub delete_message {
@@ -258,8 +266,12 @@ sub delete_message {
 sub print_metadata {
     my ($data) = @_;
 
-    hdr( "# ResponseMetaData:\tRequestId" );
-    print "ResponseMetaData:\t$data->{ResponseMetadata}{RequestId}\n";
+    sep('Response MetaData');
+    table(
+        [ 'RequestId' ],
+        [ $data->{ResponseMetadata}{RequestId} ],
+    );
+
 }
 
 ## ----------------------------------------------------------------------------
@@ -270,39 +282,39 @@ sub usage {
 Usage: $0 <COMMAND>
 
 Commands:
-  addq -q QueueName [-t DefaultVisibilityTimeout]
+  add-queue -q QueueName [-t DefaultVisibilityTimeout]
    * create queue
      -q the queue name
      -t the default visibility timeout in secs (default: 30)
 
-  listq [-p QueueNamePrefix]
+  list-queues [-p QueueNamePrefix]
    * list queues
      -p a prefix used to filter the list
 
-  qatt -a All|ApproximateNumberOfMessages|VisibilityTimeout
+  get-queue-attrs -u URL -a All|ApproximateNumberOfMessages|VisibilityTimeout
    * get queue attributes
      -u the queue URL you were returned using the CreateQueue command
      -a one of the above three values
 
-  sqatt -a VisibilityTimeout --av Value
+  set-queue-attrs -a VisibilityTimeout --av Value
    * set queue attributes
      --av a Name=Value pair (Name must be 'VisibilityTimeout'
 
-  delq -u QueueUrl
+  del-queue -u QueueUrl
    * delete queue
      -u the queue URL you were returned using the CreateQueue command
 
-  addmsg -u QueueUrl -m Message
+  add-msg -u QueueUrl -m Message
    * Send a Message to the queue
      -u the queue URL you were returned using the CreateQueue command
 
-  getmsg -u QueueUrl -n MaxNumberOfMessages -t VisibilityTimeout
+  get-msg -u QueueUrl -n MaxNumberOfMessages -t VisibilityTimeout
    * receive one or more messages from the queue
      -u the queue URL you were returned using the CreateQueue command
      -n the number of messages to receive (1-10)
      -t the timeout to use with these messages (overrides the queue default)
 
-  delmsg -u QueueUrl -r ReceiptHandle
+  del-msg -u QueueUrl -r ReceiptHandle
    * delete a message from the queue
      -u the queue URL you were returned using the CreateQueue command
      -r the receipt handle you were given when receiving messages
