@@ -11,7 +11,7 @@ use base qw(Amazon::AwsSum::Service);
 use URI::Escape;
 use DateTime;
 
-sub service_version { '2008-01-01' }
+sub service_version { '2009-02-01' }
 sub decode_xml { 1 }
 sub method { 'GET' }
 sub expect { 200 }
