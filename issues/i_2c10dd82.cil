@@ -1,0 +1,8 @@
+Summary: Add new service interface for SNS
+Status: New
+CreatedBy: Andrew Chilton <andychilton@gmail.com>
+AssignedTo: Andrew Chilton <andychilton@gmail.com>
+Inserted: 2010-04-10T10:39:11
+Updated: 2010-04-10T10:39:11
+
+The Simple Notification Service has just been released. Let's support it.
