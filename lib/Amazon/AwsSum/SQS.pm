@@ -155,10 +155,8 @@ sub ReceiveMessage {
 
     $self->action('ReceiveMessage');
     $self->url( $params->{QueueUrl} );
-    $self->add_parameter( 'VisibilityTimeout', $params->{t} )
-        if defined $params->{t};
-    $self->add_parameter( 'MaxNumberOfMessages', $params->{n} )
-        if defined $params->{n};
+    $self->add_param_value( 'VisibilityTimeout', $params->{VisibilityTimeout} );
+    $self->add_param_value( 'MaxNumberOfMessages', $params->{MaxNumberOfMessages} );
     return $self->send();
 }
 
