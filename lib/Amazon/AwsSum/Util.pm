@@ -112,6 +112,11 @@ sub table {
     table_line(\@column_lengths);
     table_row( $cols, \@column_lengths, $headers );
     table_line(\@column_lengths);
+
+    # don't do the rest of the table if nothing there
+    return unless @rows;
+
+    # do the table contents
     foreach my $row ( @rows ) {
         table_row( $cols, \@column_lengths, $row );
     }
