@@ -245,7 +245,7 @@ sub contents {
 
     my $contents = get_contents($s3, $bucket, $prefix);
 
-    foreach ( map { $_->{Key} } @$contents ) {
+    foreach ( @$contents ) {
         # '2009-05-04T10:32:09.000Z' -> '2009-05-04 10:32:09'
         $_->{LastModified} =~ s{T}{ }gxms;
         $_->{LastModified} =~ s{ \.\d\d\dZ \z }{}gxms;
