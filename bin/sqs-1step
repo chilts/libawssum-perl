@@ -27,15 +27,12 @@ my @IN_OPTS = (
     'r=s',   # receipt handle
     'n=s',   # number
     'file=s', # Config File to use
-    'confirm',   'c>confirm',   # confirm deletes
     'verbose',   'v>verbose',
     'help',
     'version',
 );
 
 my %BOOLEAN_ARGS = (
-    confirm => 1,
-    headers => 1,
     verbose => 1,
     help    => 1,
     version => 1,
@@ -118,7 +115,8 @@ MAIN: {
             QueueUrl      => $args->{u},
             AttributeName => $args->{a},
         });
-        get_queue_attributes( $sqs->data );
+        get_queue_attributes( $sqs->data )
+            unless $sqs->errs;
     }
     elsif ( $command eq 'set-queue-attrs' ) {
         $sqs->SetQueueAttributes({
@@ -126,7 +124,8 @@ MAIN: {
             AttributeName  => $args->{a},
             AttributeValue => $args->{av},
         });
-        set_queue_attributes( $sqs->data );
+        set_queue_attributes( $sqs->data )
+            unless $sqs->errs;
     }
     elsif ( $command eq 'del-queue' ) {
         $sqs->DeleteQueue({
@@ -217,8 +216,9 @@ sub get_queue_attributes {
     my (@cols, @rows);
 
     sep('Queue Attributes');
-    @cols = ( qw(VisibilityTimeout ApproximateNumberOfMessages) );
-    @rows = ( [ $data->{GetQueueAttributesResult}{Attribute}[0]{Value}, $data->{GetQueueAttributesResult}{Attribute}[1]{Value} ] );
+    @cols = ( 'Attribute Name', 'Attribute Value' );
+    @rows = map { [ $_->{Name}, $_->{Value} ] } sort { $a->{Name} cmp $b->{Name} } @{$data->{GetQueueAttributesResult}{Attribute}};
+
     table( \@cols, @rows );
 }
 
@@ -291,12 +291,12 @@ Commands:
    * list queues
      -p a prefix used to filter the list
 
-  get-queue-attrs -u URL -a All|ApproximateNumberOfMessages|VisibilityTimeout
+  get-queue-attrs -u URL -a All|ApproximateNumberOfMessages|VisibilityTimeout...
    * get queue attributes
      -u the queue URL you were returned using the CreateQueue command
      -a one of the above three values
 
-  set-queue-attrs -a VisibilityTimeout --av Value
+  set-queue-attrs -a [VisibilityTimeout|Policy] --av Value
    * set queue attributes
      --av a Name=Value pair (Name must be 'VisibilityTimeout'
 

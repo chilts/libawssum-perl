@@ -10,6 +10,7 @@ use base qw(Amazon::AwsSum::Service);
 
 use URI::Escape;
 use DateTime;
+use JSON::Any;
 
 sub service_version { '2009-02-01' }
 sub decode_xml { 1 }
@@ -23,10 +24,16 @@ my $allowed = {
     AttributeNames => {
         All => 1,
         ApproximateNumberOfMessages => 1,
+        ApproximateNumberOfMessagesNotVisible => 1,
         VisibilityTimeout => 1,
+        CreatedTimestamp => 1,
+        LastModifiedTimestamp => 1,
+        Policy => 1,
+        QueueArn => 1,
     },
     setable_AttributeNames => {
         VisibilityTimeout => 1,
+        Policy => 1,
     },
 };
 
@@ -74,7 +81,7 @@ sub GetQueueAttributes {
     }
 
     unless ( exists $allowed->{AttributeNames}{$params->{AttributeName}} ) {
-        croak( 'provide [All|ApproximateNumberOfMessages|VisibilityTimeout] as an attribute name' );
+        croak( 'provide [' . (join('|', sort keys %{$allowed->{AttributeNames}})) . '] as an attribute name' );
     }
 
     $self->action('GetQueueAttributes');
@@ -97,11 +104,19 @@ sub SetQueueAttributes {
     }
 
     unless ( exists $allowed->{setable_AttributeNames}{$params->{AttributeName}} ) {
-        croak( "provide 'VisibilityTimeout' as an attribute name" );
+        croak( "unknown attribute, try: " . join(', ', keys %{$params->{AttributeName}}) );
     }
 
     unless ( defined $params->{AttributeValue} ) {
         croak( 'provide an attribute value' );
+    }
+
+    # if we have a Policy for the attribute, check that the JSON is valid
+    if ( $params->{AttributeName} eq 'Policy' ) {
+        my $obj = JSON::Any->jsonToObj($params->{AttributeValue});
+        use Data::Dumper;
+        print Dumper($obj);
+        print JSON::Any->objToJson( $obj );
     }
 
     $self->action('SetQueueAttributes');
@@ -157,6 +172,10 @@ sub ReceiveMessage {
     $self->url( $params->{QueueUrl} );
     $self->add_param_value( 'VisibilityTimeout', $params->{VisibilityTimeout} );
     $self->add_param_value( 'MaxNumberOfMessages', $params->{MaxNumberOfMessages} );
+
+    # might as well ask for all the Attributes whilst we're here
+    $self->add_param_value( 'AttributeName.1', 'All' );
+
     return $self->send();
 }
 
