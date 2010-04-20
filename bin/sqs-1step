@@ -198,14 +198,9 @@ sub list_queues {
     my (@cols, @rows);
 
     sep('Queue URLs');
+    force_array( $data->{ListQueuesResult}{QueueUrl} );
     @cols = ( qw(QueueUrl) );
     @rows = map { [ $_ ] } @{$data->{ListQueuesResult}{QueueUrl}};
-    table( \@cols, @rows );
-
-    sep('Distribution Summary');
-    force_array( $data->{DistributionSummary} );
-    @cols = ( qw(Id Status Enabled Origin DomainName LastModifiedTime) );
-    @rows = map { [ @$_{ @cols } ] } @{$data->{DistributionSummary}};
     table( \@cols, @rows );
 }
 
@@ -215,8 +210,12 @@ sub get_queue_attributes {
 
     my (@cols, @rows);
 
+    # if no attributes, pretend a list of zero
+    $data->{GetQueueAttributesResult}{Attribute} ||= [] ;
+
     sep('Queue Attributes');
-    @cols = ( 'Attribute Name', 'Attribute Value' );
+    force_array( $data->{GetQueueAttributesResult}{Attribute} );
+    @cols = ( 'Name', 'Value' );
     @rows = map { [ $_->{Name}, $_->{Value} ] } sort { $a->{Name} cmp $b->{Name} } @{$data->{GetQueueAttributesResult}{Attribute}};
 
     table( \@cols, @rows );
