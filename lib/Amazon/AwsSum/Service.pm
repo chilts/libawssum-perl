@@ -110,6 +110,7 @@ sub add_header {
     }
 }
 
+# add a parameter, even if it is undefined
 sub add_parameter {
     my ($self, $name, $val) = @_;
 
@@ -120,6 +121,7 @@ sub add_parameter {
     $self->{params}{$name} = $val;
 }
 
+# add a parameter, but only if it's defined
 sub add_param_value {
     my ($self, $name, $val) = @_;
 
@@ -215,6 +217,7 @@ sub prepare_request {
 sub process_response {
     my ($self) = @_;
 
+    # firstly, if the response code is wrong, then something went wrong
     if ( $self->http_response->code ne $self->expect ) {
         $self->data( XMLin( $self->http_response->content ));
         $self->process_errs();
