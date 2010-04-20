@@ -165,7 +165,7 @@ sub ReceiveMessage {
     $self->reset();
 
     unless ( defined $params->{QueueUrl} ) {
-        croak( 'provide a queue url to add this message to' );
+        croak( 'provide a queue url to retrieve this message from' );
     }
 
     $self->action('ReceiveMessage');
