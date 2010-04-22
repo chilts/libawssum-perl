@@ -11,6 +11,7 @@ use base qw(Amazon::AwsSum::Service);
 use URI::Escape;
 use DateTime;
 use JSON::Any;
+use Amazon::AwsSum::Util qw(force_array);
 
 sub service_version { '2009-02-01' }
 sub decode_xml { 1 }
@@ -35,6 +36,14 @@ my $allowed = {
         VisibilityTimeout => 1,
         Policy => 1,
     },
+    ActionName => {
+        '*' => 1,
+        SendMessage => 1,
+        ReceiveMessage => 1,
+        DeleteMessage => 1,
+        ChangeMessageVisibility => 1,
+        GetQueueAttributes => 1,
+    },
 };
 
 ## ----------------------------------------------------------------------------
@@ -42,7 +51,6 @@ my $allowed = {
 
 sub CreateQueue {
     my ($self, $params) = @_;
-
     $self->reset();
 
     unless ( defined $params->{QueueName} ) {
@@ -58,7 +66,6 @@ sub CreateQueue {
 
 sub ListQueues {
     my ($self, $params) = @_;
-
     $self->reset();
 
     $self->action('ListQueues');
@@ -69,7 +76,6 @@ sub ListQueues {
 
 sub GetQueueAttributes {
     my ($self, $params) = @_;
-
     $self->reset();
 
     unless ( defined $params->{QueueUrl} ) {
@@ -92,7 +98,6 @@ sub GetQueueAttributes {
 
 sub SetQueueAttributes {
     my ($self, $params) = @_;
-
     $self->reset();
 
     unless ( defined $params->{QueueUrl} ) {
@@ -128,7 +133,6 @@ sub SetQueueAttributes {
 
 sub DeleteQueue {
     my ($self, $params) = @_;
-
     $self->reset();
 
     unless ( defined $params->{QueueUrl} ) {
@@ -142,7 +146,6 @@ sub DeleteQueue {
 
 sub SendMessage {
     my ($self, $params) = @_;
-
     $self->reset();
 
     unless ( defined $params->{QueueUrl} ) {
@@ -161,7 +164,6 @@ sub SendMessage {
 
 sub ReceiveMessage {
     my ($self, $params) = @_;
-
     $self->reset();
 
     unless ( defined $params->{QueueUrl} ) {
@@ -181,7 +183,6 @@ sub ReceiveMessage {
 
 sub DeleteMessage {
     my ($self, $params) = @_;
-
     $self->reset();
 
     unless ( defined $params->{QueueUrl} ) {
@@ -194,6 +195,90 @@ sub DeleteMessage {
 
     $self->action('DeleteMessage');
     $self->url( $params->{QueueUrl} );
+    $self->add_parameter( 'ReceiptHandle', $params->{ReceiptHandle} );
+    return $self->send();
+}
+
+sub AddPermission {
+    my ($self, $params) = @_;
+    $self->reset();
+
+    unless ( defined $params->{QueueUrl} ) {
+        croak( 'provide a queue url to add this permission to' );
+    }
+
+    unless ( defined $params->{Label} ) {
+        croak( 'provide a label for this permission' );
+    }
+
+    unless ( defined $params->{AWSAccountId} ) {
+        croak( 'provide at least one AWSAccountID for this permission' );
+    }
+
+    unless ( defined $params->{ActionName} ) {
+        croak( 'provide at least one ActionName for this permission' );
+    }
+
+    # make sure we have arrays rather than just single valued scalars
+    force_array($params->{AWSAccountId});
+    force_array($params->{ActionName});
+
+    unless ( scalar @{$params->{AWSAccountId}} == scalar @{$params->{ActionName}} ) {
+        croak( 'provide the same number of AWSAccountIDs as ActionNames' )
+    }
+
+    # check all the IDs
+    foreach my $i ( @{$params->{AWSAccountId}} ) {
+        # should match 123456789012 (12 digits)
+        unless ( $i =~ m{ \A \d{12} \z }xms ) {
+            croak( 'action ' . "'$a'" . ' not allowed, provide:' . join(', ', sort keys %{$allowed->{ActionName}}) );
+        }
+    }
+
+    # check all the ActionNames
+    foreach my $a ( @{$params->{ActionName}} ) {
+        unless ( defined $allowed->{ActionName}{$a} ) {
+            croak( 'action ' . "'$a'" . ' not allowed, provide:' . join(', ', sort keys %{$allowed->{ActionName}}) );
+        }
+    }
+
+    $self->action('AddPermission');
+    $self->url( $params->{QueueUrl} );
+    $self->add_parameter( 'Label', $params->{Label} );
+    $self->add_numeral_parameters( 'AWSAccountId', $params->{AWSAccountId} );
+    $self->add_numeral_parameters( 'ActionName', $params->{ActionName} );
+    return $self->send();
+}
+
+sub RemovePermission {
+    my ($self, $params) = @_;
+    $self->reset();
+
+    unless ( defined $params->{QueueUrl} ) {
+        croak( 'provide a queue url to add this permission to' );
+    }
+
+    unless ( defined $params->{Label} ) {
+        croak( 'provide a label for this permission' );
+    }
+
+    $self->action('RemovePermission');
+    $self->url( $params->{QueueUrl} );
+    $self->add_parameter( 'Label', $params->{Label} );
+    return $self->send();
+}
+
+sub ChangeMessageVisibility {
+    my ($self, $params) = @_;
+    $self->reset();
+
+    unless ( defined $params->{QueueUrl} ) {
+        croak( 'provide a queue url to add this permission to' );
+    }
+
+    $self->action('ChangeMessageVisibility');
+    $self->url( $params->{QueueUrl} );
+    $self->add_parameter( 'VisibilityTimeout', $params->{VisibilityTimeout} );
     $self->add_parameter( 'ReceiptHandle', $params->{ReceiptHandle} );
     return $self->send();
 }

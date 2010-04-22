@@ -18,16 +18,22 @@ use constant VERSION => '0.1';
 
 my @IN_OPTS = (
     'q=s',   # queue name
-    't=s',   # timeout
+    't=s',   # timeout (ChangeVisibilityTimeout)
     'p=s',   # queue name prefix
     'u=s',   # queue Url
-    'a=s',   # attribute name
-    'av=s',  # attribute value
+    # attribute name (GetQueueAttributes/SetQueueAttributes
+    # action name (AddPermission)
+    'a=s',
+    'v=s',   # attribute value
     'm=s',   # message
     'r=s',   # receipt handle
     'n=s',   # number
+    # account id (AddPermission)
+    'i=s',
+    # label (AddPermission, RemovePermission)
+    'l=s',
     'file=s', # Config File to use
-    'verbose',   'v>verbose',
+    'verbose',
     'help',
     'version',
 );
@@ -47,6 +53,9 @@ use constant COMMANDS => {
     'add-msg'         => 1, # SendMessage
     'get-msg'         => 1, # ReceiveMessage
     'del-msg'         => 1, # DeleteMesage
+    'add-permission'  => 1, # AddPermission
+    'change-message-visibility' => 1, # ChangeMessageVisibility
+    'remove-permission' => 1, # RemovePermission
 };
 
 ## ----------------------------------------------------------------------------
@@ -154,6 +163,30 @@ MAIN: {
             ReceiptHandle => $args->{r},
         });
         delete_message( $sqs->data );
+    }
+    elsif ( $command eq 'add-permission' ) {
+        $sqs->AddPermission({
+            QueueUrl     => $args->{u},
+            Label        => $args->{l},
+            AWSAccountId => $args->{i}, # can be an array
+            ActionName   => $args->{a}, # can be an array
+        });
+        print_metadata($sqs->data);
+    }
+    elsif ( $command eq 'remove-permission' ) {
+        $sqs->RemovePermission({
+            QueueUrl => $args->{u},
+            Label    => $args->{l},
+        });
+        print_metadata($sqs->data);
+    }
+    elsif ( $command eq 'change-message-visibility' ) {
+        $sqs->ChangeMessageVisibility({
+            QueueUrl          => $args->{u},
+            ReceiptHandle     => $args->{r},
+            VisibilityTimeout => $args->{t},
+        });
+        print_metadata($sqs->data);
     }
 
     if ( $sqs->errs ) {
@@ -317,6 +350,8 @@ Commands:
    * delete a message from the queue
      -u the queue URL you were returned using the CreateQueue command
      -r the receipt handle you were given when receiving messages
+
+  add-permission -u QueueUrl -l label 
 
 Note: for all '-u' options, SQS requires you to use the full URL for certain
 operations. The documentation states that you should store the entire queue URL
