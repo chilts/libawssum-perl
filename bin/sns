@@ -1,0 +1,355 @@
+#!/usr/bin/perl
+##----------------------------------------------------------------------------
+
+use strict;
+use warnings;
+use Data::Dumper;
+
+use Getopt::Mixed "nextOption";
+use Config::Simple;
+
+use Amazon::AwsSum::Util qw(get_options vbs sep line errs force_array table);
+use Amazon::AwsSum::SNS;
+
+## ----------------------------------------------------------------------------
+# constants
+
+use constant VERSION => '0.1';
+
+my @IN_OPTS = (
+    'r=s',   # region
+    'n=s',   # topic name, attribute name
+    't=s',   # topic arn (Amazon Resource Name)
+    'p=s',   # protocol (http, https, email, email-json, sqs
+    'e=s',   # endpoint (a URL, email address or Queue ARN)
+    'm=s',   # message (for Publish)
+    's=s',   # subject (for Publish)
+    'u=s',   # subscription arn
+    'v=s',   # value
+    'file=s', # Config File to use
+    'verbose',   'v>verbose',
+    'help',
+    'version',
+);
+
+my %BOOLEAN_ARGS = (
+    verbose => 1,
+    help    => 1,
+    version => 1,
+);
+
+use constant COMMANDS => {
+    'list-topics'     => 1, # ListTopics
+    'create-topic'    => 1, # CreateTopic
+    'delete-topic'    => 1, # DeleteTopic
+    'get-topic-attributes' => 1, # GetTopicAttributes
+    'set-topic-attributes' => 1, # SetTopicAttributes
+    'list-subscriptions' => 1, # ListSubscriptions
+    'subscribe'       => 1, # Subscribe
+    'publish'         => 1, # Publish
+    'unsubscribe'     => 1, # Unsubscribe
+};
+
+## ----------------------------------------------------------------------------
+
+MAIN: {
+    my $args = get_options(\@IN_OPTS, \%BOOLEAN_ARGS);
+
+    # setup the output things
+    Amazon::AwsSum::Util::set_vbs( $args->{verbose} );
+
+    # do the version and help
+    if ( exists $args->{version} ) {
+        print "$0 ".VERSION."\n";
+        exit;
+    }
+
+    if ( exists $args->{help} ) {
+        usage();
+        exit;
+    }
+
+    line('Input Args');
+    vbs( Dumper($args) );
+
+    # make sure that the command given is valid
+    Getopt::Mixed::abortMsg('specify a command')
+       if @ARGV == 0;
+
+    my $command = shift @ARGV;
+    Getopt::Mixed::abortMsg('specify a valid command')
+       unless defined $command and exists COMMANDS->{$command};
+
+    # load the config
+    my $cfg = {};
+    Config::Simple->import_from( $args->{file} || "$ENV{HOME}/.awssum", $cfg );
+
+    die 'specify an AWS Access Key ID [AwsAccessKeyId] in the config file'
+        unless $cfg->{AwsAccessKeyId};
+    die 'specify an AWS Secret Access Key [AwsSecretAccessKey] in the config file'
+        unless $cfg->{AwsSecretAccessKey};
+
+    line('Normal Output');
+
+    my $sns = Amazon::AwsSum::SNS->new();
+    $sns->access_key_id( $cfg->{AwsAccessKeyId} );
+    $sns->secret_access_key( $cfg->{AwsSecretAccessKey} );
+
+    # now call the relevant command
+    if ( $command eq 'list-topics' ) {
+        $sns->ListTopics({
+            Region   => $args->{r},
+        });
+        unless ( $sns->errs ) {
+            report_list_topics( $sns->data );
+        }
+    }
+    elsif ( $command eq 'create-topic' ) {
+        $sns->CreateTopic({
+            Region   => $args->{r},
+            Name     => $args->{n},
+        });
+        unless ( $sns->errs ) {
+            report_create_topic( $sns->data );
+        }
+    }
+    elsif ( $command eq 'delete-topic' ) {
+        $sns->DeleteTopic({
+            Region   => $args->{r},
+            TopicArn => $args->{t},
+        });
+        unless ( $sns->errs ) {
+            report_delete_topic( $sns->data );
+        }
+    }
+    elsif ( $command eq 'get-topic-attributes' ) {
+        $sns->GetTopicAttributes({
+            Region   => $args->{r},
+            TopicArn => $args->{t},
+        });
+        unless ( $sns->errs ) {
+            report_get_topic_attributes( $sns->data );
+        }
+    }
+    elsif ( $command eq 'set-topic-attributes' ) {
+        $sns->SetTopicAttributes({
+            Region         => $args->{r},
+            TopicArn       => $args->{t},
+            AttributeName  => $args->{n},
+            AttributeValue => $args->{v},
+        });
+        unless ( $sns->errs ) {
+            report_get_topic_attributes( $sns->data );
+        }
+    }
+    elsif ( $command eq 'list-subscriptions' ) {
+        $sns->ListSubscriptions({
+            Region   => $args->{r},
+        });
+        unless ( $sns->errs ) {
+            report_list_subscriptions( $sns->data );
+        }
+    }
+    elsif ( $command eq 'subscribe' ) {
+        $sns->Subscribe({
+            Region   => $args->{r},
+            TopicArn => $args->{t},
+            Protocol => $args->{p},
+            Endpoint => $args->{e},
+        });
+        unless ( $sns->errs ) {
+            report_subscribe( $sns->data );
+        }
+    }
+    elsif ( $command eq 'publish' ) {
+        $sns->Publish({
+            Region   => $args->{r},
+            TopicArn => $args->{t},
+            Message  => $args->{m},
+            Subject  => $args->{s},
+        });
+        unless ( $sns->errs ) {
+            report_publish( $sns->data );
+        }
+    }
+    elsif ( $command eq 'unsubscribe' ) {
+        $sns->Unsubscribe({
+            Region   => $args->{r},
+            SubscriptionArn => $args->{u},
+        });
+        unless ( $sns->errs ) {
+            report_unsubscribe( $sns->data );
+        }
+    }
+
+    if ( $sns->errs ) {
+        line('Request Errors');
+        print errs( $sns->errs );
+    }
+
+    line('HTTP Request Headers');
+    vbs( $sns->http_request->method . " " . $sns->http_request->uri );
+    vbs( $sns->http_request->headers_as_string( "\n" ) );
+    line('HTTP Request Content');
+    vbs( $sns->http_request->content );
+    line('HTTP Response Headers');
+    vbs( $sns->http_response->code . ' ' . $sns->http_response->message );
+    vbs( $sns->http_response->headers_as_string( "\n" ) );
+    line('HTTP Response Content');
+    vbs( $sns->http_response->content );
+    line('Data');
+    vbs( Dumper( $sns->data ));
+    line();
+}
+
+## ----------------------------------------------------------------------------
+# reports
+
+sub report_list_topics {
+    my ($data) = @_;
+    print_metadata($data);
+
+    my (@cols, @rows);
+
+    sep('Topics');
+    force_array( $data->{ListTopicsResult}{Topics}{member} );
+    @cols = ( qw(TopicArn) );
+    @rows = map { [ @$_{ @cols } ] } @{$data->{ListTopicsResult}{Topics}{member}};
+    table( \@cols, @rows );
+}
+
+sub report_create_topic {
+    my ($data) = @_;
+    print_metadata($data);
+
+    my (@cols, @rows);
+
+    sep('Topic');
+    @cols = ( qw(TopicArn) );
+    $rows[0] = [ $data->{CreateTopicResult}{TopicArn} ];
+    table( \@cols, @rows );
+}
+
+sub report_delete_topic {
+    my ($data) = @_;
+    print_metadata($data);
+}
+
+sub report_get_topic_attributes {
+    my ($data) = @_;
+    print_metadata($data);
+
+    my (@cols, @rows);
+
+    sep('Topic Attributes');
+    force_array( $data->{GetTopicAttributesResult}{Attributes}{entry} );
+    @cols = ( qw(Owner TopicArn Policy) );
+    foreach my $entry ( @{$data->{GetTopicAttributesResult}{Attributes}{entry}} ) {
+        push @rows, [ $entry->{Owner}{value}, $entry->{TopicArn}{value}, $entry->{Policy}{value} ];
+    }
+    table( \@cols, @rows );
+}
+
+sub report_list_subscriptions {
+    my ($data) = @_;
+    print_metadata($data);
+
+    my (@cols, @rows);
+
+    sep('List Subscriptions Result');
+    force_array( $data->{ListSubscriptionsResult}{Subscriptions}{member} );
+    @cols = ( qw(Owner TopicArn Protocol Endpoint SubscriptionArn) );
+    @rows = map { [ @$_{ @cols } ] } @{$data->{ListSubscriptionsResult}{Subscriptions}{member}};
+    table( \@cols, @rows );
+}
+
+sub report_subscribe {
+    my ($data) = @_;
+    print_metadata($data);
+
+    my (@cols, @rows);
+
+    sep('Subscribe Result');
+    @cols = ( qw(SubscriptionArn) );
+    $rows[0] = [ $data->{SubscribeResult}{SubscriptionArn} ];
+    table( \@cols, @rows );
+}
+
+sub report_publish {
+    my ($data) = @_;
+    print_metadata($data);
+
+    my (@cols, @rows);
+
+    sep('Publish Result');
+    @cols = ( qw(MessageId) );
+    $rows[0] = [ $data->{PublishResult}{MessageId} ];
+    table( \@cols, @rows );
+}
+
+sub report_unsubscribe {
+    my ($data) = @_;
+    print_metadata($data);
+}
+
+# generic one
+sub print_metadata {
+    my ($data) = @_;
+    sep('Response MetaData');
+    table(
+        [ 'RequestId' ],
+        [ $data->{ResponseMetadata}{RequestId} ],
+    );
+
+}
+
+## ----------------------------------------------------------------------------
+# usage
+
+sub usage {
+   print <<"END_USAGE";
+Usage: $0 <COMMAND>
+
+  Note: all commands can be given an optional '-r <region>' parameter, which is
+  the region on which to operate (default: 'us-east-1').
+
+Commands:
+  list-topics
+
+  create-topic -n topic-name
+    -n the topic name to create
+
+  delete-topic -t topic-arn
+    -t the ARN of the topic to delete
+
+  get-topic-attributes -t topic-arn
+    -t the ARN of the topic to delete
+
+  set-topic-attributes -t topic-arn -n attribute-name -v attribute- value
+    -t the ARN of the topic to delete
+    -n the name of the attribute
+    -v the value to set the attribute to
+
+  list-subscriptions
+
+  publish -t topic-arn -m message [-s subject]
+    -t the ARN of the topic to delete
+    -m the message to send to the topic
+    -s the subject to send
+
+  subscribe -t topic-arn -p protocol -e endpoint
+    -t the ARN of the topic to delete
+    -p the protocol of this endpoint (https, http, email, email-json, sqs)
+    -e the endpoint for this subscription (url, email, sqs arn)
+
+  unsubscribe -u subscription-arn
+    -u the ARN of the subscription
+
+  ToDo: AddPermission, RemovePermission, ListSubscriptionsByTopic, ConfirmSubscription
+
+See <http://github.com/andychilton/awssum/> for further information.
+Report bugs to <andychilton -at- gmail -dot- com>.
+END_USAGE
+}
+
+## ----------------------------------------------------------------------------
