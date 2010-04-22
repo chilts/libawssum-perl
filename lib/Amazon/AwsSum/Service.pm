@@ -130,6 +130,10 @@ sub add_param_value {
     $self->{params}{$name} = $val;
 }
 
+# adds a list of values, which appear as:
+# * $name.1
+# * $name.2
+# * $name.3 ...etc...
 sub add_numeral_parameters {
     my ($self, $name, $val) = @_;
 
