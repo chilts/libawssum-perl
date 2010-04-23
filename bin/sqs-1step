@@ -351,7 +351,23 @@ Commands:
      -u the queue URL you were returned using the CreateQueue command
      -r the receipt handle you were given when receiving messages
 
-  add-permission -u QueueUrl -l label 
+  add-permission -u QueueUrl -l label [-i AWSAccountId...] [-a Action...]
+   * add a permission to this queue
+     -u the queue URL you were returned using the CreateQueue command
+     -l the label to give this set of permissions
+     -i one or more AWS Account IDs
+     -a one or more action names
+
+  remove-permission -u QueueUrl -l label
+   * add a permission to this queue
+     -u the queue URL you were returned using the CreateQueue command
+     -l the label which specifies which permission to remove
+
+  change-message-visibility -u QueueUrl -t VisibilityTimeout -r ReceiptHandle
+   * changes the message visibility of the handle's message
+     -u the queue URL you were returned using the CreateQueue command
+     -t the timeout for this message
+     -r the receipt handle you were given when receiving messages
 
 Note: for all '-u' options, SQS requires you to use the full URL for certain
 operations. The documentation states that you should store the entire queue URL
