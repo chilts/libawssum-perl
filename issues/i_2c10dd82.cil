@@ -1,8 +1,8 @@
 Summary: Add new service interface for SNS
-Status: InProgress
+Status: Closed
 CreatedBy: Andrew Chilton <andychilton@gmail.com>
 AssignedTo: Andrew Chilton <andychilton@gmail.com>
 Inserted: 2010-04-10T10:39:11
-Updated: 2010-04-22T10:29:47
+Updated: 2010-04-23T09:57:33
 
 The Simple Notification Service has just been released. Let's support it.

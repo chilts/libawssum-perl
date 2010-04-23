@@ -26,6 +26,8 @@ my @IN_OPTS = (
     's=s',   # subject (for Publish)
     'u=s',   # subscription arn
     'v=s',   # value
+    'T=s',   # token (for ConfirmSubscription)
+    'a',     # authenticate on unsubscribe (for ConfirmSubscription)
     'file=s', # Config File to use
     'verbose',   'v>verbose',
     'help',
@@ -33,21 +35,26 @@ my @IN_OPTS = (
 );
 
 my %BOOLEAN_ARGS = (
+    a       => 1,
     verbose => 1,
     help    => 1,
     version => 1,
 );
 
 use constant COMMANDS => {
-    'list-topics'     => 1, # ListTopics
-    'create-topic'    => 1, # CreateTopic
-    'delete-topic'    => 1, # DeleteTopic
-    'get-topic-attributes' => 1, # GetTopicAttributes
-    'set-topic-attributes' => 1, # SetTopicAttributes
-    'list-subscriptions' => 1, # ListSubscriptions
-    'subscribe'       => 1, # Subscribe
-    'publish'         => 1, # Publish
-    'unsubscribe'     => 1, # Unsubscribe
+    'list-topics'                 => 1, # ListTopics
+    'create-topic'                => 1, # CreateTopic
+    'delete-topic'                => 1, # DeleteTopic
+    'get-topic-attributes'        => 1, # GetTopicAttributes
+    'set-topic-attributes'        => 1, # SetTopicAttributes
+    'list-subscriptions'          => 1, # ListSubscriptions
+    'list-subscriptions-by-topic' => 1, # ListSubscriptionsByTopic
+    'subscribe'                   => 1, # Subscribe
+    'confirm-subscription'        => 1, # ConfirmSubscription
+    'publish'                     => 1, # Publish
+    'unsubscribe'                 => 1, # Unsubscribe
+    'add-permission'              => 1, # AddPermission
+    'remove-permission'           => 1, # RemovePermission
 };
 
 ## ----------------------------------------------------------------------------
@@ -150,6 +157,15 @@ MAIN: {
             report_list_subscriptions( $sns->data );
         }
     }
+    elsif ( $command eq 'list-subscriptions-by-topic' ) {
+        $sns->ListSubscriptionsByTopic({
+            Region   => $args->{r},
+            TopicArn => $args->{t},
+        });
+        unless ( $sns->errs ) {
+            report_list_subscriptions_by_topic( $sns->data );
+        }
+    }
     elsif ( $command eq 'subscribe' ) {
         $sns->Subscribe({
             Region   => $args->{r},
@@ -159,6 +175,16 @@ MAIN: {
         });
         unless ( $sns->errs ) {
             report_subscribe( $sns->data );
+        }
+    }
+    elsif ( $command eq 'confirm-subscription' ) {
+        $sns->ConfirmSubscription({
+            Region   => $args->{r},
+            TopicArn => $args->{t},
+            Token    => $args->{T},
+        });
+        unless ( $sns->errs ) {
+            report_confirm_subscription( $sns->data );
         }
     }
     elsif ( $command eq 'publish' ) {
@@ -180,6 +206,24 @@ MAIN: {
         unless ( $sns->errs ) {
             report_unsubscribe( $sns->data );
         }
+    }
+    elsif ( $command eq 'add-permission' ) {
+        $sns->AddPermission({
+            Region       => $args->{r},
+            TopicArn     => $args->{t},
+            Label        => $args->{l},
+            AWSAccountId => $args->{i}, # can be an array
+            ActionName   => $args->{a}, # can be an array
+        });
+        print_metadata($sns->data);
+    }
+    elsif ( $command eq 'remove-permission' ) {
+        $sns->RemovePermission({
+            Region   => $args->{r},
+            TopicArn => $args->{t},
+            Label    => $args->{l},
+        });
+        print_metadata($sns->data);
     }
 
     if ( $sns->errs ) {
@@ -263,6 +307,19 @@ sub report_list_subscriptions {
     table( \@cols, @rows );
 }
 
+sub report_list_subscriptions_by_topic {
+    my ($data) = @_;
+    print_metadata($data);
+
+    my (@cols, @rows);
+
+    sep('List Subscriptions By Topic Result');
+    force_array( $data->{ListSubscriptionsByTopicResult}{Subscriptions}{member} );
+    @cols = ( qw(Owner TopicArn Protocol Endpoint SubscriptionArn) );
+    @rows = map { [ @$_{ @cols } ] } @{$data->{ListSubscriptionsByTopicResult}{Subscriptions}{member}};
+    table( \@cols, @rows );
+}
+
 sub report_subscribe {
     my ($data) = @_;
     print_metadata($data);
@@ -272,6 +329,18 @@ sub report_subscribe {
     sep('Subscribe Result');
     @cols = ( qw(SubscriptionArn) );
     $rows[0] = [ $data->{SubscribeResult}{SubscriptionArn} ];
+    table( \@cols, @rows );
+}
+
+sub report_confirm_subscription {
+    my ($data) = @_;
+    print_metadata($data);
+
+    my (@cols, @rows);
+
+    sep('Confirm Subscription Result');
+    @cols = ( qw(SubscriptionArn) );
+    $rows[0] = [ $data->{ConfirmSubscriptionResult}{SubscriptionArn} ];
     table( \@cols, @rows );
 }
 
@@ -323,29 +392,45 @@ Commands:
     -t the ARN of the topic to delete
 
   get-topic-attributes -t topic-arn
-    -t the ARN of the topic to delete
+    -t the ARN of the topic to get the attributes from
 
   set-topic-attributes -t topic-arn -n attribute-name -v attribute- value
-    -t the ARN of the topic to delete
+    -t the ARN of the topic to set the attribute of
     -n the name of the attribute
     -v the value to set the attribute to
 
   list-subscriptions
 
+  list-subscriptions -t topic-arn
+    -t the ARN of the topic to list
+
   publish -t topic-arn -m message [-s subject]
-    -t the ARN of the topic to delete
+    -t the ARN of the topic to publish to
     -m the message to send to the topic
     -s the subject to send
 
   subscribe -t topic-arn -p protocol -e endpoint
-    -t the ARN of the topic to delete
+    -t the ARN of the topic to subscribe to
     -p the protocol of this endpoint (https, http, email, email-json, sqs)
     -e the endpoint for this subscription (url, email, sqs arn)
 
   unsubscribe -u subscription-arn
     -u the ARN of the subscription
 
-  ToDo: AddPermission, RemovePermission, ListSubscriptionsByTopic, ConfirmSubscription
+  add-permission -t topic-arn -l label [-i aws-account-id...] [-a action...]
+    -t the ARN of the topic to add the permission to
+    -l the label to give this set of permissions
+    -i one or more AWS Account IDs
+    -a one or more action names
+
+  remove-permission -t topic-arn -l label
+    -t the ARN of the topic to remove the permission from
+    -l the label to give this set of permissions
+
+  confirm-subscription
+    -t the ARN of the topic which is being subscribed to
+    -T the one-off token which was sent to the endpoint
+    -a disables unauthenticated unsubscribing from the topic (ie. needs authentication to unsubscribe)
 
 See <http://github.com/andychilton/awssum/> for further information.
 Report bugs to <andychilton -at- gmail -dot- com>.

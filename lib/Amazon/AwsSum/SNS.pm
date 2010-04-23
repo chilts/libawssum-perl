@@ -185,6 +185,23 @@ sub ListSubscriptions {
     return $self->send();
 }
 
+sub ListSubscriptionsByTopic {
+    my ($self, $params) = @_;
+    $self->reset();
+
+    # set a default region and check for it to be valid
+    $params->{Region} ||= 'us-east-1';
+    unless ( $region->{$params->{Region}} ) {
+        croak( 'unknown region, try:' . join(', ', keys %$region) );
+    }
+
+    $self->action('ListSubscriptionsByTopic');
+    $self->region( $params->{Region} );
+    $self->add_param_value( 'TopicArn', $params->{TopicArn} );
+
+    return $self->send();
+}
+
 sub Subscribe {
     my ($self, $params) = @_;
     $self->reset();
@@ -267,6 +284,91 @@ sub Unsubscribe {
     $self->region( $params->{Region} );
     $self->add_param_value( 'SubscriptionArn', $params->{SubscriptionArn} );
 
+    return $self->send();
+}
+
+sub AddPermission {
+    my ($self, $params) = @_;
+    $self->reset();
+
+    # set a default region and check for it to be valid
+    $params->{Region} ||= 'us-east-1';
+    unless ( $region->{$params->{Region}} ) {
+        croak( 'unknown region, try:' . join(', ', keys %$region) );
+    }
+
+    # need an ARN for this publish
+    unless ( defined $params->{TopicArn} ) {
+        croak( 'provide a Topic Arn for this publish' );
+    }
+
+    unless ( defined $params->{Label} ) {
+        croak( 'provide a label for this permission' );
+    }
+
+    unless ( defined $params->{AWSAccountId} ) {
+        croak( 'provide at least one AWSAccountID for this permission' );
+    }
+
+    unless ( defined $params->{ActionName} ) {
+        croak( 'provide at least one ActionName for this permission' );
+    }
+
+    # make sure we have arrays rather than just single valued scalars
+    force_array($params->{AWSAccountId});
+    force_array($params->{ActionName});
+
+    unless ( scalar @{$params->{AWSAccountId}} == scalar @{$params->{ActionName}} ) {
+        croak( 'provide the same number of AWSAccountIDs as ActionNames' )
+    }
+
+    # check all the IDs
+    foreach my $i ( @{$params->{AWSAccountId}} ) {
+        # should match 123456789012 (12 digits)
+        unless ( $i =~ m{ \A \d{12} \z }xms ) {
+            croak( 'action ' . "'$a'" . ' not allowed, provide:' . join(', ', sort keys %{$allowed->{ActionName}}) );
+        }
+    }
+
+    # check all the ActionNames
+    foreach my $a ( @{$params->{ActionName}} ) {
+        unless ( defined $allowed->{ActionName}{$a} ) {
+            croak( 'action ' . "'$a'" . ' not allowed, provide:' . join(', ', sort keys %{$allowed->{ActionName}}) );
+        }
+    }
+
+    $self->action('AddPermission');
+    $self->region( $params->{Region} );
+    $self->add_param_value( 'TopicArn', $params->{TopicArn} );
+    $self->add_parameter( 'Label', $params->{Label} );
+    $self->add_numeral_parameters( 'AWSAccountId.member', $params->{AWSAccountId} );
+    $self->add_numeral_parameters( 'ActionName.member', $params->{ActionName} );
+    return $self->send();
+}
+
+sub RemovePermission {
+    my ($self, $params) = @_;
+    $self->reset();
+
+    # set a default region and check for it to be valid
+    $params->{Region} ||= 'us-east-1';
+    unless ( $region->{$params->{Region}} ) {
+        croak( 'unknown region, try:' . join(', ', keys %$region) );
+    }
+
+    # need an ARN for this publish
+    unless ( defined $params->{TopicArn} ) {
+        croak( 'provide a Topic Arn for this publish' );
+    }
+
+    unless ( defined $params->{Label} ) {
+        croak( 'provide a label for this permission' );
+    }
+
+    $self->action('RemovePermission');
+    $self->region( $params->{Region} );
+    $self->add_param_value( 'TopicArn', $params->{TopicArn} );
+    $self->add_parameter( 'Label', $params->{Label} );
     return $self->send();
 }
 
