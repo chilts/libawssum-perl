@@ -18,7 +18,6 @@ use strict;
 use warnings;
 use Carp;
 
-use Log::TraceMessages qw(t d);
 use Getopt::Mixed "nextOption";
 use Config::Simple;
 use MIME::Types;
@@ -29,8 +28,6 @@ use File::Basename;
 use Digest::MD5 qw(md5_hex);
 
 use Amazon::AwsSum::S3;
-
-$Log::TraceMessages::On = 0;
 
 use constant VERSION => '0.1';
 
@@ -80,10 +77,7 @@ MAIN: {
     }
     Getopt::Mixed::cleanup();
 
-    $Log::TraceMessages::On = 1 if $args->{debug};
     set_verbose( $args->{verbose} );
-
-    t "Check for 'version' and 'help'";
 
     # do the version and help
     if ( exists $args->{version} ) {
@@ -105,19 +99,16 @@ MAIN: {
        unless defined $command and exists COMMANDS->{$command};
 
     # get the config information
-    t "Load the config";
     my $cfg = {};
     Config::Simple->import_from( config_filename(), $cfg );
 
     # now check we have everything we need
-    t "Check we have an 'Access Key ID' and a 'Secret Access Key'";
     Getopt::Mixed::abortMsg('specify an AWS Access Key ID [AwsAccessKeyId] in the config file')
        unless $cfg->{AwsAccessKeyId};
     Getopt::Mixed::abortMsg('specify an AWS Secret Access Key [AwsSecretAccessKey] in the config file')
        unless $cfg->{AwsSecretAccessKey};
 
     # now we are here, we should make the connection object (doesn't _actually_ connect)
-    t "Make the connection object";
     my $s3 = Amazon::AwsSum::S3->new();
     $s3->access_key_id( $cfg->{AwsAccessKeyId} );
     $s3->secret_access_key( $cfg->{AwsSecretAccessKey} );
@@ -125,68 +116,56 @@ MAIN: {
 
     # check that we have a bucket name for certain commands
     if ( $command ne 'buckets' ) {
-        t "Check we have a bucket name to use";
         Getopt::Mixed::abortMsg("specify a bucket for this command")
            unless (exists $args->{bucket} || $cfg->{BucketDefault});
     }
 
     # now call the relevant command
     if ( $command eq 'create' ) {
-        t "Create a new bucket";
         create( $s3, $args->{bucket}, $args->{location} );
 
     }
     elsif ( $command eq 'buckets' ) {
-        t "List all buckets";
         buckets( $s3 );
 
     }
     elsif ( $command eq 'remove' ) {
-        t "Remove this bucket";
         remove( $s3, $args->{bucket} );
 
     }
     elsif ( $command eq 'contents' ) {
-        t "List bucket contents";
         contents( $s3, $args->{bucket} || $cfg->{BucketDefault}, $args->{prefix} );
 
     }
     elsif ( $command eq 'put' ) {
-        t "Put a file";
         my @filenames = @ARGV;
         put( $s3, $args->{bucket} || $cfg->{BucketDefault}, $args->{acl}, \@filenames );
 
     }
     elsif ( $command eq 'get' ) {
-        t "Get these files";
         my @filenames = @ARGV;
         get( $s3, $args->{bucket} || $cfg->{BucketDefault}, \@filenames );
 
     }
     elsif ( $command eq 'del' ) {
-        t "Deleting keys from a bucket";
         my @filenames = @ARGV;
         del( $s3, $args->{bucket} || $cfg->{BucketDefault}, \@filenames );
 
     }
     elsif ( $command eq 'del-using-prefix' ) {
-        t "Deleting keys from a bucket using a prefix";
         del_using_prefix( $s3, $args->{bucket} || $cfg->{BucketDefault}, $args->{prefix} );
 
     }
     elsif ( $command eq 'bakup' ) {
-        t "Backup all these local files to S3";
         my @filenames = @ARGV;
         bakup( $s3, $args->{bucket} || $cfg->{BucketDefault}, $args->{force}, \@filenames, $args->{test} );
 
     }
     elsif ( $command eq 'bakdown' ) {
-        t "Retrieving any locally unknown files from S3";
         bakdown( $s3, $args->{bucket} || $cfg->{BucketDefault}, $args->{force}, $args->{prefix}, $args->{test} );
 
     }
     elsif ( $command eq 'diff' ) {
-        t "Performs a diff between local and the bucket";
         diff( $s3, $args->{bucket} || $cfg->{BucketDefault}, $args->{prefix} );
 
     }
@@ -288,14 +267,12 @@ sub bakup {
     my ($s3, $bucket, $force, $filenames, $test) = @_;
 
     my $keys = get_keys($s3, $bucket);
-    t "s3_files = " . d($keys);
 
     my $s3_keys = {};
     $s3_keys->{$_} = 1 foreach @$keys;
 
     # only upload the keys which don't exist
     foreach my $filename ( @$filenames ) {
-        t "Seeing if '$filename' exists in S3";
         if ( !$force and exists $s3_keys->{$filename} ) {
             print "Exists: $filename (use -f to force overwrite)\n";
             next;
@@ -314,11 +291,9 @@ sub bakdown {
     my ($s3, $bucket, $force, $prefix, $test) = @_;
 
     my $keys = get_keys($s3, $bucket, $prefix);
-    t "s3_files = " . d($keys);
 
     # download all files from S3
     foreach my $key ( @$keys ) {
-        t "Seeing if '$key' exists locally";
         if ( !$force and -f $key ) {
             print "Exists: $key (use -f to force overwrite)\n";
             next;
@@ -345,11 +320,9 @@ sub diff {
     my $prefix_length = length $prefix;
 
     my $contents = get_contents($s3, $bucket, $prefix);
-    t "contents = " . d($contents);
 
     my $s3_keys = {};
     $s3_keys->{$_->{Key}} = $_ foreach @$contents;
-    t "s3_keys = " . d($s3_keys);
 
     my $filenames = get_local_filenames();
 
@@ -359,16 +332,11 @@ sub diff {
 
         my $this_prefix = substr($filename, 0, $prefix_length);
 
-        t "Skipping if it doesn't start with prefix";
         next if $this_prefix ne $prefix;
-
-        t "Skipping if '$filename' is a symlink";
         next if -l $filename;
-
-        t "Seeing if '$filename' exists and is a regular file";
         next unless -f $filename;
 
-        t "Seeing if '$filename' exists in S3";
+        # Seeing if '$filename' exists in S3
         if ( exists $s3_keys->{$filename} ) {
             my $digest = md5_hex(read_file($filename));
             if ( $digest ne $s3_keys->{$filename}{ETag} ) {
@@ -451,17 +419,9 @@ sub get_keys {
 sub put_object {
     my ($s3, $bucket, $acl, $key) = @_;
 
-    t "put_object():";
-    t "  bucket   = $bucket";
-    t "  acl      = " . (defined $acl ? $acl : '[undef]');
-    t "  key      = $key";
-
     # do some initial figuring out
     my ($ext) = $key =~ m{ \. (.*) \z }xms;
     my $mimetype = MIME::Types->new()->mimeTypeOf($ext);
-
-    t "  ext      = " . ($ext || '[undef]');
-    t "  mimetype = " . ($mimetype || '[undef]');
 
     my $content = read_file( $key );
 
@@ -546,7 +506,6 @@ sub config_filename {
            : ( $ENV{HOME} || $ENV{LOGDIR}
                || (getpwuid($>))[7] )
        }ex;
-    t "Config filename = '$filename'";
     return $filename;
 }
 

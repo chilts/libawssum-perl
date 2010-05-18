@@ -20,7 +20,6 @@ use warnings;
 use Carp;
 use Time::Local;
 use DateTime;
-use Log::TraceMessages qw(t d);
 use Getopt::Mixed "nextOption";
 use Config::Simple;
 use MIME::Types;
@@ -34,8 +33,6 @@ use File::Copy;
 use Digest::MD5 qw(md5_hex);
 
 use Amazon::AwsSum::S3;
-
-$Log::TraceMessages::On = 0;
 
 use constant VERSION => '0.1';
 use constant CONFIG => '.s3syncit/config';
@@ -75,10 +72,7 @@ MAIN: {
     }
     Getopt::Mixed::cleanup();
 
-    $Log::TraceMessages::On = 1 if $args->{debug};
     set_verbose( $args->{verbose} );
-
-    t "Check for 'version' and 'help'";
 
     # do the version and help
     if ( exists $args->{version} ) {
@@ -100,31 +94,26 @@ MAIN: {
        unless defined $command and exists COMMANDS->{$command};
 
     # get the config information
-    t "Load the config";
     my $cfg = {};
     Config::Simple->import_from( CONFIG, $cfg );
 
     # now check we have everything we need
-    t "Check we have an 'Access Key ID' and a 'Secret Access Key'";
     Getopt::Mixed::abortMsg('specify an AWS Access Key ID [AwsAccessKeyId] in the config file')
        unless $cfg->{AwsAccessKeyId};
     Getopt::Mixed::abortMsg('specify an AWS Secret Access Key [AwsSecretAccessKey] in the config file')
        unless $cfg->{AwsSecretAccessKey};
 
     # now we are here, we should make the connection object (doesn't _actually_ connect)
-    t "Make the connection object";
     my $s3 = Amazon::AwsSum::S3->new();
     $s3->access_key_id( $cfg->{AwsAccessKeyId} );
     $s3->secret_access_key( $cfg->{AwsSecretAccessKey} );
 
     # now call the relevant command
     if ( $command eq 'sync' ) {
-        t "Does a sync of the local system with the bucket";
         sync( $s3, $args, $cfg );
 
     }
     elsif ( $command eq 'resolve' ) {
-        t "Resolving one file over the other";
         my $filename = shift @ARGV;
         resolve( $s3, $args, $cfg, $filename );
 
@@ -480,17 +469,9 @@ sub get_contents {
 sub put_object {
     my ($s3, $bucket, $acl, $key) = @_;
 
-    t "put_object():";
-    t "  bucket   = $bucket";
-    t "  acl      = " . (defined $acl ? $acl : '[undef]');
-    t "  key      = $key";
-
     # do some initial figuring out
     my ($ext) = $key =~ m{ \. (.*) \z }xms;
     my $mimetype = MIME::Types->new()->mimeTypeOf($ext);
-
-    t "  ext      = " . ($ext || '[undef]');
-    t "  mimetype = " . ($mimetype || '[undef]');
 
     my $content = read_file( $key );
 
