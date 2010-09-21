@@ -18,9 +18,14 @@ requires qw(
     add_service_params
     sign_request
     make_url
-    url
     http_method
     decode_response
+);
+
+# the URL to hit
+has 'url' => (
+    is => 'rw',
+    isa => 'Str',
 );
 
 # the params to be sent to the service for this request

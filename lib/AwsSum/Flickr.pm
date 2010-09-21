@@ -54,11 +54,6 @@ my $commands = {
 ## ----------------------------------------------------------------------------
 # things to fill in to fulfill AwsSum::Service
 
-# return a hash
-sub valid_commands {
-    return $commands;
-}
-
 sub command_sub_name {
     my ($class, $command) = @_;
     return $commands->{$command}{method};
@@ -111,11 +106,6 @@ sub make_url {
 
     # no matter what happens, this is always the same for Flickr
     $self->url( q{http://api.flickr.com/services/rest/} );
-}
-
-sub url {
-    my ($self) = @_;
-    return q{http://api.flickr.com/services/rest/};
 }
 
 sub decode_response {
