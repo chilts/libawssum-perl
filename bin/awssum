@@ -8,9 +8,11 @@ use Data::Dumper;
 use Config::Simple;
 use Getopt::Mixed "nextOption";
 use AwsSum::Flickr;
+use AwsSum::PayPal;
 
 my $services = {
     flickr => 1,
+    paypal => 1,
 };
 
 my $debug = 0;
@@ -35,6 +37,13 @@ my $debug = 0;
         $service->api_key( $cfg->{FlickrKey} );
         $service->api_secret( $cfg->{FlickrSecret} );
         $service->auth_token( $cfg->{FlickrAuthToken} );
+    }
+    elsif ( $service_name eq 'paypal' ) {
+        $service = AwsSum::PayPal->new();
+        $service->endpoint( $cfg->{PayPalEndpoint} );
+        $service->username( $cfg->{PayPalAPIUsername} );
+        $service->password( $cfg->{PayPalAPIPassword} );
+        $service->signature( $cfg->{PayPalAPISignature} );
     }
     else {
         print STDERR "Provide a service name: flickr, paypal, ec2, etc\n";
