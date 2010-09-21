@@ -8,7 +8,7 @@ use Data::Dumper;
 use Getopt::Mixed "nextOption";
 use Config::Simple;
 
-use Amazon::AwsSum::Util qw(get_options vbs hdr line cols errs force_array);
+use Amazon::AwsSum::Util qw(get_options vbs sep line cols errs force_array table);
 use Amazon::AwsSum::SimpleDB;
 
 ## ----------------------------------------------------------------------------
@@ -22,13 +22,13 @@ my @IN_OPTS = (
     'n=s',   # number
     't=s',   # token
     'd=s',   # domain name
-    'q=s',   # query exression
+    's=s',   # select expression
     'v=s',   # attribute value
     'r=s',   # replace
     'ap=s',  # attribute pair (of form 'key', 'key=value', '!key=value'
     'uuid',      'u>uuid',   # generate a uuid for this 'put'
     'confirm',   'c>confirm',   # confirm
-    'headers',   'H>headers',
+    'file=s', # Config File to use
     'verbose',
     'help',
     'version',
@@ -37,7 +37,6 @@ my @IN_OPTS = (
 my %BOOLEAN_ARGS = (
     uuid    => 1,
     confirm => 1,
-    headers => 1,
     verbose => 1,
     help    => 1,
     version => 1,
@@ -50,7 +49,9 @@ use constant COMMANDS => {
     put => 1,
     del => 1,
     get => 1,
-    query => 1,
+    select => 1,
+    # batch-put-attributes
+    # domain-metadata
 };
 
 ## ----------------------------------------------------------------------------
@@ -63,7 +64,6 @@ MAIN: {
 
     # setup the output things
     Amazon::AwsSum::Util::set_vbs( $args->{verbose} );
-    Amazon::AwsSum::Util::set_hdr( $args->{headers} );
 
     # do the version and help
     if ( exists $args->{version} ) {
@@ -88,7 +88,7 @@ MAIN: {
        unless defined $command and exists COMMANDS->{$command};
 
     # load the config
-    Config::Simple->import_from( "$ENV{HOME}/.awssum", $cfg );
+    Config::Simple->import_from( $args->{file} || "$ENV{HOME}/.awssum", $cfg );
 
     die 'specify an AWS Access Key ID [AwsAccessKeyId] in the config file'
         unless $cfg->{AwsAccessKeyId};
@@ -162,15 +162,13 @@ MAIN: {
             report_delete_attributes( $sdb->data );
         }
     }
-    elsif ( $command eq 'query' ) {
-        $sdb->Query({
-            DomainName       => $args->{d},
-            QueryExpression  => $args->{q},
-            MaxNumberOfItems => $args->{n},
+    elsif ( $command eq 'select' ) {
+        $sdb->Select({
+            SelectExpression => $args->{s},
             NextToken        => $args->{t},
         });
         unless ( $sdb->errs ) {
-            report_query( $sdb->data );
+            report_select( $sdb->data );
         }
     }
 
@@ -204,13 +202,13 @@ sub report_list_domains {
     my ($data) = @_;
     print_metadata( $data );
 
-    # command output
-    hdr( "# Domain:\tName" );
+    my (@cols, @rows);
 
+    sep('Domain Names');
     force_array( $data->{ListDomainsResult}{DomainName} );
-    foreach my $domain_name ( @{$data->{ListDomainsResult}{DomainName}} ) {
-        print "Domain:\t$domain_name\n";
-    }
+    @cols = ( qw(DomainName) );
+    @rows = map { [ $_ ] } @{$data->{ListDomainsResult}{DomainName}};
+    table( \@cols, @rows );
 }
 
 sub report_delete_domain {
@@ -241,16 +239,26 @@ sub report_delete_attributes {
     print_metadata( $data );
 }
 
-sub report_query {
+sub report_select {
     my ($data) = @_;
     print_metadata( $data );
 
     # output
-    hdr( "# Item:\tItemName" );
+    # hdr( "# Item:\tItemName" );
 
-    force_array( $data->{QueryResult}{ItemName} );
-    foreach my $i ( @{$data->{QueryResult}{ItemName}} ) {
-        print "Item:\t$i\n";
+    #force_array( $data->{SelectResult}{ItemName} );
+    #foreach my $i ( @{$data->{SelectResult}{ItemName}} ) {
+    #    print "Item:\t$i\n";
+    #}
+
+    my (@cols, @rows);
+
+    sep('Items');
+    force_array( $data->{SelectResult}{Item} );
+    foreach my $item ( @{$data->{SelectResult}{Item}} ) {
+        @cols = ( 'ItemName', map { $_->{Name} } @{$item->{Attribute}} );
+        @rows = ( $item->{Name}, map { $_->{Value} } @{$item->{Attribute}} );
+        table( \@cols, \@rows );
     }
 }
 
@@ -258,8 +266,14 @@ sub report_query {
 sub print_metadata {
     my ($data) = @_;
 
-    hdr( "# ResponseMetadata:\tRequestId\tBoxUsage" );
-    print "ResponseMetadata:\t$data->{ResponseMetadata}{RequestId}\t$data->{ResponseMetadata}{BoxUsage}\n";
+    #hdr( "# ResponseMetadata:\tRequestId\tBoxUsage" );
+    #print "ResponseMetadata:\t$data->{ResponseMetadata}{RequestId}\t$data->{ResponseMetadata}{BoxUsage}\n";
+
+    sep('Response MetaData');
+    table(
+        [ 'RequestId', 'BoxUsage' ],
+        [ $data->{ResponseMetadata}{RequestId}, $data->{ResponseMetadata}{BoxUsage} ],
+    );
 }
 
 ## ----------------------------------------------------------------------------

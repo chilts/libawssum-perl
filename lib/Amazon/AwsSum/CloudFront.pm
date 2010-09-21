@@ -17,7 +17,7 @@ use List::Util qw( reduce );
 use Digest::HMAC_SHA1;
 use HTTP::Date;
 
-sub service_version { '2010-03-01' }
+sub service_version { '2010-05-01' }
 sub decode_xml { 1 }
 # sub expect { 200 }
 sub add_service_params {}
