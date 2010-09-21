@@ -1,0 +1,65 @@
+===============================================================================
+
+AwsSum is Copyright (C) 2010, Apps Attic Ltd,
+
+===============================================================================
+
+Overview
+--------
+
+AwsSum is a set of libraries that can talk to a number of online Web
+Services. It is designed to be basic so that the hard part of talking to the
+services is done, yet they provide a simple interface for you to build
+applications on top of them.
+
+The main design choice for AwsSum is not modelling hundreds of classes
+dependent on what the data is going in or out, but instead to provide a basic
+interface which takes a hash for the request and returns a hash of the
+response.
+
+Services
+--------
+
+The ones I'm currently working on are:
+
+* Flickr
+* Amazon Web Services (EC2, S3, SNS, SQS, CloudFront, etc)
+* RackspaceCloud
+* PayPal
+* GoogleFS
+
+Data Normalisation
+------------------
+
+Some web services do weird and wonderful things when returning data whereas
+others are really nice. Some examples are:
+
+* RackspaceCloud can talk in native JSON (which is very nice)
+* Flickr can return JSON but it's basically already been converted from XML
+* AWS returns only XML which we have to convert ourselves
+* PayPal's Name-Value-Pair interface returns interesting L_BLAH# lists
+
+Sometimes it's nice to tidy these up a little bit before returning the data to
+the calling routine so that it looks like each service returns a clean set of
+data.
+
+Error responses are also dealt with specifically. Generally they are left as-is
+but bits are copied to another part of the hash ($h->{_error}) along with any
+associated code or message. Again this is useful for programs so that they
+don't have to figure out where the errors are for each service and can assume
+they are always in the same place.
+
+License
+-------
+
+Copyright (C) 2010, Apps Attic Ltd.
+
+This module is free software. You can redistribute it and/or modify it under
+the terms of the Artistic License 2.0. For details, see the full text of the
+license in the file LICENSE.
+
+This program is distributed in the hope that it will be useful, but it is
+provided "as is" and without any express or implied warranties. For details,
+see the full text of the license in the file LICENSE.
+
+===============================================================================

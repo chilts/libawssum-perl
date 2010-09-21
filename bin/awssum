@@ -1,0 +1,112 @@
+#!/usr/bin/perl
+## ----------------------------------------------------------------------------
+
+use strict;
+use warnings;
+
+use Data::Dumper;
+use Config::Simple;
+use Getopt::Mixed "nextOption";
+use AwsSum::Flickr;
+
+my $services = {
+    flickr => 1,
+};
+
+my $debug = 0;
+
+## ----------------------------------------------------------------------------
+
+{
+    my ($service_name, $command) = @ARGV;
+
+    unless ( defined $service_name and exists $services->{$service_name} ) {
+        usage( 'Please provide a valid service name.' );
+        exit 2;
+    }
+
+    # load up the config
+    my $cfg = {};
+    Config::Simple->import_from( "$ENV{HOME}/.awssum", $cfg );
+
+    my $service;
+    if ( $service_name eq 'flickr' ) {
+        $service = AwsSum::Flickr->new();
+        $service->api_key( $cfg->{FlickrKey} );
+        $service->api_secret( $cfg->{FlickrSecret} );
+        $service->auth_token( $cfg->{FlickrAuthToken} );
+    }
+    else {
+        print STDERR "Provide a service name: flickr, paypal, ec2, etc\n";
+        exit 2;
+    }
+
+    # check the command is valid (and has a method name to call)
+    my $method = $service->command_sub_name( $command );
+    unless ( $method ) {
+        usage( 'Please provide a valid command.' );
+        exit 2;
+    }
+
+    # gather up all the args
+    my $args = {
+        # auth_token => q{72157624991109536-7dbfd0dc3c672688},
+    };
+
+    # do the command and pass it all the args
+    $service->$method( $args );
+
+    # output some info so we can see what was going on
+    dump_it('Headers', $service->headers);
+    dump_it('Params', $service->params);
+    if ( $debug ) {
+        dump_it('HTTP Request', $service->_http_request->as_string);
+        dump_it('Headers', $service->_http_response->as_string);
+    }
+    dump_it('Data', $service->data);
+    line();
+}
+
+## ----------------------------------------------------------------------------
+
+sub dump_it {
+    my ($title, $thing) = @_;
+    line();
+    title($title);
+    if ( ref $thing ) {
+        print Dumper($thing);
+    }
+    else {
+        print $thing, "\n";
+    }
+}
+
+sub title {
+    my ($title) = @_;
+    print "--- $title ", '-' x (74 - length($title)), "\n";
+}
+
+sub line {
+    print '=' x 79, "\n";
+}
+
+sub usage {
+    my ($msg) = @_;
+
+    print STDERR <<"EOF";
+$msg
+
+Usage: $0 <service-name> <command> <opts...>
+
+Services:
+ - flickr
+ - paypal
+ - ec2
+
+See <http://github.com/appsattic/awssum/> for further information.
+Report bugs to <chilts -at- appsattic -dot- com>.
+
+EOF
+}
+
+## ----------------------------------------------------------------------------
