@@ -295,7 +295,7 @@ sub report_list_keys {
 
     sep('Keys');
     force_array( $data->{Contents} );
-    @cols = ( qw(ETag LastModified Key) );
+    @cols = ( qw(ETag Size LastModified Key) );
     @rows = map { [ @$_{ @cols } ] } @{$data->{Contents}};
     # @rows = [ map { $headers->header($_) } ('x-amzn-requestid', 'ETag') ];
     table( \@cols, @rows );

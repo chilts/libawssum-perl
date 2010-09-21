@@ -11,7 +11,7 @@ use base qw(Amazon::AwsSum::Service);
 use URI::Escape;
 use DateTime;
 
-sub service_version { '2007-11-07' }
+sub service_version { '2009-04-15' }
 sub decode_xml { 1 }
 sub method { 'GET' }
 sub expect { 200 }
@@ -194,18 +194,16 @@ sub DeleteAttributes {
     return $self->send();
 }
 
-sub Query {
+sub Select {
     my ($self, $params) = @_;
     $self->reset();
 
-    unless ( defined $params->{DomainName} ) {
-        croak( 'provide a domain name to query against' );
+    unless ( defined $params->{SelectExpression} ) {
+        croak( 'provide a select expression' );
     }
 
-    $self->action('Query');
-    $self->add_param_value( 'DomainName', $params->{DomainName} );
-    $self->add_param_value( 'QueryExpression', $params->{QueryExpression} );
-    $self->add_param_value( 'MaxNumberOfItems', $params->{MaxNumberOfItems} );
+    $self->action('Select');
+    $self->add_param_value( 'SelectExpression', $params->{SelectExpression} );
     $self->add_param_value( 'NextToken', $params->{NextToken} );
     return $self->send();
 }

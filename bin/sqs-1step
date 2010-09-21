@@ -303,7 +303,6 @@ sub print_metadata {
         [ 'RequestId' ],
         [ $data->{ResponseMetadata}{RequestId} ],
     );
-
 }
 
 ## ----------------------------------------------------------------------------
