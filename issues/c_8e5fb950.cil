@@ -1,6 +1,0 @@
-Issue: 272d105d
-CreatedBy: Andrew Chilton <andychilton@gmail.com>
-Inserted: 2010-02-02T10:34:32
-Updated: 2010-02-02T10:34:32
-
-Instead of adding 'sync' to s3bak, a new script 's3syncit' has been added.

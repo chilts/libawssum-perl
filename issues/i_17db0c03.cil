@@ -1,9 +1,0 @@
-Summary: Check both $key and $key.remote are present when resolving conflicts
-Status: New
-CreatedBy: Andrew Chilton <andychilton@gmail.com>
-AssignedTo: Andrew Chilton <andychilton@gmail.com>
-Inserted: 2010-02-02T21:34:25
-Updated: 2010-02-02T21:34:25
-
-Currently we're not checking that both of these files are present. This should
-be checked before doing any resolve.

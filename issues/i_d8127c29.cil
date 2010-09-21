@@ -1,8 +1,0 @@
-Summary: Allow both EC2 and S3 Private Content
-Status: New
-CreatedBy: Andrew Chilton <andychilton@gmail.com>
-AssignedTo: Andrew Chilton <andychilton@gmail.com>
-Inserted: 2010-03-31T05:39:19
-Updated: 2010-03-31T05:39:19
-
-Do whatever is needed to make both EC2 and S3 allow Private Content.
