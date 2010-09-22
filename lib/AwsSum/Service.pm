@@ -94,6 +94,11 @@ sub set_param {
     $self->params->{$name} = $value;
 }
 
+sub set_header {
+    my ($self, $name, $value) = @_;
+    $self->headers->{$name} = $value;
+}
+
 sub send {
     my ($self) = @_;
 
@@ -104,25 +109,34 @@ sub send {
     # * adding the signature as either a parameter or a header
     $self->sign();
 
-    # ToDo: need to put the headers into the request somewhere
-
     my $ua = LWP::UserAgent->new();
+    my $url = $self->url;
     my $verb = $self->verb();
-
-    my $res = $ua->$verb(
-        $self->url,
-        $self->params,
-        # ( $self->headers ? $self->headers : () ),
-    );
+    my $res;
+    if ( $verb eq 'get' ) {
+        $url = URI->new( $url );
+        $url->query_form( %{$self->params} );
+        $res = $ua->get( $url, %{$self->headers} );
+    }
+    elsif ( $verb eq 'post' ) {
+        $res = $ua->post(
+            $self->url,
+            $self->params,
+            %{$self->headers},
+        );
+    }
+    else {
+        # currently unsupported
+        croak "This HTTP Verb '$verb' is currently unsupported ... please help by adding it for me and sending me a patch :)";
+    }
 
     $self->req( $res->request );
     $self->res( $res );
 
-    unless ( $res->is_success ) {
-        die $res->status_line;
-    }
-
     # ToDo: check the the return HTTP code is the same as $self->code()
+
+    # if we failed, just return nothing
+    return unless $res->is_success;
 
     # decode response should fill in 'data'
     $self->decode();

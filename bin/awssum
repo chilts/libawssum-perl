@@ -9,10 +9,12 @@ use Config::Simple;
 use Getopt::Mixed "nextOption";
 use AwsSum::Flickr;
 use AwsSum::PayPal;
+use AwsSum::RackspaceCloud::Authenticate;
 
 my $services = {
     flickr => 1,
     paypal => 1,
+    'rackspacecloud-authenticate' => 1,
 };
 
 my $debug = 0;
@@ -45,6 +47,11 @@ my $debug = 0;
         $service->password( $cfg->{'PayPal-APIPassword'} );
         $service->signature( $cfg->{'PayPal-APISignature'} );
     }
+    elsif ( $service_name eq 'rackspacecloud-authenticate' ) {
+        $service = AwsSum::RackspaceCloud::Authenticate->new();
+        $service->user( $cfg->{'RackspaceCloud-User'} );
+        $service->key( $cfg->{'RackspaceCloud-Key'} );
+    }
     else {
         print STDERR "Provide a service name: flickr, paypal, ec2, etc\n";
         exit 2;
@@ -62,7 +69,8 @@ my $debug = 0;
         # ToDo
     };
 
-    # do the command and pass it all the args
+    # do the command and pass it all the args (not worried about the return
+    # value since it is in $service->data()
     $service->$method( $args );
 
     # output some info so we can see what was going on
