@@ -73,7 +73,7 @@ my $debug = 0;
 
     # gather up all the args
     my $args = {
-        # ToDo
+        id => 269668, # Cheat for now, 'id' for get-server-details
     };
 
     # do the command and pass it all the args (not worried about the return
