@@ -28,8 +28,13 @@ has '_url' => ( is => 'rw', isa => 'Str' );
 my $commands = {
     'api-versions' => {
         name           => 'api-versions',
-        path           => '/versions.json',
         method         => 'api_versions',
+        verb           => 'get',
+        code           => { 200 => 1, 203 => 1 },
+    },
+    'api-version-details' => {
+        name           => 'api-version-details',
+        method         => 'api_version_details',
         verb           => 'get',
         code           => { 200 => 1, 203 => 1 },
     },
@@ -112,6 +117,20 @@ sub decode {
 
 ## ----------------------------------------------------------------------------
 # all our lovely commands
+
+sub api_versions {
+    my ($self, $params) = @_;
+    $self->set_command( 'api-versions' );
+    $self->_url( q{https://servers.api.rackspacecloud.com/.json} );
+    return $self->send();
+}
+
+sub api_version_details {
+    my ($self, $params) = @_;
+    $self->set_command( 'api-version-details' );
+    $self->_url( q{https://servers.api.rackspacecloud.com/} . uri_escape($params->{id}) . q{/.json} );
+    return $self->send();
+}
 
 sub list_servers {
     my ($self, $params) = @_;

@@ -73,7 +73,8 @@ my $debug = 0;
 
     # gather up all the args
     my $args = {
-        id => 269668, # Cheat for now, 'id' for get-server-details
+        # id => 269668, # Cheat for now, 'id' for get-server-details
+        # id => 'v1.0', # Cheat for now, 'id' for api-version-details
     };
 
     # do the command and pass it all the args (not worried about the return
