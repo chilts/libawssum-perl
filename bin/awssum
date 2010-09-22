@@ -34,16 +34,16 @@ my $debug = 0;
     my $service;
     if ( $service_name eq 'flickr' ) {
         $service = AwsSum::Flickr->new();
-        $service->api_key( $cfg->{FlickrKey} );
-        $service->api_secret( $cfg->{FlickrSecret} );
-        $service->auth_token( $cfg->{FlickrAuthToken} );
+        $service->api_key( $cfg->{'Flickr-Key'} );
+        $service->api_secret( $cfg->{'Flickr-Secret'} );
+        $service->auth_token( $cfg->{'Flickr-AuthToken'} );
     }
     elsif ( $service_name eq 'paypal' ) {
         $service = AwsSum::PayPal->new();
-        $service->endpoint( $cfg->{PayPalEndpoint} );
-        $service->username( $cfg->{PayPalAPIUsername} );
-        $service->password( $cfg->{PayPalAPIPassword} );
-        $service->signature( $cfg->{PayPalAPISignature} );
+        $service->endpoint( $cfg->{'PayPal-Endpoint'} );
+        $service->username( $cfg->{'PayPal-APIUsername'} );
+        $service->password( $cfg->{'PayPal-APIPassword'} );
+        $service->signature( $cfg->{'PayPal-APISignature'} );
     }
     else {
         print STDERR "Provide a service name: flickr, paypal, ec2, etc\n";
