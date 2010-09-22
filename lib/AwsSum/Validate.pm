@@ -7,6 +7,13 @@ use Date::Simple;
 
 ## ----------------------------------------------------------------------------
 
+sub is_valid_something {
+    my ($self, $something) = @_;
+    return 0 unless defined $something;
+    return 0 unless $something =~ m{ \S }xms;
+    return 1;
+}
+
 sub is_valid_integer {
     my ($self, $integer) = @_;
     return 0 unless defined $integer;
