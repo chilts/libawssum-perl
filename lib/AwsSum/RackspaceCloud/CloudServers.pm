@@ -151,7 +151,7 @@ sub list_servers_detail {
 sub get_server_details {
     my ($self, $params) = @_;
 
-    unless ( defined $params->{id} and $params->{id} =~ m{\d+}xms ) {
+    unless ( $self->is_valid_integer($params->{id}) ) {
         croak "Provide a valid integer for the 'id' parameter";
     }
 

@@ -7,6 +7,13 @@ use Date::Simple;
 
 ## ----------------------------------------------------------------------------
 
+sub is_valid_integer {
+    my ($self, $integer) = @_;
+    return 0 unless defined $integer;
+    return 1 if $integer =~ m{ \A \d+ \z }xms;
+    return 0;
+}
+
 sub is_valid_datetime {
     my ($self, $datetime) = @_;
     return 0 unless defined $datetime;
