@@ -22,7 +22,7 @@ has '_command' => ( is => 'rw', isa => 'HashRef' );
 ## ----------------------------------------------------------------------------
 
 my $commands = {
-    'flickr.test.echo' => {
+    'test-echo' => {
         name           => 'flickr.test.echo',
         api_key        => 1,
         authentication => 0,
@@ -31,7 +31,7 @@ my $commands = {
         verb           => 'post',
         params         => {},
     },
-    'flickr.test.null' => {
+    'test-null' => {
         name           => 'flickr.test.null',
         api_key        => 1,
         authentication => 1,
@@ -40,7 +40,7 @@ my $commands = {
         verb           => 'post',
         params         => {},
     },
-    'flickr.auth.checkToken' => {
+    'auth-check-token' => {
         name           => 'flickr.auth.checkToken',
         api_key        => 1,
         authentication => 1,
@@ -102,7 +102,7 @@ sub decode {
 sub test_echo {
     my ($self, $param) = @_;
 
-    $self->set_command( 'flickr.test.echo' );
+    $self->set_command( 'test-echo' );
 
     return $self->send();
 }
@@ -110,7 +110,7 @@ sub test_echo {
 sub test_null {
     my ($self, $param) = @_;
 
-    $self->set_command( 'flickr.test.null' );
+    $self->set_command( 'test-null' );
     $self->set_param( 'auth_token', $self->auth_token );
 
     return $self->send();
@@ -119,7 +119,7 @@ sub test_null {
 sub auth_check_token {
     my ($self, $param) = @_;
 
-    $self->set_command( 'flickr.auth.checkToken' );
+    $self->set_command( 'auth-check-token' );
     $self->set_param( 'auth_token', $self->auth_token );
 
     return $self->send();
