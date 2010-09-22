@@ -55,6 +55,12 @@ my $commands = {
         },
         opts           => [ 'start-datetime=s' ],
     },
+    'get-transaction-details' => {
+        name           => 'GetTransactionDetails',
+        method         => 'get_transaction_details',
+        # params         => {} # Not yet implemented
+        opts           => [ 'transaction-id=s' ],
+    },
 };
 
 ## ----------------------------------------------------------------------------
@@ -144,6 +150,19 @@ sub transaction_search {
 
     $self->set_command( 'transaction-search' );
     $self->set_param( 'STARTDATE', "$param->{'start-datetime'}" );
+
+    return $self->send();
+}
+
+sub get_transaction_details {
+    my ($self, $param) = @_;
+
+    unless ( $self->is_valid_something($param->{'transaction-id'}) ) {
+        croak "Provide something for the 'transaction-id'";
+    }
+
+    $self->set_command( 'get-transaction-details' );
+    $self->set_param( 'TRANSACTIONID', $param->{'transaction-id'} );
 
     return $self->send();
 }
