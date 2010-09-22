@@ -10,11 +10,13 @@ use Getopt::Mixed "nextOption";
 use AwsSum::Flickr;
 use AwsSum::PayPal;
 use AwsSum::RackspaceCloud::Authenticate;
+use AwsSum::RackspaceCloud::CloudServers;
 
 my $services = {
-    flickr => 1,
-    paypal => 1,
+    'flickr'                      => 1,
+    'paypal'                      => 1,
     'rackspacecloud-authenticate' => 1,
+    'rackspacecloud-cloudservers' => 1,
 };
 
 my $debug = 0;
@@ -51,6 +53,11 @@ my $debug = 0;
         $service = AwsSum::RackspaceCloud::Authenticate->new();
         $service->user( $cfg->{'RackspaceCloud-User'} );
         $service->key( $cfg->{'RackspaceCloud-Key'} );
+    }
+    elsif ( $service_name eq 'rackspacecloud-cloudservers' ) {
+        $service = AwsSum::RackspaceCloud::CloudServers->new();
+        $service->auth_token( $cfg->{'RackspaceCloud-AuthToken'} );
+        $service->endpoint( $cfg->{'RackspaceCloud-ServerManagementURL'} );
     }
     else {
         print STDERR "Provide a service name: flickr, paypal, ec2, etc\n";
