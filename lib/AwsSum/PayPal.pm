@@ -53,25 +53,7 @@ sub command_sub_name {
     return $commands->{$command}{method};
 }
 
-sub http_method        { 'post' }
-sub http_code_expected { 200 }
-
-sub sign {
-    my ($self) = @_;
-
-    # this isn't really signing it, but just add the signature to the params
-    $self->set_param( 'SIGNATURE', $self->signature );
-}
-
-sub add_service_info {
-    my ($self) = @_;
-
-    # add some params, no headers
-    $self->set_param( 'METHOD', $self->_command->{name} );
-    $self->set_param( 'USER', $self->username );
-    $self->set_param( 'PWD', $self->password );
-    $self->set_param( 'VERSION', $API_VERSION );
-}
+sub verb { 'post' }
 
 sub url {
     my ($self) = @_;
@@ -85,11 +67,26 @@ sub url {
     die "Program error: unknown endpoint '" . $self->endpoint . "'";
 }
 
-sub decode_response {
+sub code { 200 }
+
+sub sign {
+    my ($self) = @_;
+
+    # add some params, no headers
+    $self->set_param( 'METHOD', $self->_command->{name} );
+    $self->set_param( 'USER', $self->username );
+    $self->set_param( 'PWD', $self->password );
+    $self->set_param( 'VERSION', $API_VERSION );
+
+    # this isn't really signing it, but just add the signature to the params
+    $self->set_param( 'SIGNATURE', $self->signature );
+}
+
+sub decode {
     my ($self) = @_;
 
     # get the content from the response
-    my $response_text = $self->http_response->content();
+    my $response_text = $self->res->content();
 
     my @pairs = split('&', $response_text);
     my $h = {};

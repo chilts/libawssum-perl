@@ -13,12 +13,12 @@ use HTTP::Request::Common qw(POST);
 # set the things that the implementing class should do
 
 requires qw(
-    http_method
-    add_service_info
-    sign
+    command_sub_name
+    verb
     url
-    decode_response
-    http_code_expected
+    code
+    sign
+    decode
 );
 
 # the params to be sent to the service for this request
@@ -42,15 +42,50 @@ has 'data' => (
 );
 
 # these are functions so that we can return what was sent and received
-has 'http_request' => (
+has 'req' => (
     is  => 'rw',
     isa => 'HTTP::Request',
 );
 
-has 'http_response' => (
+sub req_url {
+    my ($self) = @_;
+    return $self->req->uri();
+}
+
+sub req_headers {
+    my ($self) = @_;
+    return $self->req->headers();
+}
+
+sub req_params {
+    my ($self) = @_;
+    return $self->req->params();
+}
+
+sub req_content {
+    my ($self) = @_;
+    return $self->req->content();
+}
+
+has 'res' => (
     is  => 'rw',
     isa => 'HTTP::Response',
 );
+
+sub res_code {
+    my ($self) = @_;
+    return $self->res->code();
+}
+
+sub res_headers {
+    my ($self) = @_;
+    return $self->res->headers();
+}
+
+sub res_content {
+    my ($self) = @_;
+    return $self->res->content();
+}
 
 ## ----------------------------------------------------------------------------
 
@@ -62,29 +97,35 @@ sub set_param {
 sub send {
     my ($self) = @_;
 
-    $self->add_service_info();
+    # Signing of the request can consist of any or all of the following:
+    # * adding service headers
+    # * adding service parameters
+    # * calculating the signature (or using a ready made one)
+    # * adding the signature as either a parameter or a header
     $self->sign();
 
     # ToDo: need to put the headers into the request somewhere
 
     my $ua = LWP::UserAgent->new();
-    my $http_method = $self->http_method();
+    my $verb = $self->verb();
 
-    my $res = $ua->$http_method(
+    my $res = $ua->$verb(
         $self->url,
         $self->params,
         # ( $self->headers ? $self->headers : () ),
     );
 
-    $self->http_request( $res->request );
-    $self->http_response( $res );
+    $self->req( $res->request );
+    $self->res( $res );
 
     unless ( $res->is_success ) {
         die $res->status_line;
     }
 
+    # ToDo: check the the return HTTP code is the same as $self->code()
+
     # decode response should fill in 'data'
-    $self->decode_response();
+    $self->decode();
     return $self->data;
 }
 

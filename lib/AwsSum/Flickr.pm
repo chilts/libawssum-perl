@@ -28,7 +28,7 @@ my $commands = {
         authentication => 0,
         signature      => 0,
         method         => 'test_echo',
-        http_method    => 'post',
+        verb           => 'post',
         params         => {},
     },
     'flickr.test.null' => {
@@ -37,7 +37,7 @@ my $commands = {
         authentication => 1,
         signature      => 1,
         method         => 'test_null',
-        http_method    => 'post',
+        verb           => 'post',
         params         => {},
     },
     'flickr.auth.checkToken' => {
@@ -46,7 +46,7 @@ my $commands = {
         authentication => 1,
         signature      => 1,
         method         => 'auth_check_token',
-        http_method    => 'post',
+        verb           => 'post',
         params         => {},
     },
 };
@@ -64,32 +64,25 @@ sub command_sub_name {
     return $commands->{$command}{method};
 }
 
-sub http_method {
+sub verb {
     my ($self) = @_;
-    return $self->_command->{http_method};
+    return $self->_command->{verb};
 }
+sub url { q{http://api.flickr.com/services/rest/} }
+sub code { 200 }
 
-sub http_code_expected { 200 }
-sub url                { q{http://api.flickr.com/services/rest/} }
-
-sub add_service_info {
+sub sign {
     my ($self) = @_;
 
-    # just some params, no headers
+    # add the service params first before signing
     $self->set_param( 'method', $self->_command->{name} );
     $self->set_param( 'format', 'json' );
     $self->set_param( 'nojsoncallback', 1 );
     $self->set_param( 'api_key', $self->api_key )
         if $self->_command->{api_key};
-}
-
-sub sign {
-    my ($self) = @_;
 
     # if we don't need to sign this request, get out of here
     return unless $self->_command->{authentication};
-
-    # print "AwsSum::Flickr::Service::sign_request(): enter\n";
 
     # See: http://www.flickr.com/services/api/auth.spec.html
 
@@ -102,19 +95,14 @@ sub sign {
         $str .= $p . $params->{$p};
     }
 
-    # print "Signing [$str]\n";
-
     # calculate the md5_hex hash and add it as 'api_sig'
     $self->set_param( 'api_sig', md5_hex($str) );
 }
 
-sub decode_response {
+sub decode {
     my ($self) = @_;
 
-    my $response_text = $self->http_response->content();
-
-    # $self->data( JSON::Any->jsonToObj($response_text) );
-    $self->data( JSON::Any->jsonToObj( $self->http_response->content() ) );
+    $self->data( JSON::Any->jsonToObj( $self->res->content() ) );
 }
 
 ## ----------------------------------------------------------------------------

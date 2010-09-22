@@ -69,8 +69,8 @@ my $debug = 0;
     dump_it('Headers', $service->headers);
     dump_it('Params', $service->params);
     if ( $debug ) {
-        dump_it('HTTP Request', $service->http_request->as_string);
-        dump_it('Headers', $service->http_response->as_string);
+        dump_it('HTTP Request', $service->req->as_string);
+        dump_it('Headers', $service->res->as_string);
     }
     dump_it('Data', $service->data);
     line();
