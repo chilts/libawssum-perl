@@ -29,14 +29,18 @@ has '_command' => ( is => 'rw', isa => 'HashRef' );
 ## ----------------------------------------------------------------------------
 
 my $commands = {
-    'GetBalance' => {
+    'get-balance' => {
         name           => 'GetBalance',
         method         => 'get_balance',
         params         => {
-            RETURNALLCURRENCIES => {
+            'return-all-currencies' => {
                 type     => 'Boolean',
                 required => 0,
             },
+        },
+        opts           => [ 'return-all-currencies' ],
+        opts_booleans  => {
+            'return-all-currencies' => 1,
         },
     },
     'transaction-search' => {
@@ -120,7 +124,13 @@ sub decode {
 sub get_balance {
     my ($self, $params) = @_;
 
-    $self->set_command( 'GetBalance' );
+    if ( $params->{'return-all-currencies'} and !$self->is_valid_boolean($params->{'return-all-currencies'}) ) {
+        croak "Provide a valid boolean (0|1) for 'return-all-currencies'";
+    }
+
+    $self->set_command( 'get-balance' );
+    $self->set_param( 'RETURNALLCURRENCIES', "$params->{'return-all-currencies'}" )
+        if exists $params->{'return-all-currencies'};
 
     return $self->send();
 }
