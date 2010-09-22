@@ -14,18 +14,11 @@ use HTTP::Request::Common qw(POST);
 
 requires qw(
     http_method
-    add_service_headers
-    add_service_params
-    sign_request
-    make_url
-    http_method
+    add_service_info
+    sign
+    url
     decode_response
-);
-
-# the URL to hit
-has 'url' => (
-    is => 'rw',
-    isa => 'Str',
+    http_code_expected
 );
 
 # the params to be sent to the service for this request
@@ -49,12 +42,12 @@ has 'data' => (
 );
 
 # these are functions so that we can return what was sent and received
-has '_http_request' => (
+has 'http_request' => (
     is  => 'rw',
     isa => 'HTTP::Request',
 );
 
-has '_http_response' => (
+has 'http_response' => (
     is  => 'rw',
     isa => 'HTTP::Response',
 );
@@ -66,26 +59,11 @@ sub set_param {
     $self->params->{$name} = $value;
 }
 
-sub prepare_request {
-    my ($self) = @_;
-
-    # add some common headers and other parameters for each service
-    $self->add_service_headers();
-    $self->add_service_params();
-
-    # we know what we've got now, so sign it
-    $self->sign_request();
-    $self->make_url();
-
-    # now let's start creating the objects
-    # $self->create_http_header();
-    # $self->create_request();
-}
-
 sub send {
     my ($self) = @_;
 
-    $self->prepare_request();
+    $self->add_service_info();
+    $self->sign();
 
     # ToDo: need to put the headers into the request somewhere
 
@@ -98,15 +76,15 @@ sub send {
         # ( $self->headers ? $self->headers : () ),
     );
 
-    $self->_http_request( $res->request );
-    $self->_http_response( $res );
+    $self->http_request( $res->request );
+    $self->http_response( $res );
 
     unless ( $res->is_success ) {
         die $res->status_line;
     }
 
     # decode response should fill in 'data'
-    $self->decode_response( $res->content );
+    $self->decode_response();
     return $self->data;
 }
 

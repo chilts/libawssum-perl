@@ -54,6 +54,11 @@ my $commands = {
 ## ----------------------------------------------------------------------------
 # things to fill in to fulfill AwsSum::Service
 
+sub set_command {
+    my ($self, $command_name) = @_;
+    $self->_command( $commands->{$command_name} );
+}
+
 sub command_sub_name {
     my ($class, $command) = @_;
     return $commands->{$command}{method};
@@ -64,11 +69,13 @@ sub http_method {
     return $self->_command->{http_method};
 }
 
-sub add_service_headers {}
+sub http_code_expected { 200 }
+sub url                { q{http://api.flickr.com/services/rest/} }
 
-sub add_service_params {
+sub add_service_info {
     my ($self) = @_;
 
+    # just some params, no headers
     $self->set_param( 'method', $self->_command->{name} );
     $self->set_param( 'format', 'json' );
     $self->set_param( 'nojsoncallback', 1 );
@@ -76,7 +83,7 @@ sub add_service_params {
         if $self->_command->{api_key};
 }
 
-sub sign_request {
+sub sign {
     my ($self) = @_;
 
     # if we don't need to sign this request, get out of here
@@ -101,21 +108,13 @@ sub sign_request {
     $self->set_param( 'api_sig', md5_hex($str) );
 }
 
-sub make_url {
+sub decode_response {
     my ($self) = @_;
 
-    # no matter what happens, this is always the same for Flickr
-    $self->url( q{http://api.flickr.com/services/rest/} );
-}
+    my $response_text = $self->http_response->content();
 
-sub decode_response {
-    my ($self, $response_text) = @_;
-    $self->data( JSON::Any->jsonToObj($response_text) );
-}
-
-sub set_command {
-    my ($self, $command_name) = @_;
-    $self->_command( $commands->{$command_name} );
+    # $self->data( JSON::Any->jsonToObj($response_text) );
+    $self->data( JSON::Any->jsonToObj( $self->http_response->content() ) );
 }
 
 ## ----------------------------------------------------------------------------
