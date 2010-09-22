@@ -54,16 +54,7 @@ my $commands = {
 ## ----------------------------------------------------------------------------
 # things to fill in to fulfill AwsSum::Service
 
-sub set_command {
-    my ($self, $command_name) = @_;
-    $self->_command( $commands->{$command_name} );
-}
-
-sub command_sub_name {
-    my ($class, $command) = @_;
-    return $commands->{$command}{method};
-}
-
+sub commands { $commands }
 sub verb {
     my ($self) = @_;
     return $self->_command->{verb};

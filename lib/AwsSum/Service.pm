@@ -13,7 +13,7 @@ use HTTP::Request::Common qw(POST);
 # set the things that the implementing class should do
 
 requires qw(
-    command_sub_name
+    commands
     verb
     url
     code
@@ -141,6 +141,26 @@ sub send {
     # decode response should fill in 'data'
     $self->decode();
     return $self->data;
+}
+
+sub set_command {
+    my ($self, $command_name) = @_;
+    $self->_command( $self->commands->{$command_name} );
+}
+
+sub command_sub_name {
+    my ($self, $command) = @_;
+    return $self->commands->{$command}{method};
+}
+
+sub command_opts {
+    my ($self, $command) = @_;
+    return $self->commands->{$command}{opts} || [];
+}
+
+sub command_opts_booleans {
+    my ($self, $command) = @_;
+    return $self->commands->{$command}{opts_booleans} || {};
 }
 
 ## ----------------------------------------------------------------------------

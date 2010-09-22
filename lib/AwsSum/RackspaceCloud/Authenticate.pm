@@ -27,19 +27,10 @@ my $commands = {
 ## ----------------------------------------------------------------------------
 # things to fill in to fulfill AwsSum::Service
 
-sub set_command {
-    my ($self, $command_name) = @_;
-    $self->_command( $commands->{$command_name} );
-}
-
-sub command_sub_name {
-    my ($class, $command) = @_;
-    return $commands->{$command}{method};
-}
-
-sub verb { 'get' }
-sub url  { q{https://auth.api.rackspacecloud.com/v1.0} }
-sub code { 204 }
+sub commands { $commands }
+sub verb     { 'get' }
+sub url      { q{https://auth.api.rackspacecloud.com/v1.0} }
+sub code     { 204 }
 
 sub sign {
     my ($self) = @_;

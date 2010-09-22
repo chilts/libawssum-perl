@@ -24,7 +24,9 @@ my $debug = 0;
 ## ----------------------------------------------------------------------------
 
 {
-    my ($service_name, $command) = @ARGV;
+    # take the first two parts off the input arguments
+    my $service_name = shift;
+    my $command = shift;
 
     unless ( defined $service_name and exists $services->{$service_name} ) {
         usage( 'Please provide a valid service name.' );
@@ -72,10 +74,10 @@ my $debug = 0;
     }
 
     # gather up all the args
-    my $args = {
-        # id => 269668, # Cheat for now, 'id' for get-server-details
-        # id => 'v1.0', # Cheat for now, 'id' for api-version-details
-    };
+    my $args = get_options(
+        $service->command_opts($command),
+        $service->command_opts_booleans($command),
+    );
 
     # do the command and pass it all the args (not worried about the return
     # value since it is in $service->data()
@@ -113,6 +115,32 @@ sub title {
 
 sub line {
     print '=' x 79, "\n";
+}
+
+sub get_options {
+    my ($in_opts, $booleans) = @_;
+
+    my $args = {};
+    Getopt::Mixed::init( @$in_opts );
+    while( my($opt, $val) = nextOption() ) {
+        # if boolean, keep a count of how many there is only
+        if ( exists $booleans->{$opt} ) {
+            $args->{$opt}++;
+            next;
+        }
+        # normal 'string' value
+        if ( defined $args->{$opt} ) {
+            unless ( ref $args->{$opt} eq 'ARRAY' ) {
+                $args->{$opt} = [ $args->{$opt} ];
+            }
+            push @{$args->{$opt}}, $val;
+        }
+        else {
+            $args->{$opt} = $val;
+        }
+    }
+    Getopt::Mixed::cleanup();
+    return $args;
 }
 
 sub usage {

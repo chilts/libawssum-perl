@@ -37,6 +37,7 @@ my $commands = {
         method         => 'api_version_details',
         verb           => 'get',
         code           => { 200 => 1, 203 => 1 },
+        opts           => [ 'id=s' ],
     },
     'limits' => {
         name           => 'limits',
@@ -63,21 +64,14 @@ my $commands = {
         method         => 'get_server_details',
         verb           => 'get',
         code           => { 200 => 1, 203 => 1 },
+        opts           => [ 'id=s' ],
     },
 };
 
 ## ----------------------------------------------------------------------------
 # things to fill in to fulfill AwsSum::Service
 
-sub set_command {
-    my ($self, $command_name) = @_;
-    $self->_command( $commands->{$command_name} );
-}
-
-sub command_sub_name {
-    my ($class, $command) = @_;
-    return $commands->{$command}{method};
-}
+sub commands { $commands }
 
 sub verb {
     my ($self) = @_;
