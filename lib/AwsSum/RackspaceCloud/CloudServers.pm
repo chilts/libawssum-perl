@@ -121,19 +121,19 @@ sub api_versions {
 }
 
 sub api_version_details {
-    my ($self, $params) = @_;
+    my ($self, $param) = @_;
 
-    unless ( defined $params->{id} ) {
+    unless ( defined $param->{id} ) {
         croak "Provide a valid version string for the 'id' parameter";
     }
 
     $self->set_command( 'api-version-details' );
-    $self->_url( q{https://servers.api.rackspacecloud.com/} . uri_escape($params->{id}) . q{/.json} );
+    $self->_url( q{https://servers.api.rackspacecloud.com/} . uri_escape($param->{id}) . q{/.json} );
     return $self->send();
 }
 
 sub list_servers {
-    my ($self, $params) = @_;
+    my ($self, $param) = @_;
 
     $self->set_command( 'list-servers' );
 
@@ -141,7 +141,7 @@ sub list_servers {
 }
 
 sub list_servers_detail {
-    my ($self, $params) = @_;
+    my ($self, $param) = @_;
 
     $self->set_command( 'list-servers-detail' );
 
@@ -149,14 +149,14 @@ sub list_servers_detail {
 }
 
 sub get_server_details {
-    my ($self, $params) = @_;
+    my ($self, $param) = @_;
 
-    unless ( $self->is_valid_integer($params->{id}) ) {
+    unless ( $self->is_valid_integer($param->{id}) ) {
         croak "Provide a valid integer for the 'id' parameter";
     }
 
     $self->set_command( 'get-server-details' );
-    $self->_url( $self->endpoint . '/servers/' . uri_escape($params->{id}) );
+    $self->_url( $self->endpoint . '/servers/' . uri_escape($param->{id}) );
 
     return $self->send();
 }

@@ -100,7 +100,7 @@ sub decode {
 # all our lovely commands
 
 sub test_echo {
-    my ($self, $params) = @_;
+    my ($self, $param) = @_;
 
     $self->set_command( 'flickr.test.echo' );
 
@@ -108,7 +108,7 @@ sub test_echo {
 }
 
 sub test_null {
-    my ($self, $params) = @_;
+    my ($self, $param) = @_;
 
     $self->set_command( 'flickr.test.null' );
     $self->set_param( 'auth_token', $self->auth_token );
@@ -117,7 +117,7 @@ sub test_null {
 }
 
 sub auth_check_token {
-    my ($self, $params) = @_;
+    my ($self, $param) = @_;
 
     $self->set_command( 'flickr.auth.checkToken' );
     $self->set_param( 'auth_token', $self->auth_token );

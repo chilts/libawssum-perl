@@ -62,7 +62,7 @@ sub decode {
 # all our lovely commands
 
 sub authenticate {
-    my ($self, $params) = @_;
+    my ($self, $param) = @_;
 
     $self->set_command( 'authenticate' );
 
