@@ -5,6 +5,7 @@ package AwsSum::RackspaceCloud::CloudServers;
 use Moose;
 with 'AwsSum::Service';
 
+use Carp;
 use JSON::Any;
 use URI::Escape;
 
@@ -121,6 +122,11 @@ sub api_versions {
 
 sub api_version_details {
     my ($self, $params) = @_;
+
+    unless ( defined $params->{id} ) {
+        croak "Provide a valid version string for the 'id' parameter";
+    }
+
     $self->set_command( 'api-version-details' );
     $self->_url( q{https://servers.api.rackspacecloud.com/} . uri_escape($params->{id}) . q{/.json} );
     return $self->send();
@@ -146,13 +152,7 @@ sub get_server_details {
     my ($self, $params) = @_;
 
     unless ( defined $params->{id} and $params->{id} =~ m{\d+}xms ) {
-        return {
-            _error => {
-                code => -1,
-                text => q{Please provide a valid integer for the server id ('id').},
-                desc => q{The id of the server should be provided in the input hash as 'id'.},
-            },
-        };
+        croak "Provide a valid integer for the 'id' parameter";
     }
 
     $self->set_command( 'get-server-details' );

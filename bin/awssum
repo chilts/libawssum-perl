@@ -79,6 +79,9 @@ my $debug = 0;
         $service->command_opts_booleans($command),
     );
 
+    # show this first, so the user can see what it thinks is correct
+    dump_it('Input Args', $args);
+
     # do the command and pass it all the args (not worried about the return
     # value since it is in $service->data()
     $service->$method( $args );
