@@ -3,6 +3,7 @@
 package AwsSum::Service;
 
 use Moose::Role;
+with 'AwsSum::Validate';
 
 use Carp;
 use Data::Dumper;
