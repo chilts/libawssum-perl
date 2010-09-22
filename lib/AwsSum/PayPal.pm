@@ -4,9 +4,10 @@ package AwsSum::PayPal;
 
 use Moose;
 use Moose::Util::TypeConstraints;
-use URI::Escape;
-
 with 'AwsSum::Service';
+
+use Carp;
+use URI::Escape;
 
 my $API_VERSION = '64.0';
 
@@ -37,6 +38,18 @@ my $commands = {
                 required => 0,
             },
         },
+    },
+    'transaction-search' => {
+        name           => 'TransactionSearch',
+        method         => 'transaction_search',
+        params         => {
+            'start-datetime' => {
+                name     => 'STARTDATE',
+                type     => 'DateTime',
+                required => 1,
+            },
+        },
+        opts           => [ 'start-datetime=s' ],
     },
 };
 
@@ -108,6 +121,19 @@ sub get_balance {
     my ($self, $params) = @_;
 
     $self->set_command( 'GetBalance' );
+
+    return $self->send();
+}
+
+sub transaction_search {
+    my ($self, $params) = @_;
+
+    unless ( $self->is_valid_datetime($params->{'start-datetime'}) ) {
+        croak "Provide a valid datetime for the 'start-datetime' parameter";
+    }
+
+    $self->set_command( 'transaction-search' );
+    $self->set_param( 'STARTDATE', "$params->{'start-datetime'}" );
 
     return $self->send();
 }
