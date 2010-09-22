@@ -6,6 +6,7 @@ use Moose;
 with 'AwsSum::Service';
 
 use JSON::Any;
+use URI::Escape;
 
 ## ----------------------------------------------------------------------------
 # we require these things off the using code
@@ -142,7 +143,7 @@ sub get_server_details {
     }
 
     $self->set_command( 'get-server-details' );
-    $self->_url( $self->endpoint . '/servers/' . $params->{id} );
+    $self->_url( $self->endpoint . '/servers/' . uri_escape($params->{id}) );
 
     return $self->send();
 }
