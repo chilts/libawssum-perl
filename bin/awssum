@@ -73,6 +73,11 @@ my $debug = 0;
         exit 2;
     }
 
+    if ( $debug ) {
+        dump_it('Command Opts Allowed', $service->command_opts($command)) ;
+        dump_it('Command Opts Allowed (Booleans)', $service->command_opts_booleans($command));
+    }
+
     # gather up all the args
     my $args = get_options(
         $service->command_opts($command),
