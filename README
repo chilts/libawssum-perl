@@ -24,8 +24,9 @@ The ones I'm currently working on are:
 
 * Flickr
 * Amazon Web Services (EC2, S3, SNS, SQS, CloudFront, etc)
-* RackspaceCloud
+* RackspaceCloud (CloudServers, CloudFiles)
 * PayPal
+* Twitter
 * GoogleFS
 
 Data Normalisation
