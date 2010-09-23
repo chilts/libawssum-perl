@@ -27,45 +27,45 @@ has '_url' => ( is => 'rw', isa => 'Str' );
 ## ----------------------------------------------------------------------------
 
 my $commands = {
-    'api-versions' => {
-        name           => 'api-versions',
-        method         => 'api_versions',
+    'apiVersions' => {
+        name           => 'apiVersions',
+        method         => 'apiVersions',
         verb           => 'get',
         code           => { 200 => 1, 203 => 1 },
     },
-    'api-version-details' => {
-        name           => 'api-version-details',
-        method         => 'api_version_details',
+    'apiVersionDetails' => {
+        name           => 'apiVersionDetails',
+        method         => 'apiVersionDetails',
         verb           => 'get',
         code           => { 200 => 1, 203 => 1 },
-        opts           => [ 'api-version-id=s' ],
+        opts           => [ 'apiVersionId=s' ],
     },
     'limits' => {
         name           => 'limits',
-        path           => '/limits.json',
         method         => 'limits',
+        path           => '/limits.json',
         http_method    => 'get',
     },
-    'list-servers' => {
-        name           => 'list-servers',
+    'listServers' => {
+        name           => 'listServers',
         path           => '/servers.json',
-        method         => 'list_servers',
+        method         => 'listServers',
         verb           => 'get',
         code           => { 200 => 1, 203 => 1 },
     },
-    'list-servers-detail' => {
-        name           => 'list-servers-detail',
+    'listServersDetail' => {
+        name           => 'listServersDetail',
         path           => '/servers/detail.json',
-        method         => 'list_servers_detail',
+        method         => 'listServersDetail',
         verb           => 'get',
         code           => { 200 => 1, 203 => 1 },
     },
-    'get-server-details' => {
-        name           => 'get-server-details',
-        method         => 'get_server_details',
+    'getServerDetails' => {
+        name           => 'getServerDetails',
+        method         => 'getServerDetails',
         verb           => 'get',
         code           => { 200 => 1, 203 => 1 },
-        opts           => [ 'server-id=s' ],
+        opts           => [ 'serverId=s' ],
     },
 };
 
@@ -113,50 +113,50 @@ sub decode {
 ## ----------------------------------------------------------------------------
 # all our lovely commands
 
-sub api_versions {
+sub apiVersions {
     my ($self, $param) = @_;
-    $self->set_command( 'api-versions' );
+    $self->set_command( 'apiVersions' );
     $self->_url( q{https://servers.api.rackspacecloud.com/.json} );
     return $self->send();
 }
 
-sub api_version_details {
+sub apiVersionDetails {
     my ($self, $param) = @_;
 
-    unless ( defined $param->{'api-version-id'} ) {
+    unless ( defined $param->{apiVersionId} ) {
         croak "Provide a valid version string for the 'id' parameter";
     }
 
-    $self->set_command( 'api-version-details' );
-    $self->_url( q{https://servers.api.rackspacecloud.com/} . uri_escape($param->{'api-version-id'}) . q{/.json} );
+    $self->set_command( 'apiVersionDetails' );
+    $self->_url( q{https://servers.api.rackspacecloud.com/} . uri_escape($param->{apiVersionId}) . q{/.json} );
     return $self->send();
 }
 
-sub list_servers {
+sub listServers {
     my ($self, $param) = @_;
 
-    $self->set_command( 'list-servers' );
-
-    return $self->send();
-}
-
-sub list_servers_detail {
-    my ($self, $param) = @_;
-
-    $self->set_command( 'list-servers-detail' );
+    $self->set_command( 'listServers' );
 
     return $self->send();
 }
 
-sub get_server_details {
+sub listServersDetail {
     my ($self, $param) = @_;
 
-    unless ( $self->is_valid_integer($param->{'server-id'}) ) {
+    $self->set_command( 'listServersDetail' );
+
+    return $self->send();
+}
+
+sub getServerDetails {
+    my ($self, $param) = @_;
+
+    unless ( $self->is_valid_integer($param->{serverId}) ) {
         croak "Provide a valid integer for the 'id' parameter";
     }
 
-    $self->set_command( 'get-server-details' );
-    $self->_url( $self->endpoint . '/servers/' . uri_escape($param->{'server-id'}) );
+    $self->set_command( 'getServerDetails' );
+    $self->_url( $self->endpoint . '/servers/' . uri_escape($param->{serverId}) );
 
     return $self->send();
 }
