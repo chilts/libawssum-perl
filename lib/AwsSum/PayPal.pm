@@ -29,37 +29,37 @@ has '_command' => ( is => 'rw', isa => 'HashRef' );
 ## ----------------------------------------------------------------------------
 
 my $commands = {
-    'get-balance' => {
+    'GetBalance' => {
         name           => 'GetBalance',
-        method         => 'get_balance',
+        method         => 'GetBalance',
         params         => {
-            'return-all-currencies' => {
+            'RETURNALLCURRENCIES' => {
                 type     => 'Boolean',
                 required => 0,
             },
         },
-        opts           => [ 'return-all-currencies' ],
+        opts           => [ 'RETURNALLCURRENCIES' ],
         opts_booleans  => {
-            'return-all-currencies' => 1,
+            'RETURNALLCURRENCIES' => 1,
         },
     },
-    'transaction-search' => {
+    'TransactionSearch' => {
         name           => 'TransactionSearch',
-        method         => 'transaction_search',
+        method         => 'TransactionSearch',
         params         => {
-            'start-datetime' => {
-                name     => 'STARTDATE',
+            'STARTDATE' => {
+                # name     => 'STARTDATE',
                 type     => 'DateTime',
                 required => 1,
             },
         },
-        opts           => [ 'start-datetime=s' ],
+        opts           => [ 'STARTDATE=s' ],
     },
-    'get-transaction-details' => {
+    'GetTransactionDetails' => {
         name           => 'GetTransactionDetails',
-        method         => 'get_transaction_details',
+        method         => 'GetTransactionDetails',
         # params         => {} # Not yet implemented
-        opts           => [ 'transaction-id=s' ],
+        opts           => [ 'TRANSACTIONID=s' ],
     },
 };
 
@@ -127,42 +127,42 @@ sub decode {
 ## ----------------------------------------------------------------------------
 # all our lovely commands
 
-sub get_balance {
+sub GetBalance {
     my ($self, $param) = @_;
 
-    if ( $param->{'return-all-currencies'} and !$self->is_valid_boolean($param->{'return-all-currencies'}) ) {
-        croak "Provide a valid boolean (0|1) for 'return-all-currencies'";
+    if ( $param->{RETURNALLCURRENCIES} and !$self->is_valid_boolean($param->{RETURNALLCURRENCIES}) ) {
+        croak "Provide a valid boolean (0|1) for 'RETURNALLCURRENCIES'";
     }
 
-    $self->set_command( 'get-balance' );
-    $self->set_param( 'RETURNALLCURRENCIES', "$param->{'return-all-currencies'}" )
-        if exists $param->{'return-all-currencies'};
+    $self->set_command( 'GetBalance' );
+    $self->set_param( 'RETURNALLCURRENCIES', "$param->{RETURNALLCURRENCIES}" )
+        if exists $param->{RETURNALLCURRENCIES};
 
     return $self->send();
 }
 
-sub transaction_search {
+sub TransactionSearch {
     my ($self, $param) = @_;
 
-    unless ( $self->is_valid_datetime($param->{'start-datetime'}) ) {
-        croak "Provide a valid datetime for the 'start-datetime' parameter";
+    unless ( $self->is_valid_datetime($param->{STARTDATE}) ) {
+        croak "Provide a valid datetime for the 'STARTDATE' parameter";
     }
 
-    $self->set_command( 'transaction-search' );
-    $self->set_param( 'STARTDATE', "$param->{'start-datetime'}" );
+    $self->set_command( 'TransactionSearch' );
+    $self->set_param( 'STARTDATE', "$param->{STARTDATE}" );
 
     return $self->send();
 }
 
-sub get_transaction_details {
+sub GetTransactionDetails {
     my ($self, $param) = @_;
 
-    unless ( $self->is_valid_something($param->{'transaction-id'}) ) {
-        croak "Provide something for the 'transaction-id'";
+    unless ( $self->is_valid_something($param->{TRANSACTIONID}) ) {
+        croak "Provide something for the 'TRANSACTIONID'";
     }
 
-    $self->set_command( 'get-transaction-details' );
-    $self->set_param( 'TRANSACTIONID', $param->{'transaction-id'} );
+    $self->set_command( 'GetTransactionDetails' );
+    $self->set_param( 'TRANSACTIONID', $param->{TRANSACTIONID} );
 
     return $self->send();
 }
