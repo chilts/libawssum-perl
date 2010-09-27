@@ -188,6 +188,12 @@ my $commands = {
         method         => 'describe_security_groups',
         params         => {},
     },
+    'RevokeSecurityGroupIngress' => {
+        name           => 'RevokeSecurityGroupIngress',
+        method         => 'revoke_security_group_ingress',
+        params         => {},
+        opts           => [ 'GroupName=s', 'IpPermissions.IpProtocol=s', 'IpPermissions.FromPort=s', 'IpPermissions.ToPort=s' ],
+    },
 };
 
 ## ----------------------------------------------------------------------------
@@ -297,7 +303,7 @@ sub authorize_security_group_ingress {
     my ($self, $param) = @_;
 
     unless ( $self->is_valid_something($param->{GroupName}) ) {
-        croak "Provide a 'GroupName' for the new security group";
+        croak "Provide a 'GroupName' to apply this authorization to ";
     }
 
     unless ( $self->is_valid_array( $param->{IpPermissions} ) ) {
@@ -362,6 +368,23 @@ sub describe_security_groups {
 
     return $self->data;
 
+}
+
+sub revoke_security_group_ingress {
+    my ($self, $param) = @_;
+
+    unless ( $self->is_valid_something($param->{GroupName}) ) {
+        croak "Provide a 'GroupName' from which to revoke authorization";
+    }
+
+    unless ( $self->is_valid_array( $param->{IpPermissions} ) ) {
+        croak "Provide an 'IpPermissions' array to revoke";
+    }
+
+    $self->set_command( 'RevokeSecurityGroupIngress' );
+    $self->set_param( 'GroupName', $param->{GroupName} );
+    $self->_amazon_add_flattened_array_to_params( 'IpPermissions', $param->{IpPermissions} );
+    return $self->send();
 }
 
 ## ----------------------------------------------------------------------------
