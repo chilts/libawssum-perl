@@ -278,10 +278,9 @@ sub describe_addresses {
     my ($self, $param) = @_;
 
     $self->set_command( 'DescribeAddresses' );
-    $self->send();
+    my $data = $self->send();
 
     # manipulate the addressesSet list we got back
-    my $data = $self->data;
     $data->{addressesSet} = $self->_make_array( $data->{addressesSet}{item} );
     $self->data( $data );
     return $self->data;
@@ -349,10 +348,9 @@ sub describe_security_groups {
     my ($self, $param) = @_;
 
     $self->set_command( 'DescribeSecurityGroups' );
-    $self->send();
+    my $data = $self->send();
 
     # manipulate the securityGroupInfo list we got back
-    my $data = $self->data;
     $data->{securityGroupInfo} = $self->_make_array( $data->{securityGroupInfo}{item} );
     $self->data( $data );
 
