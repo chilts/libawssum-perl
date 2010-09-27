@@ -101,6 +101,11 @@ sub set_param {
     $self->params->{$name} = $value;
 }
 
+sub get_param {
+    my ($self, $name) = @_;
+    return $self->params->{$name};
+}
+
 sub set_header {
     my ($self, $name, $value) = @_;
     $self->headers->{$name} = $value;
