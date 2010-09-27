@@ -135,29 +135,29 @@ my $commands = {
     # * GetPasswordData
 
     # Availability Zones and Regions
-    'DescribeAvailabilityZones' => {
+    DescribeAvailabilityZones => {
         name           => 'DescribeAvailabilityZones',
         method         => 'describe_availability_zones',
         params         => {},
     },
-    'DescribeRegions' => {
+    DescribeRegions => {
         name           => 'DescribeRegions',
         method         => 'describe_regions',
         params         => {},
     },
 
     # Elastic IP Addresses
-    'AllocateAddress' => {
+    AllocateAddress => {
         name           => 'AllocateAddress',
         method         => 'allocate_address',
         params         => {},
     },
-    'DescribeAddresses' => {
+    DescribeAddresses => {
         name           => 'DescribeAddresses',
         method         => 'describe_addresses',
         params         => {},
     },
-    'ReleaseAddress' => {
+    ReleaseAddress => {
         name           => 'ReleaseAddress',
         method         => 'release_address',
         params         => {},
@@ -165,30 +165,30 @@ my $commands = {
     },
 
     # Security Groups
-    'AuthorizeSecurityGroupIngress' => {
+    AuthorizeSecurityGroupIngress => {
         name           => 'AuthorizeSecurityGroupIngress',
         method         => 'authorize_security_group_ingress',
         params         => {},
         opts           => [ 'GroupName=s', 'IpPermissions.IpProtocol=s', 'IpPermissions.FromPort=s', 'IpPermissions.ToPort=s' ],
     },
-    'CreateSecurityGroup' => {
+    CreateSecurityGroup => {
         name           => 'CreateSecurityGroup',
         method         => 'create_security_group',
         params         => {},
         opts           => [ 'GroupName=s', 'GroupDescription=s' ],
     },
-    'DeleteSecurityGroup' => {
+    DeleteSecurityGroup => {
         name           => 'DeleteSecurityGroup',
         method         => 'delete_security_group',
         params         => {},
         opts           => [ 'GroupName=s' ],
     },
-    'DescribeSecurityGroups' => {
+    DescribeSecurityGroups => {
         name           => 'DescribeSecurityGroups',
         method         => 'describe_security_groups',
         params         => {},
     },
-    'RevokeSecurityGroupIngress' => {
+    RevokeSecurityGroupIngress => {
         name           => 'RevokeSecurityGroupIngress',
         method         => 'revoke_security_group_ingress',
         params         => {},
