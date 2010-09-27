@@ -5,6 +5,7 @@ use strict;
 use warnings;
 
 use Data::Dumper;
+use JSON; # has pretty printing
 use Config::Simple;
 use Getopt::Mixed "nextOption";
 use AwsSum::Flickr;
@@ -119,17 +120,7 @@ sub dump_it {
     my ($title, $thing) = @_;
     line();
     title($title);
-    if ( defined $thing ) {
-        if ( ref $thing ) {
-            print Dumper($thing);
-        }
-        else {
-            print $thing, "\n";
-        }
-    }
-    else {
-        print qq{[undef]\n};
-    }
+    print to_json( $thing, { pretty => 1, allow_nonref => 1 } ), "\n";
 }
 
 sub title {
