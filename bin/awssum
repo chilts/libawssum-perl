@@ -11,12 +11,14 @@ use AwsSum::Flickr;
 use AwsSum::PayPal;
 use AwsSum::RackspaceCloud::Authenticate;
 use AwsSum::RackspaceCloud::CloudServers;
+use AwsSum::Amazon::EC2;
 
 my $services = {
     'Flickr'                      => 1,
     'PayPal'                      => 1,
     'RackspaceCloud:Authenticate' => 1,
     'RackspaceCloud:CloudServers' => 1,
+    'Amazon:EC2'                  => 1,
 };
 
 my $debug = 0;
@@ -60,6 +62,14 @@ my $debug = 0;
         $service = AwsSum::RackspaceCloud::CloudServers->new();
         $service->auth_token( $cfg->{'RackspaceCloud-AuthToken'} );
         $service->endpoint( $cfg->{'RackspaceCloud-ServerManagementURL'} );
+    }
+    elsif ( $service_name eq 'Amazon:EC2' ) {
+        $service = AwsSum::Amazon::EC2->new();
+        $service->access_key_id( $cfg->{'Amazon-AwsAccessKeyId'} );
+        $service->secret_access_key( $cfg->{'Amazon-AwsSecretAccessKey'} );
+
+        # set an endpoint (us-east-1, us-west-1, eu-west-1, ap-southeast-1)
+        $service->endpoint( 'us-east-1' );
     }
     else {
         print STDERR "Provide a service name: flickr, paypal, ec2, etc\n";
