@@ -102,6 +102,7 @@ my $debug = 0;
     $service->$method( $args );
 
     # output some info so we can see what was going on
+    dump_it('URL', $service->url);
     dump_it('Headers', $service->headers);
     dump_it('Params', $service->params);
     if ( $debug ) {
