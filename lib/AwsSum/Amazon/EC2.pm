@@ -163,6 +163,25 @@ my $commands = {
         params         => {},
         opts           => [ 'PublicIp=s' ],
     },
+
+    # Security Groups
+    'CreateSecurityGroup' => {
+        name           => 'CreateSecurityGroup',
+        method         => 'create_security_group',
+        params         => {},
+        opts           => [ 'GroupName=s', 'GroupDescription=s' ],
+    },
+    'DeleteSecurityGroup' => {
+        name           => 'DeleteSecurityGroup',
+        method         => 'delete_security_group',
+        params         => {},
+        opts           => [ 'GroupName=s' ],
+    },
+    'DescribeSecurityGroups' => {
+        name           => 'DescribeSecurityGroups',
+        method         => 'describe_security_groups',
+        params         => {},
+    },
 };
 
 ## ----------------------------------------------------------------------------
@@ -266,6 +285,60 @@ sub release_address {
     $self->set_command( 'ReleaseAddress' );
     $self->set_param( 'PublicIp', $param->{PublicIp} );
     return $self->send();
+}
+
+sub create_security_group {
+    my ($self, $param) = @_;
+
+    unless ( $self->is_valid_something($param->{GroupName}) ) {
+        croak "Provide a 'GroupName' for the new security group";
+    }
+
+    unless ( $self->is_valid_something($param->{GroupDescription}) ) {
+        croak "Provide a 'GroupDescription' for the new security group";
+    }
+
+    $self->set_command( 'CreateSecurityGroup' );
+    $self->set_param( 'GroupName', $param->{GroupName} );
+    $self->set_param( 'GroupDescription', $param->{GroupDescription} );
+    return $self->send();
+}
+
+sub delete_security_group {
+    my ($self, $param) = @_;
+
+    unless ( $self->is_valid_something($param->{GroupName}) ) {
+        croak "Provide a 'GroupName' to be deleted";
+    }
+
+    $self->set_command( 'DeleteSecurityGroup' );
+    $self->set_param( 'GroupName', $param->{GroupName} );
+    return $self->send();
+}
+
+sub describe_security_groups {
+    my ($self, $param) = @_;
+
+    $self->set_command( 'DescribeSecurityGroups' );
+    $self->send();
+
+    # manipulate the securityGroupInfo list we got back
+    my $data = $self->data;
+    $data->{securityGroupInfo} = $self->_make_array( $data->{securityGroupInfo}{item} );
+    $self->data( $data );
+
+    # flatten {ipPermissions}
+    foreach my $info ( @{$data->{securityGroupInfo}} ) {
+        $info->{ipPermissions} = $self->_make_array( $info->{ipPermissions}{item} );
+        # flatten {groups} and {ipRanges}
+        foreach my $ip ( @{$info->{ipPermissions}} ) {
+            $ip->{groups} = $self->_make_array( $ip->{groups}{item} );
+            $ip->{ipRanges} = $self->_make_array( $ip->{ipRanges}{item} );
+        }
+    }
+
+    return $self->data;
+
 }
 
 ## ----------------------------------------------------------------------------
