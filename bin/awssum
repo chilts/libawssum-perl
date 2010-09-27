@@ -108,11 +108,16 @@ sub dump_it {
     my ($title, $thing) = @_;
     line();
     title($title);
-    if ( ref $thing ) {
-        print Dumper($thing);
+    if ( defined $thing ) {
+        if ( ref $thing ) {
+            print Dumper($thing);
+        }
+        else {
+            print $thing, "\n";
+        }
     }
     else {
-        print $thing, "\n";
+        print qq{[undef]\n};
     }
 }
 
