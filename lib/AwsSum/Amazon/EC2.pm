@@ -165,6 +165,12 @@ my $commands = {
     },
 
     # Security Groups
+    'AuthorizeSecurityGroupIngress' => {
+        name           => 'AuthorizeSecurityGroupIngress',
+        method         => 'authorize_security_group_ingress',
+        params         => {},
+        opts           => [ 'GroupName=s', 'IpPermissions.IpProtocol=s', 'IpPermissions.FromPort=s', 'IpPermissions.ToPort=s' ],
+    },
     'CreateSecurityGroup' => {
         name           => 'CreateSecurityGroup',
         method         => 'create_security_group',
@@ -284,6 +290,23 @@ sub release_address {
 
     $self->set_command( 'ReleaseAddress' );
     $self->set_param( 'PublicIp', $param->{PublicIp} );
+    return $self->send();
+}
+
+sub authorize_security_group_ingress {
+    my ($self, $param) = @_;
+
+    unless ( $self->is_valid_something($param->{GroupName}) ) {
+        croak "Provide a 'GroupName' for the new security group";
+    }
+
+    unless ( $self->is_valid_array( $param->{IpPermissions} ) ) {
+        croak "Provide an 'IpPermissions' array to authorize";
+    }
+
+    $self->set_command( 'AuthorizeSecurityGroupIngress' );
+    $self->set_param( 'GroupName', $param->{GroupName} );
+    $self->_amazon_add_flattened_array_to_params( 'IpPermissions', $param->{IpPermissions} );
     return $self->send();
 }
 
