@@ -43,29 +43,82 @@ my $commands = {
     'limits' => {
         name           => 'limits',
         method         => 'limits',
+        verb           => 'get',
         path           => '/limits.json',
-        http_method    => 'get',
     },
     'listServers' => {
         name           => 'listServers',
-        path           => '/servers.json',
         method         => 'listServers',
         verb           => 'get',
+        path           => '/servers.json',
         code           => { 200 => 1, 203 => 1 },
     },
     'listServersDetail' => {
         name           => 'listServersDetail',
-        path           => '/servers/detail.json',
         method         => 'listServersDetail',
         verb           => 'get',
+        path           => '/servers/detail.json',
         code           => { 200 => 1, 203 => 1 },
     },
     'getServerDetails' => {
         name           => 'getServerDetails',
         method         => 'getServerDetails',
         verb           => 'get',
+        # path
         code           => { 200 => 1, 203 => 1 },
         opts           => [ 'serverId=s' ],
+    },
+    'listFlavors' => {
+        name           => 'listFlavors',
+        method         => 'listFlavors',
+        path           => '/flavors.json',
+        verb           => 'get',
+        code           => { 200 => 1, 203 => 1 },
+    },
+    'listFlavorsDetail' => {
+        name           => 'listFlavorsDetail',
+        method         => 'listFlavorsDetail',
+        verb           => 'get',
+        path           => '/flavors/detail.json',
+        code           => { 200 => 1, 203 => 1 },
+    },
+    'getFlavorDetails' => {
+        name           => 'getFlavorDetails',
+        method         => 'getFlavorDetails',
+        verb           => 'get',
+        # path
+        code           => { 200 => 1, 203 => 1 },
+        opts           => [ 'flavorId=s' ],
+    },
+    'listImages' => {
+        name           => 'listImages',
+        method         => 'listImages',
+        verb           => 'get',
+        path           => '/images.json',
+        code           => { 200 => 1, 203 => 1 },
+    },
+    'listImagesDetail' => {
+        name           => 'listImagesDetail',
+        method         => 'listImagesDetail',
+        verb           => 'get',
+        path           => '/images/detail.json',
+        code           => { 200 => 1, 203 => 1 },
+    },
+    'getImageDetails' => {
+        name           => 'getImageDetails',
+        method         => 'getImageDetails',
+        verb           => 'get',
+        # path
+        code           => { 200 => 1, 203 => 1 },
+        opts           => [ 'imageId=s' ],
+    },
+    'createServer' => {
+        name           => 'createServer',
+        method         => 'createServer',
+        verb           => 'post',
+        path           => '/servers.json',
+        code           => 200,
+        opts           => [ 'name=s', 'imageId=s', 'flavorId=s' ],
     },
 };
 
@@ -157,6 +210,94 @@ sub getServerDetails {
 
     $self->set_command( 'getServerDetails' );
     $self->_url( $self->endpoint . '/servers/' . uri_escape($param->{serverId}) );
+
+    return $self->send();
+}
+
+sub listFlavors {
+    my ($self, $param) = @_;
+
+    $self->set_command( 'listFlavors' );
+
+    return $self->send();
+}
+
+sub listFlavorsDetail {
+    my ($self, $param) = @_;
+
+    $self->set_command( 'listFlavorsDetail' );
+
+    return $self->send();
+}
+
+sub getFlavorDetails {
+    my ($self, $param) = @_;
+
+    unless ( $self->is_valid_integer($param->{flavorId}) ) {
+        croak "Provide a valid integer for the 'id' parameter";
+    }
+
+    $self->set_command( 'getFlavorDetails' );
+    $self->_url( $self->endpoint . '/flavors/' . uri_escape($param->{flavorId}) );
+
+    return $self->send();
+}
+
+sub listImages {
+    my ($self, $param) = @_;
+
+    $self->set_command( 'listImages' );
+
+    return $self->send();
+}
+
+sub listImagesDetail {
+    my ($self, $param) = @_;
+
+    $self->set_command( 'listImagesDetail' );
+
+    return $self->send();
+}
+
+sub getImageDetails {
+    my ($self, $param) = @_;
+
+    unless ( $self->is_valid_integer($param->{imageId}) ) {
+        croak "Provide a valid integer for the 'id' parameter";
+    }
+
+    $self->set_command( 'getImageDetails' );
+    $self->_url( $self->endpoint . '/images/' . uri_escape($param->{imageId}) );
+
+    return $self->send();
+}
+
+sub createServer {
+    my ($self, $param) = @_;
+
+    warn "here\n";
+
+    unless ( $self->is_valid_something($param->{name}) ) {
+        croak "Provide something for the server 'name'";
+    }
+    unless ( $self->is_valid_integer($param->{flavorId}) ) {
+        croak "Provide a valid integer for the 'flavorId' parameter";
+    }
+    unless ( $self->is_valid_integer($param->{imageId}) ) {
+        croak "Provide a valid integer for the 'imageId' parameter";
+    }
+
+    $self->set_command( 'createServer' );
+    $self->content( JSON::Any->encode(
+        {
+            server => {
+                name => $param->{name},
+                imageId => $param->{imageId},
+                flavorId => $param->{flavorId},
+                metadata => {},
+            },
+        }
+    ));
 
     return $self->send();
 }
