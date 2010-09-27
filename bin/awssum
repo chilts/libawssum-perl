@@ -120,7 +120,12 @@ sub dump_it {
     my ($title, $thing) = @_;
     line();
     title($title);
-    print to_json( $thing, { pretty => 1, allow_nonref => 1 } ), "\n";
+    if ( ref $thing ) {
+        print to_json( $thing, { pretty => 1, allow_nonref => 1 } ), "\n";
+    }
+    else {
+        print "$thing\n";
+    }
 }
 
 sub title {
