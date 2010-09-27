@@ -36,6 +36,12 @@ has 'headers' => (
     default => sub { {} },
 );
 
+# the content to be sent to the service for this request
+has 'content' => (
+    is => 'rw',
+    isa => 'Str',
+);
+
 # this is the data returned from the service (no default)
 has 'data' => (
     is => 'rw',
@@ -113,6 +119,7 @@ sub send {
     my $ua = LWP::UserAgent->new();
     my $url = $self->url;
     my $verb = $self->verb();
+    my $content = $self->content();
     my $res;
     if ( $verb eq 'get' ) {
         $url = URI->new( $url );
@@ -124,6 +131,7 @@ sub send {
             $self->url,
             $self->params,
             %{$self->headers},
+            ( defined $content ? (Content => $content) : () ),
         );
     }
     else {
