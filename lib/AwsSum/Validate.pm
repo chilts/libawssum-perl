@@ -67,6 +67,11 @@ sub is_valid_time {
     return 1;
 }
 
+sub is_valid_array {
+    my ($self, $array) = @_;
+    return 1 if ref $array eq 'ARRAY';
+    return 0;
+}
 
 ## ----------------------------------------------------------------------------
 1;
