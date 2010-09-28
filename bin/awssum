@@ -87,7 +87,6 @@ my $debug = 0;
 
     # figure out how to parse the incoming options
     my $args = AwsSum::Input->process_args( $service_name, $command, @ARGV );
-    print 'final args=', Dumper($args);
 
     if ( $debug ) {
         my $inputs = AwsSum::Input->get_inputs_for( $service_name, $command );
