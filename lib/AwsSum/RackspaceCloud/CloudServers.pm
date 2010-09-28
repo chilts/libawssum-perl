@@ -27,88 +27,88 @@ has '_url' => ( is => 'rw', isa => 'Str' );
 ## ----------------------------------------------------------------------------
 
 my $commands = {
-    'apiVersions' => {
+    apiVersions => {
         name           => 'apiVersions',
         method         => 'apiVersions',
         verb           => 'get',
         code           => { 200 => 1, 203 => 1 },
     },
-    'apiVersionDetails' => {
+    apiVersionDetails => {
         name           => 'apiVersionDetails',
         method         => 'apiVersionDetails',
         verb           => 'get',
         code           => { 200 => 1, 203 => 1 },
     },
-    'limits' => {
+    limits => {
         name           => 'limits',
         method         => 'limits',
         verb           => 'get',
         path           => '/limits.json',
     },
-    'listServers' => {
+    listServers => {
         name           => 'listServers',
         method         => 'listServers',
         verb           => 'get',
         path           => '/servers.json',
         code           => { 200 => 1, 203 => 1 },
     },
-    'listServersDetail' => {
+    listServersDetail => {
         name           => 'listServersDetail',
         method         => 'listServersDetail',
         verb           => 'get',
         path           => '/servers/detail.json',
         code           => { 200 => 1, 203 => 1 },
     },
-    'getServerDetails' => {
+    getServerDetails => {
         name           => 'getServerDetails',
         method         => 'getServerDetails',
         verb           => 'get',
         # path
         code           => { 200 => 1, 203 => 1 },
     },
-    'listFlavors' => {
+    listFlavors => {
         name           => 'listFlavors',
         method         => 'listFlavors',
         path           => '/flavors.json',
         verb           => 'get',
         code           => { 200 => 1, 203 => 1 },
     },
-    'listFlavorsDetail' => {
+    listFlavorsDetail => {
         name           => 'listFlavorsDetail',
         method         => 'listFlavorsDetail',
         verb           => 'get',
         path           => '/flavors/detail.json',
         code           => { 200 => 1, 203 => 1 },
     },
-    'getFlavorDetails' => {
+    getFlavorDetails => {
         name           => 'getFlavorDetails',
         method         => 'getFlavorDetails',
         verb           => 'get',
         # path
         code           => { 200 => 1, 203 => 1 },
     },
-    'listImages' => {
+    listImages => {
         name           => 'listImages',
         method         => 'listImages',
         verb           => 'get',
         path           => '/images.json',
         code           => { 200 => 1, 203 => 1 },
     },
-    'listImagesDetail' => {
+    listImagesDetail => {
         name           => 'listImagesDetail',
         method         => 'listImagesDetail',
         verb           => 'get',
         path           => '/images/detail.json',
         code           => { 200 => 1, 203 => 1 },
     },
-    'getImageDetails' => {
+    getImageDetails => {
         name           => 'getImageDetails',
         method         => 'getImageDetails',
         verb           => 'get',
         # path
         code           => { 200 => 1, 203 => 1 },
     },
-    'createServer' => {
+    createServer => {
         name           => 'createServer',
         method         => 'createServer',
         verb           => 'post',
