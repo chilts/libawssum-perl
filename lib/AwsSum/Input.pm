@@ -20,7 +20,11 @@ my $input = {
         # CreateImage => {},
         # DeregisterImage => {},
         # DescribeImageAttribute => {},
-        # DescribeImages => {},
+        DescribeImages => {
+            list => {
+                ImageId => 1,
+            },
+        },
         # ModifyImageAttribute => {},
         DescribeAvailabilityZones => {},
         DescribeRegions => {},

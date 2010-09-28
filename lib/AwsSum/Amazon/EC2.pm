@@ -134,6 +134,12 @@ my $commands = {
     # * DescribeBundleTasks
     # * GetPasswordData
 
+    # AMIs
+    DescribeImages => {
+        name           => 'DescribeImages',
+        method         => 'describe_images',
+    },
+
     # Availability Zones and Regions
     DescribeAvailabilityZones => {
         name           => 'DescribeAvailabilityZones',
@@ -264,6 +270,23 @@ sub decode {
 
 ## ----------------------------------------------------------------------------
 # all our lovely commands
+
+sub describe_images {
+    my ($self, $param) = @_;
+
+    $self->set_command( 'DescribeImages' );
+    $self->_amazon_add_flattened_array_to_params( 'ImageId', $param->{ImageId} );
+    my $data = $self->send();
+
+    # manipulate the imagesSet list we got back
+    $data->{imagesSet} = $self->_make_array( $data->{imagesSet}{item} );
+    $_->{productCodes} = $self->_make_array( $_->{productCodes}{item} )
+        foreach @{$data->{imagesSet}};
+    $_->{blockDeviceMapping} = $self->_make_array( $_->{blockDeviceMapping}{item} )
+        foreach @{$data->{imagesSet}};
+    $self->data( $data );
+    return $self->data;
+}
 
 sub describe_availability_zones {
     my ($self, $param) = @_;
