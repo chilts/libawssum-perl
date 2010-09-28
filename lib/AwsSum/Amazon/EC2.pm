@@ -283,12 +283,12 @@ sub describe_volumes {
     my ($self, $param) = @_;
 
     $self->set_command( 'DescribeVolumes' );
+    $self->_amazon_add_flattened_array_to_params( 'VolumeId', $param->{VolumeId} );
+    $self->_amazon_add_flattened_array_to_params( 'Filter', $param->{Filter} );
     my $data = $self->send();
 
     # manipulate the volumeSet list we got back
     $data->{volumeSet} = $self->_make_array( $data->{volumeSet}{item} );
-    $self->_amazon_add_flattened_array_to_params( 'VolumeId', $param->{VolumeId} );
-    $self->_amazon_add_flattened_array_to_params( 'Filter', $param->{Filter} );
     $self->data( $data );
     return $self->data;
 }
