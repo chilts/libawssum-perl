@@ -31,7 +31,12 @@ my $input = {
         # DeleteVolume => {},
         # DescribeSnapshotAttribute => {},
         # DescribeSnapshots => {},
-        # DescribeVolumes => {},
+        DescribeVolumes => {
+            list => {
+                VolumeId => qr{ \A VolumeId\. \z }xmsm,
+                Filter => qr{ \A Filter\. \z }xmsm,
+            },
+        },
         # DetachVolume => {},
         # ModifySnapshotAttribute => {},
         # ResetSnapshotAttribute => {},

@@ -144,6 +144,12 @@ my $commands = {
         method         => 'describe_regions',
     },
 
+    # Elastic Block Store
+    DescribeVolumes => {
+        name           => 'DescribeVolumes',
+        method         => 'describe_volumes',
+    },
+
     # Elastic IP Addresses
     AllocateAddress => {
         name           => 'AllocateAddress',
@@ -271,6 +277,20 @@ sub describe_regions {
 
     $self->set_command( 'DescribeRegions' );
     return $self->send();
+}
+
+sub describe_volumes {
+    my ($self, $param) = @_;
+
+    $self->set_command( 'DescribeVolumes' );
+    my $data = $self->send();
+
+    # manipulate the volumeSet list we got back
+    $data->{volumeSet} = $self->_make_array( $data->{volumeSet}{item} );
+    $self->_amazon_add_flattened_array_to_params( 'VolumeId', $param->{VolumeId} );
+    $self->_amazon_add_flattened_array_to_params( 'Filter', $param->{Filter} );
+    $self->data( $data );
+    return $self->data;
 }
 
 sub allocate_address {
