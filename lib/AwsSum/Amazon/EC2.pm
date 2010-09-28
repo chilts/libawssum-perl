@@ -158,6 +158,21 @@ my $commands = {
         method         => 'release_address',
     },
 
+    # Key Pairs
+    CreateKeyPair => {
+        name           => 'CreateKeyPair',
+        method         => 'create_key_pair',
+    },
+    DeleteKeyPair => {
+        name           => 'DeleteKeyPair',
+        method         => 'delete_key_pair',
+    },
+    DescribeKeyPairs => {
+        name           => 'DescribeKeyPairs',
+        method         => 'describe_key_pairs',
+    },
+    # * ImportKeyPair
+
     # Security Groups
     AuthorizeSecurityGroupIngress => {
         name           => 'AuthorizeSecurityGroupIngress',
@@ -283,6 +298,42 @@ sub release_address {
     return $self->send();
 }
 
+sub create_key_pair {
+    my ($self, $param) = @_;
+
+    unless ( $self->is_valid_something($param->{KeyName}) ) {
+        croak "Provide a 'KeyName' for the new key pair";
+    }
+
+    $self->set_command( 'CreateKeyPair' );
+    $self->set_param( 'KeyName', $param->{KeyName} );
+    return $self->send();
+}
+
+sub delete_key_pair {
+    my ($self, $param) = @_;
+
+    unless ( $self->is_valid_something($param->{KeyName}) ) {
+        croak "Provide a 'KeyName' for the key pair to be deleted";
+    }
+
+    $self->set_command( 'DeleteKeyPair' );
+    $self->set_param( 'KeyName', $param->{KeyName} );
+    return $self->send();
+}
+
+sub describe_key_pairs {
+    my ($self, $param) = @_;
+
+    $self->set_command( 'DescribeKeyPairs' );
+    my $data = $self->send();
+
+    # flatten {keySet}
+    $data->{keySet} = $self->_make_array( $data->{keySet}{item} );
+
+    return $self->data;
+}
+
 sub authorize_security_group_ingress {
     my ($self, $param) = @_;
 
@@ -350,7 +401,6 @@ sub describe_security_groups {
     }
 
     return $self->data;
-
 }
 
 sub revoke_security_group_ingress {

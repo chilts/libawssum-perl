@@ -54,9 +54,13 @@ my $input = {
         # StartInstances => {},
         # StopInstances => {},
         # TerminateInstances => {},
-        # CreateKeyPair => {},
-        # DeleteKeyPair => {},
-        # DescribeKeyPairs => {},
+        CreateKeyPair => {
+            opts => [ qw(KeyName) ],
+        },
+        DeleteKeyPair => {
+            opts => [ qw(KeyName) ],
+        },
+        DescribeKeyPairs => {},
         # ImportKeyPair => {},
         # MonitorInstances => {},
         # UnmonitorInstances => {},
