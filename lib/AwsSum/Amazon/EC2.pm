@@ -158,6 +158,12 @@ my $commands = {
         method         => 'release_address',
     },
 
+    # Instances
+    DescribeInstances => {
+        name           => 'DescribeInstances',
+        method         => 'describe_instances',
+    },
+
     # Key Pairs
     CreateKeyPair => {
         name           => 'CreateKeyPair',
@@ -296,6 +302,18 @@ sub release_address {
     $self->set_command( 'ReleaseAddress' );
     $self->set_param( 'PublicIp', $param->{PublicIp} );
     return $self->send();
+}
+
+sub describe_instances {
+    my ($self, $param) = @_;
+
+    $self->set_command( 'DescribeInstances' );
+    my $data = $self->send();
+
+    # manipulate the reservationSet list we got back
+    $data->{reservationSet} = $self->_make_array( $data->{reservationSet}{item} );
+    $self->data( $data );
+    return $self->data;
 }
 
 sub create_key_pair {
