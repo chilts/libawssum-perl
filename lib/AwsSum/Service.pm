@@ -167,16 +167,6 @@ sub command_sub_name {
     return $self->commands->{$command}{method};
 }
 
-sub command_opts {
-    my ($self, $command) = @_;
-    return $self->commands->{$command}{opts} || [];
-}
-
-sub command_opts_booleans {
-    my ($self, $command) = @_;
-    return $self->commands->{$command}{opts_booleans} || {};
-}
-
 ## ----------------------------------------------------------------------------
 1;
 ## ----------------------------------------------------------------------------

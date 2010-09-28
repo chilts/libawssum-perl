@@ -29,7 +29,6 @@ my $commands = {
         signature      => 0,
         method         => 'test_echo',
         verb           => 'post',
-        params         => {},
     },
     'test.null' => {
         name           => 'flickr.test.null',
@@ -38,7 +37,6 @@ my $commands = {
         signature      => 1,
         method         => 'test_null',
         verb           => 'post',
-        params         => {},
     },
     'auth.checkToken' => {
         name           => 'flickr.auth.checkToken',
@@ -47,7 +45,6 @@ my $commands = {
         signature      => 1,
         method         => 'auth_checkToken',
         verb           => 'post',
-        params         => {},
     },
 };
 

@@ -13,6 +13,7 @@ use AwsSum::PayPal;
 use AwsSum::RackspaceCloud::Authenticate;
 use AwsSum::RackspaceCloud::CloudServers;
 use AwsSum::Amazon::EC2;
+use AwsSum::Input;
 
 my $services = {
     'Flickr'                      => 1,
@@ -84,16 +85,16 @@ my $debug = 0;
         exit 2;
     }
 
-    if ( $debug ) {
-        dump_it('Command Opts Allowed', $service->command_opts($command)) ;
-        dump_it('Command Opts Allowed (Booleans)', $service->command_opts_booleans($command));
-    }
+    # figure out how to parse the incoming options
+    my $args = AwsSum::Input->process_args( $service_name, $command, @ARGV );
+    print 'final args=', Dumper($args);
 
-    # gather up all the args
-    my $args = get_options(
-        $service->command_opts($command),
-        $service->command_opts_booleans($command),
-    );
+    if ( $debug ) {
+        my $inputs = AwsSum::Input->get_inputs_for( $service_name, $command );
+        dump_it('Opts Allowed', $inputs->{opts}) ;
+        dump_it('Boolean Opts', $inputs->{bools});
+        dump_it('List Opts', $inputs->{lists});
+    }
 
     # show this first, so the user can see what it thinks is correct
     dump_it('Input Args', $args);

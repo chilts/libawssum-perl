@@ -38,7 +38,6 @@ my $commands = {
         method         => 'apiVersionDetails',
         verb           => 'get',
         code           => { 200 => 1, 203 => 1 },
-        opts           => [ 'apiVersionId=s' ],
     },
     'limits' => {
         name           => 'limits',
@@ -66,7 +65,6 @@ my $commands = {
         verb           => 'get',
         # path
         code           => { 200 => 1, 203 => 1 },
-        opts           => [ 'serverId=s' ],
     },
     'listFlavors' => {
         name           => 'listFlavors',
@@ -88,7 +86,6 @@ my $commands = {
         verb           => 'get',
         # path
         code           => { 200 => 1, 203 => 1 },
-        opts           => [ 'flavorId=s' ],
     },
     'listImages' => {
         name           => 'listImages',
@@ -110,7 +107,6 @@ my $commands = {
         verb           => 'get',
         # path
         code           => { 200 => 1, 203 => 1 },
-        opts           => [ 'imageId=s' ],
     },
     'createServer' => {
         name           => 'createServer',
@@ -118,7 +114,6 @@ my $commands = {
         verb           => 'post',
         path           => '/servers.json',
         code           => 200,
-        opts           => [ 'name=s', 'imageId=s', 'flavorId=s' ],
     },
 };
 

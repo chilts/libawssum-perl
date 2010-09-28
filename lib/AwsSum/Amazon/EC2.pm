@@ -138,61 +138,46 @@ my $commands = {
     DescribeAvailabilityZones => {
         name           => 'DescribeAvailabilityZones',
         method         => 'describe_availability_zones',
-        params         => {},
     },
     DescribeRegions => {
         name           => 'DescribeRegions',
         method         => 'describe_regions',
-        params         => {},
     },
 
     # Elastic IP Addresses
     AllocateAddress => {
         name           => 'AllocateAddress',
         method         => 'allocate_address',
-        params         => {},
     },
     DescribeAddresses => {
         name           => 'DescribeAddresses',
         method         => 'describe_addresses',
-        params         => {},
     },
     ReleaseAddress => {
         name           => 'ReleaseAddress',
         method         => 'release_address',
-        params         => {},
-        opts           => [ 'PublicIp=s' ],
     },
 
     # Security Groups
     AuthorizeSecurityGroupIngress => {
         name           => 'AuthorizeSecurityGroupIngress',
         method         => 'authorize_security_group_ingress',
-        params         => {},
-        opts           => [ 'GroupName=s', 'IpPermissions.IpProtocol=s', 'IpPermissions.FromPort=s', 'IpPermissions.ToPort=s' ],
     },
     CreateSecurityGroup => {
         name           => 'CreateSecurityGroup',
         method         => 'create_security_group',
-        params         => {},
-        opts           => [ 'GroupName=s', 'GroupDescription=s' ],
     },
     DeleteSecurityGroup => {
         name           => 'DeleteSecurityGroup',
         method         => 'delete_security_group',
-        params         => {},
-        opts           => [ 'GroupName=s' ],
     },
     DescribeSecurityGroups => {
         name           => 'DescribeSecurityGroups',
         method         => 'describe_security_groups',
-        params         => {},
     },
     RevokeSecurityGroupIngress => {
         name           => 'RevokeSecurityGroupIngress',
         method         => 'revoke_security_group_ingress',
-        params         => {},
-        opts           => [ 'GroupName=s', 'IpPermissions.IpProtocol=s', 'IpPermissions.FromPort=s', 'IpPermissions.ToPort=s' ],
     },
 };
 

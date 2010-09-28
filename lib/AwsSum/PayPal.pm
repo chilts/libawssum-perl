@@ -32,34 +32,14 @@ my $commands = {
     'GetBalance' => {
         name           => 'GetBalance',
         method         => 'GetBalance',
-        params         => {
-            'RETURNALLCURRENCIES' => {
-                type     => 'Boolean',
-                required => 0,
-            },
-        },
-        opts           => [ 'RETURNALLCURRENCIES' ],
-        opts_booleans  => {
-            'RETURNALLCURRENCIES' => 1,
-        },
     },
     'TransactionSearch' => {
         name           => 'TransactionSearch',
         method         => 'TransactionSearch',
-        params         => {
-            'STARTDATE' => {
-                # name     => 'STARTDATE',
-                type     => 'DateTime',
-                required => 1,
-            },
-        },
-        opts           => [ 'STARTDATE=s' ],
     },
     'GetTransactionDetails' => {
         name           => 'GetTransactionDetails',
         method         => 'GetTransactionDetails',
-        # params         => {} # Not yet implemented
-        opts           => [ 'TRANSACTIONID=s' ],
     },
 };
 
