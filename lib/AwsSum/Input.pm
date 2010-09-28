@@ -68,7 +68,9 @@ my $input = {
         # PurchaseReservedInstancesOffering => {},
         AuthorizeSecurityGroupIngress => {
             opts => [ qw(GroupName) ],
-            lists => [ 'IpPermissions.#.IpProtocol', 'IpPermissions.#.FromPort', 'IpPermissions.#.ToPort' ],
+            list => {
+                IpPermissions => qr{ \A IpPermissions\. \z }xmsm,
+            },
         },
         CreateSecurityGroup => {
             opts => [ qw(GroupName GroupDescription) ],
@@ -79,12 +81,8 @@ my $input = {
         DescribeSecurityGroups => {},
         RevokeSecurityGroupIngress => {
             opts => [ qw(GroupName) ],
-            lists => {
-                IpPermissions => {
-                    IpProtocol => 1,
-                    FromPort => 1,
-                    ToPort => 1,
-                },
+            list => {
+                IpPermissions => qr{ \A IpPermissions\. \z }xms,
             },
         },
         # CancelSpotInstanceRequests => {},
@@ -169,15 +167,15 @@ sub process_args {
     # if this command doesn't exist, then we should just return empty args
     return {} unless exists $input->{$service}{$command};
 
-    # make sure there is something in each of these
+    # make sure there is something in each of these first
     $input->{$service}{$command}{opts} ||= [];
     $input->{$service}{$command}{bools} ||= {};
-    $input->{$service}{$command}{lists} ||= {};
+    $input->{$service}{$command}{list} ||= {};
 
     # save them locally so it's easier
     my $opts = { map { $_ => 1 } @{$input->{$service}{$command}{opts}} };
     my $bools = $input->{$service}{$command}{bools};
-    my $lists = $input->{$service}{$command}{lists};
+    my $list = $input->{$service}{$command}{list};
 
     # this is the dumping ground for what we find, either $args or the $rest
     my $args = {};
@@ -188,27 +186,38 @@ sub process_args {
         # get the next one off the list
         my $this = shift @args;
 
-        if ( $this =~ m{ \A -- ([\w\.]*) \z }xms ) {
-            # save this parameter name
-            my $param = $1;
+        # if this doesn't look like a param, save it in @$rest
+        if ( $this !~ m{ \A -- ([\w\.]*) \z }xms ) {
+            push @$rest, $this;
+            next;
+        }
 
-            # see if this might be a bool
-            if ( exists $bools->{$param} ) {
-                # yep, so save as a bool
-                $args->{$param} = 1;
+        # remember this param name this parameter name
+        my $param = $1;
+
+        # see if this might be a bool
+        if ( exists $bools->{$param} ) {
+            # yep, so save as a bool
+            $args->{$param} = 1;
+        }
+        elsif ( exists $opts->{$param} ) {
+            # an option, so save the next item too
+            $args->{$param} = shift @args;
+        }
+        else {
+            # see if this is a list of some sort
+            if ( $param =~ m{ \A (\w+)\.(\d+)\.(\w+) \z }xms and exists $list->{$1} ) {
+                # single level list
+                $args->{$1}[$2]{$3} = shift @args;
             }
-            elsif ( exists $opts->{$param} ) {
-                # an option, so save the next item too
-                $args->{$param} = shift @args;
+            elsif ( $param =~ m{ \A (\w+)\.(\d+)\.(\w+)\.(\d+)\.(\w+) \z }xms and exists $list->{$1} ) {
+                # two level list
+                $args->{$1}[$2]{$3}[$4]{$5} = shift @args;
             }
             else {
                 # looks like an option, but we don't know about it
                 print STDERR "Warning: Unknown option '$this'\n";
             }
-        }
-        else {
-            # this doesn't look like an option, so save it as the $rest
-            push @$rest, $this;
         }
     }
     return $args;
