@@ -210,12 +210,20 @@ sub process_args {
         }
         else {
             # see if this is a list of some sort
-            if ( $param =~ m{ \A (\w+)\.(\d+)\.(\w+) \z }xms and exists $list->{$1} ) {
-                # single level list
+            if ( $param =~ m{ \A (\w+)\.(\d+) \z }xms and exists $list->{$1} ) {
+                # sole array
+                $args->{$1}[$2] = shift @args;
+            }
+            elsif ( $param =~ m{ \A (\w+)\.(\d+)\.(\w+) \z }xms and exists $list->{$1} ) {
+                # array of hashes
                 $args->{$1}[$2]{$3} = shift @args;
             }
+            elsif ( $param =~ m{ \A (\w+)\.(\d+)\.(\w+)\.(\d+) \z }xms and exists $list->{$1} ) {
+                # array of hashes with arrays
+                $args->{$1}[$2]{$3}[$4] = shift @args;
+            }
             elsif ( $param =~ m{ \A (\w+)\.(\d+)\.(\w+)\.(\d+)\.(\w+) \z }xms and exists $list->{$1} ) {
-                # two level list
+                # multi-level structure
                 $args->{$1}[$2]{$3}[$4]{$5} = shift @args;
             }
             else {

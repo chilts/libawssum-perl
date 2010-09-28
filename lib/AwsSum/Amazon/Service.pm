@@ -33,16 +33,24 @@ sub _amazon_add_flattened_array_to_params {
 
     # loop through everything, keep a number and save each key
     foreach my $item ( @$array ) {
-        foreach my $key ( keys %$item ) {
-            # if this is also an array, recurse over it
-            if ( ref $item->{$key} eq 'ARRAY' ) {
-                $self->_amazon_add_flattened_array_to_params( "$name.$i.$key", $item->{$key} );
-            }
-            else {
-                # just add it
-                $self->set_param( "$name.$i.$key", $item->{$key} );
+        # this might be a scalar or a hash
+        if ( ref $item eq 'HASH' ) {
+            foreach my $key ( keys %$item ) {
+                # if this is also an array, recurse over it
+                if ( ref $item->{$key} eq 'ARRAY' ) {
+                    $self->_amazon_add_flattened_array_to_params( "$name.$i.$key", $item->{$key} );
+                }
+                else {
+                    # just add it
+                    $self->set_param( "$name.$i.$key", $item->{$key} );
+                }
             }
         }
+        else {
+            # scalar, so just add it
+            $self->set_param( "$name.$i", $item );
+        }
+        # next item number
         $i++;
     }
 }
