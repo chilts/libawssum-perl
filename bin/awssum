@@ -90,9 +90,9 @@ my $debug = 0;
 
     if ( $debug ) {
         my $inputs = AwsSum::Input->get_inputs_for( $service_name, $command );
-        dump_it('Opts Allowed', $inputs->{opts}) ;
+        dump_it('Opts Allowed', $inputs->{opts});
         dump_it('Boolean Opts', $inputs->{bools});
-        dump_it('List Opts', $inputs->{lists});
+        dump_it('List Opts', $inputs->{list});
     }
 
     # show this first, so the user can see what it thinks is correct
@@ -103,6 +103,7 @@ my $debug = 0;
     $service->$method( $args );
 
     # output some info so we can see what was going on
+    dump_it('HTTP Verb', uc $service->verb);
     dump_it('URL', $service->url);
     dump_it('Headers', $service->headers);
     dump_it('Params', $service->params);
@@ -121,10 +122,15 @@ sub dump_it {
     line();
     title($title);
     if ( ref $thing ) {
-        print to_json( $thing, { pretty => 1, allow_nonref => 1 } ), "\n";
+        print to_json( $thing, { pretty => 1, allow_nonref => 1, allow_blessed => 1, } ), "\n";
     }
     else {
-        print "$thing\n";
+        if ( defined $thing ) {
+            print "$thing\n";
+        }
+        else {
+            print "[undef]\n";
+        }
     }
 }
 
