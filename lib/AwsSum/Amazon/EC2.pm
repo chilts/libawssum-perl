@@ -175,6 +175,10 @@ my $commands = {
         name           => 'DescribeInstances',
         method         => 'describe_instances',
     },
+    RunInstances => {
+        name           => 'RunInstances',
+        method         => 'run_instances',
+    },
 
     # Key Pairs
     CreateKeyPair => {
@@ -357,6 +361,28 @@ sub describe_instances {
     $data->{reservationSet} = $self->_make_array( $data->{reservationSet}{item} );
     $self->data( $data );
     return $self->data;
+}
+
+sub run_instances {
+    my ($self, $param) = @_;
+
+    unless ( $self->is_valid_something($param->{ImageId}) ) {
+        croak "Provide an 'ImageId' for the new instance";
+    }
+    unless ( $self->is_valid_integer($param->{MinCount}) ) {
+        croak "Provide a valid 'MinCount' for the number of new instances";
+    }
+    unless ( $self->is_valid_integer($param->{MaxCount}) ) {
+        croak "Provide a valid 'MaxCount' for the number of new instances";
+    }
+
+    $self->set_command( 'RunInstances' );
+    $self->set_param( 'ImageId', $param->{ImageId} );
+    $self->set_param( 'MinCount', $param->{MinCount} );
+    $self->set_param( 'MaxCount', $param->{MaxCount} );
+    $self->set_param( 'KeyName', $param->{KeyName} );
+    $self->set_param( 'InstanceType', $param->{InstanceType} );
+    return $self->send();
 }
 
 sub create_key_pair {

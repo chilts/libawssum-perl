@@ -59,7 +59,9 @@ my $input = {
         # ModifyInstanceAttribute => {},
         # RebootInstances => {},
         # ResetInstanceAttribute => {},
-        # RunInstances => {},
+        RunInstances => {
+            opts => [ qw(ImageId MinCount MaxCount KeyName InstanceType) ],
+        },
         # StartInstances => {},
         # StopInstances => {},
         # TerminateInstances => {},
