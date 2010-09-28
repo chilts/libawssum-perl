@@ -169,8 +169,6 @@ sub process_args {
     # if this command doesn't exist, then we should just return empty args
     return {} unless exists $input->{$service}{$command};
 
-    # print "class=$class, service=$service, command=$command, args=@args\n";
-
     # make sure there is something in each of these
     $input->{$service}{$command}{opts} ||= [];
     $input->{$service}{$command}{bools} ||= {};
@@ -181,18 +179,9 @@ sub process_args {
     my $bools = $input->{$service}{$command}{bools};
     my $lists = $input->{$service}{$command}{lists};
 
-    # use Data::Dumper;
-    # print 'opts=', Dumper($opts);
-    # print 'bools=', Dumper($bools);
-    # print 'lists=', Dumper($lists);
-
     # this is the dumping ground for what we find, either $args or the $rest
     my $args = {};
     my $rest = [];
-
-    # firstly, set all the bools to be false
-    # $args->{$_} = 0 foreach keys %$bools;
-    # print 'args with false bools=', Dumper($args);
 
     # start looping through the args
     while ( @args ) {
