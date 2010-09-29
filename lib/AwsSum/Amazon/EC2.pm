@@ -357,9 +357,20 @@ sub describe_instances {
     $self->set_command( 'DescribeInstances' );
     my $data = $self->send();
 
-    # manipulate the reservationSet list we got back
-    $data->{reservationSet} = $self->_make_array( $data->{reservationSet}{item} );
-    $self->data( $data );
+    # reservationSet
+    $self->_fix_hash_to_array( $data->{reservationSet} );
+    foreach my $reservation ( @{$data->{reservationSet}} ) {
+        # groupSet
+        $self->_fix_hash_to_array( $reservation->{groupSet} );
+
+        # instancesSet
+        $self->_fix_hash_to_array( $reservation->{instancesSet} );
+        foreach my $instance ( @{$reservation->{instancesSet}} ) {
+            # blockDeviceMapping
+            $self->_fix_hash_to_array( $instance->{blockDeviceMapping} );
+        }
+    }
+
     return $self->data;
 }
 
@@ -509,6 +520,19 @@ sub revoke_security_group_ingress {
 
 ## ----------------------------------------------------------------------------
 # internal methods
+
+sub _fix_hash_to_array {
+    my ($self, $hash) = @_;
+
+    print "self=$self, hash=$hash\n";
+
+    croak "Trying to fix something that is not a hash" unless ref $hash eq 'HASH';
+    croak "Trying to fix a hash which doesn't have exactly one child" unless keys %$hash == 1;
+    croak "Trying to fix a hash which doesn't have an ->{item} child" unless exists $hash->{item};
+
+    # let's fix the actual thing that was passed in
+    $_[1] = $self->_make_array( $hash->{item} );
+}
 
 sub _make_array {
     my ($self, $from) = @_;
