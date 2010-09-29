@@ -84,7 +84,7 @@ my $debug = 0;
         exit 2;
     }
 
-    # figure out how to parse the incoming options
+    # parse the incoming args
     my $args = AwsSum::Input->process_args( $service_name, $command, @ARGV );
 
     if ( $debug ) {
