@@ -62,9 +62,22 @@ my $input = {
         RunInstances => {
             opts => [ qw(ImageId MinCount MaxCount KeyName InstanceType) ],
         },
-        # StartInstances => {},
-        # StopInstances => {},
-        # TerminateInstances => {},
+        StartInstances => {
+            list => {
+                InstanceId => 1,
+            },
+        },
+        StopInstances => {
+            opts => [ 'Force' ],
+            list => {
+                InstanceId => 1,
+            },
+        },
+        TerminateInstances => {
+            list => {
+                InstanceId => 1,
+            },
+        },
         CreateKeyPair => {
             opts => [ qw(KeyName) ],
         },

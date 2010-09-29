@@ -179,6 +179,18 @@ my $commands = {
         name           => 'RunInstances',
         method         => 'run_instances',
     },
+    StartInstances => {
+        name           => 'StartInstances',
+        method         => 'start_instances',
+    },
+    StopInstances => {
+        name           => 'StopInstances',
+        method         => 'stop_instances',
+    },
+    TerminateInstances => {
+        name           => 'TerminateInstances',
+        method         => 'terminate_instances',
+    },
 
     # Key Pairs
     CreateKeyPair => {
@@ -394,6 +406,42 @@ sub run_instances {
     $self->set_param( 'KeyName', $param->{KeyName} );
     $self->set_param( 'InstanceType', $param->{InstanceType} );
     return $self->send();
+}
+
+sub start_instances {
+    my ($self, $param) = @_;
+
+    $self->set_command( 'StartInstances' );
+    $self->_amazon_add_flattened_array_to_params( 'InstanceId', $param->{InstanceId} );
+    my $data = $self->send();
+
+    # flatten {instancesSet}
+    $data->{instancesSet} = $self->_make_array( $data->{instancesSet}{item} );
+    return $self->data;
+}
+
+sub stop_instances {
+    my ($self, $param) = @_;
+
+    $self->set_command( 'StopInstances' );
+    $self->_amazon_add_flattened_array_to_params( 'InstanceId', $param->{InstanceId} );
+    my $data = $self->send();
+
+    # flatten {instancesSet}
+    $data->{instancesSet} = $self->_make_array( $data->{instancesSet}{item} );
+    return $self->data;
+}
+
+sub terminate_instances {
+    my ($self, $param) = @_;
+
+    $self->set_command( 'TerminateInstances' );
+    $self->_amazon_add_flattened_array_to_params( 'InstanceId', $param->{InstanceId} );
+    my $data = $self->send();
+
+    # flatten {instancesSet}
+    $data->{instancesSet} = $self->_make_array( $data->{instancesSet}{item} );
+    return $self->data;
 }
 
 sub create_key_pair {
