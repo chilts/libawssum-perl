@@ -575,11 +575,16 @@ sub _fix_hash_to_array {
     print "self=$self, hash=$hash\n";
 
     croak "Trying to fix something that is not a hash" unless ref $hash eq 'HASH';
-    croak "Trying to fix a hash which doesn't have exactly one child" unless keys %$hash == 1;
-    croak "Trying to fix a hash which doesn't have an ->{item} child" unless exists $hash->{item};
+    croak "Trying to fix a hash which has more than one child" if keys %$hash > 1;
 
-    # let's fix the actual thing that was passed in
-    $_[1] = $self->_make_array( $hash->{item} );
+    # use $_[1] to change the 'actual' thing passed in
+    if ( exists $hash->{item} ) {
+        $_[1] = $self->_make_array( $hash->{item} );
+    }
+    else {
+        $_[1] = [];
+    }
+    return;
 }
 
 sub _make_array {
