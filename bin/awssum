@@ -70,9 +70,7 @@ my $debug = 0;
         $service = AwsSum::Amazon::EC2->new();
         $service->access_key_id( $cfg->{'Amazon-AwsAccessKeyId'} );
         $service->secret_access_key( $cfg->{'Amazon-AwsSecretAccessKey'} );
-
-        # set an endpoint (us-east-1, us-west-1, eu-west-1, ap-southeast-1)
-        $service->endpoint( 'us-east-1' );
+        $service->endpoint( $cfg->{'Amazon-EC2-Endpoint'} );
     }
     else {
         print STDERR "Provide a service name: flickr, paypal, ec2, etc\n";
