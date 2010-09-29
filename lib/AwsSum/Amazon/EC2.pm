@@ -294,13 +294,12 @@ sub describe_images {
     $self->_amazon_add_flattened_array_to_params( 'ImageId', $param->{ImageId} );
     my $data = $self->send();
 
-    # manipulate the imagesSet list we got back
-    $data->{imagesSet} = $self->_make_array( $data->{imagesSet}{item} );
-    $_->{productCodes} = $self->_make_array( $_->{productCodes}{item} )
+    # imagesSet, productCodes and blockDeviceMapping
+    $self->_fix_hash_to_array( $data->{imagesSet} );
+    $self->_fix_hash_to_array( $_->{productCodes} )
         foreach @{$data->{imagesSet}};
-    $_->{blockDeviceMapping} = $self->_make_array( $_->{blockDeviceMapping}{item} )
+    $self->_fix_hash_to_array( $_->{blockDeviceMapping} )
         foreach @{$data->{imagesSet}};
-    $self->data( $data );
     return $self->data;
 }
 
@@ -315,7 +314,11 @@ sub describe_regions {
     my ($self, $param) = @_;
 
     $self->set_command( 'DescribeRegions' );
-    return $self->send();
+    my $data = $self->send();
+
+    # regionInfo
+    $self->_fix_hash_to_array( $data->{regionInfo} );
+    return $self->data;
 }
 
 sub describe_volumes {
@@ -326,9 +329,8 @@ sub describe_volumes {
     $self->_amazon_add_flattened_array_to_params( 'Filter', $param->{Filter} );
     my $data = $self->send();
 
-    # manipulate the volumeSet list we got back
-    $data->{volumeSet} = $self->_make_array( $data->{volumeSet}{item} );
-    $self->data( $data );
+    # volumeSet
+    $self->_fix_hash_to_array( $data->{volumeSet} );
     return $self->data;
 }
 
@@ -345,9 +347,8 @@ sub describe_addresses {
     $self->set_command( 'DescribeAddresses' );
     my $data = $self->send();
 
-    # manipulate the addressesSet list we got back
-    $data->{addressesSet} = $self->_make_array( $data->{addressesSet}{item} );
-    $self->data( $data );
+    # addressesSet
+    $self->_fix_hash_to_array( $data->{addressesSet} );
     return $self->data;
 }
 
@@ -415,8 +416,8 @@ sub start_instances {
     $self->_amazon_add_flattened_array_to_params( 'InstanceId', $param->{InstanceId} );
     my $data = $self->send();
 
-    # flatten {instancesSet}
-    $data->{instancesSet} = $self->_make_array( $data->{instancesSet}{item} );
+    # instancesSet
+    $self->_fix_hash_to_array( $data->{instancesSet} );
     return $self->data;
 }
 
@@ -427,8 +428,8 @@ sub stop_instances {
     $self->_amazon_add_flattened_array_to_params( 'InstanceId', $param->{InstanceId} );
     my $data = $self->send();
 
-    # flatten {instancesSet}
-    $data->{instancesSet} = $self->_make_array( $data->{instancesSet}{item} );
+    # instancesSet
+    $self->_fix_hash_to_array( $data->{instancesSet} );
     return $self->data;
 }
 
@@ -439,8 +440,8 @@ sub terminate_instances {
     $self->_amazon_add_flattened_array_to_params( 'InstanceId', $param->{InstanceId} );
     my $data = $self->send();
 
-    # flatten {instancesSet}
-    $data->{instancesSet} = $self->_make_array( $data->{instancesSet}{item} );
+    # instancesSet
+    $self->_fix_hash_to_array( $data->{instancesSet} );
     return $self->data;
 }
 
@@ -474,8 +475,8 @@ sub describe_key_pairs {
     $self->set_command( 'DescribeKeyPairs' );
     my $data = $self->send();
 
-    # flatten {keySet}
-    $data->{keySet} = $self->_make_array( $data->{keySet}{item} );
+    # keySet
+    $self->_fix_hash_to_array( $data->{keySet} );
 
     return $self->data;
 }
@@ -532,17 +533,16 @@ sub describe_security_groups {
     $self->set_command( 'DescribeSecurityGroups' );
     my $data = $self->send();
 
-    # manipulate the securityGroupInfo list we got back
-    $data->{securityGroupInfo} = $self->_make_array( $data->{securityGroupInfo}{item} );
-    $self->data( $data );
+    # securityGroupInfo
+    $self->_fix_hash_to_array( $data->{securityGroupInfo} );
 
-    # flatten {ipPermissions}
     foreach my $info ( @{$data->{securityGroupInfo}} ) {
-        $info->{ipPermissions} = $self->_make_array( $info->{ipPermissions}{item} );
-        # flatten {groups} and {ipRanges}
+        # ipPermissions
+        $self->_fix_hash_to_array( $info->{ipPermissions} );
         foreach my $ip ( @{$info->{ipPermissions}} ) {
-            $ip->{groups} = $self->_make_array( $ip->{groups}{item} );
-            $ip->{ipRanges} = $self->_make_array( $ip->{ipRanges}{item} );
+            # groups and ipRanges
+            $self->_fix_hash_to_array( $ip->{groups} );
+            $self->_fix_hash_to_array( $ip->{ipRanges} );
         }
     }
 
@@ -572,7 +572,7 @@ sub revoke_security_group_ingress {
 sub _fix_hash_to_array {
     my ($self, $hash) = @_;
 
-    print "self=$self, hash=$hash\n";
+    return unless defined $hash;
 
     croak "Trying to fix something that is not a hash" unless ref $hash eq 'HASH';
     croak "Trying to fix a hash which has more than one child" if keys %$hash > 1;
