@@ -17,9 +17,9 @@ my $allowed = {
     },
 };
 
-# setup the all of the endpoints in AWS
-enum 'Endpoint' => qw(us-east-1 us-west-1 eu-west-1 ap-southeast-1);
-has 'endpoint' => ( is => 'rw', isa => 'Endpoint', default => 'us-east-1' );
+# setup the all of the regions in AWS
+enum 'Region' => qw(us-east-1 us-west-1 eu-west-1 ap-southeast-1);
+has 'region' => ( is => 'rw', isa => 'Region', default => 'us-east-1' );
 
 ## ----------------------------------------------------------------------------
 # helper functions specifically for Amazon services (not necessarily all of them)

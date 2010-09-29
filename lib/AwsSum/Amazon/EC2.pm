@@ -239,11 +239,11 @@ sub url {
     my ($self) = @_;
 
     # From: http://docs.amazonwebservices.com/AWSEC2/latest/DeveloperGuide/index.html?using-query-api.html
-    return q{https://ec2.} . $self->endpoint . q{.amazonaws.com/};
+    return q{https://ec2.} . $self->region . q{.amazonaws.com/};
 }
 sub host {
     my ($self) = @_;
-    return q{ec2.} . $self->endpoint . q{.amazonaws.com};
+    return q{ec2.} . $self->region . q{.amazonaws.com};
 }
 sub code { 200 }
 
