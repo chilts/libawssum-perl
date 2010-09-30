@@ -129,6 +129,13 @@ my $input = {
         # GetPasswordData => {},
     },
 
+    'Amazon:S3' => {
+        # Operations on the Service
+        ListBuckets => {},
+        # Operations on Buckets
+        # Operations on Objects
+    },
+
     PayPal => {
         GetBalance => {
             bools => {
