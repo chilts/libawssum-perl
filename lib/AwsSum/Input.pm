@@ -133,6 +133,9 @@ my $input = {
         # Operations on the Service
         ListBuckets => {},
         # Operations on Buckets
+        CreateBucket => {
+            opts => [ qw(BucketName) ],
+        },
         # Operations on Objects
     },
 

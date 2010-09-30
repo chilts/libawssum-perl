@@ -24,8 +24,8 @@ has 'secret_access_key' => ( is => 'rw', isa => 'Str' );
 # which bucket/object are we working on (can be set on the service as a
 # default, or each command will just get it from $params->{BucketName} or
 # $params->{ObjectName}
-has 'bucket_name' => ( is => 'rw', isa => 'Str' );
-has 'object_name' => ( is => 'rw', isa => 'Str' );
+has '_bucket_name' => ( is => 'rw', isa => 'Str' );
+has '_object_name' => ( is => 'rw', isa => 'Str' );
 
 # constants
 sub version { '' }
@@ -79,13 +79,13 @@ sub url {
 
     # firstly, create the URL (add bucket if not ListBuckets)
     $url = $self->s3_host( $self->region );
-    $url = $self->bucket_name . '.' . $url
+    $url = $self->_bucket_name . '.' . $url
         unless $self->_command->{name} eq 'ListBuckets';
     $url = "https://$url/";
 
     # add the object_name
-    $url .= $self->object_name()
-        if $self->object_name();
+    $url .= $self->_object_name()
+        if $self->_object_name();
 
     return $url;
 }
@@ -140,8 +140,8 @@ sub sign {
 
     # add the CanonicalizedResource
     $str_to_sign .= '/';
-    if ( exists $param->{BucketName} ) {
-        $str_to_sign .= $param->{BucketName} . '/';
+    if ( $self->_bucket_name ) {
+        $str_to_sign .= $self->_bucket_name . '/';
     }
     if ( exists $param->{ObjectName} ) {
         # this should be URI Escaped, but the new URI::Escape is too aggressive
@@ -178,8 +178,8 @@ sub list_buckets {
 sub create_bucket {
     my ($self, $params) = @_;
 
-    unless ( defined $params->{Bucket} ) {
-        croak "Provide a 'Bucket' to create";
+    unless ( defined $params->{BucketName} ) {
+        croak "Provide a 'BucketName' to create";
     }
 
     $params->{LocationConstraint} ||= 'us-east-1';
@@ -187,9 +187,14 @@ sub create_bucket {
         croak "Provide a valid 'LocationConstraint' to create the bucket in";
     }
 
-    $self->set_command( 'create_bucket' );
-    $self->set_param( 'Bucket', $params->{Bucket} );
-    $self->set_param( 'LocationConstraint', $params->{LocationConstraint} );
+    $self->set_command( 'CreateBucket' );
+    $self->_bucket_name( $params->{BucketName} );
+
+    # set the location constraint, but not if it is the normal region
+    my $loc_value = $self->s3_location_constraint( $params->{LocationConstraint} );
+    if ( $loc_value ) {
+        $self->content( "<CreateBucketConfiguration><LocationConstraint>$loc_value</LocationConstraint></CreateBucketConfiguration>" );
+    }
 
     return $self->send();
 }

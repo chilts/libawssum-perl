@@ -9,6 +9,8 @@ use Carp;
 use Data::Dumper;
 use LWP::UserAgent;
 use HTTP::Request::Common qw(POST);
+use HTTP::Request;
+use URI;
 
 ## ----------------------------------------------------------------------------
 # set the things that the implementing class should do
@@ -138,6 +140,22 @@ sub send {
             %{$self->headers},
             ( defined $content ? (Content => $content) : () ),
         );
+    }
+    elsif ( $verb eq 'put' ) {
+        # we need to put the params into the URL
+        my $uri = URI->new( $url );
+        $uri->query_form( $self->params );
+
+        # now create the request
+        my $req = HTTP::Request->new(
+            uc $verb,
+            $uri,
+            [ %{$self->headers} ],
+            $content,
+        );
+
+        # send it and get the response
+        $res = $ua->request( $req );
     }
     else {
         # currently unsupported

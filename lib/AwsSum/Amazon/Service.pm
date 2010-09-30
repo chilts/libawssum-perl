@@ -96,6 +96,14 @@ sub s3_host {
     return $service_info->{s3}{$region}{host};
 }
 
+sub s3_location_constraint {
+    my ($self, $region) = @_;
+
+    croak "Unknown region '$region'" unless exists $allowed->{region}{$region};
+
+    return $service_info->{s3}{$region}{'location-constraint'};
+}
+
 # useful for EC2 and SimpleDB (and maybe others)
 sub _amazon_add_flattened_array_to_params {
     my ($self, $name, $array) = @_;
