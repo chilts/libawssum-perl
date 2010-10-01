@@ -90,17 +90,6 @@ sub decode {
         $h->{$key} = uri_unescape($value);
     }
 
-    # ToDo: merge some keys into specific lists
-
-    # find out all the final L_*n elements that we haven't put into proper lists yet
-    foreach my $key ( sort keys %$h ) {
-        # if this is a list, split it out
-        next unless $key =~ m{ \A L_ ([A-Z]+) (\d+) \z }xms;
-        my ($name, $index) = ($1, $2);
-        $h->{list}[$index]{$name} = $h->{$key};
-        delete $h->{$key};
-    }
-
     $self->data( $h );
 }
 
@@ -118,7 +107,12 @@ sub GetBalance {
     $self->set_param( 'RETURNALLCURRENCIES', "$param->{RETURNALLCURRENCIES}" )
         if exists $param->{RETURNALLCURRENCIES};
 
-    return $self->send();
+    my $data = $self->send();
+
+    # merge the list
+    $self->_merge_to_list( $data, 'currencies', 'L_' );
+
+    return $data;
 }
 
 sub TransactionSearch {
@@ -131,7 +125,12 @@ sub TransactionSearch {
     $self->set_command( 'TransactionSearch' );
     $self->set_param( 'STARTDATE', "$param->{STARTDATE}" );
 
-    return $self->send();
+    my $data = $self->send();
+
+    # merge the list
+    $self->_merge_to_list( $data, 'transactions', 'L_' );
+
+    return $data;
 }
 
 sub GetTransactionDetails {
@@ -144,7 +143,33 @@ sub GetTransactionDetails {
     $self->set_command( 'GetTransactionDetails' );
     $self->set_param( 'TRANSACTIONID', $param->{TRANSACTIONID} );
 
-    return $self->send();
+    my $data = $self->send();
+
+    # merge the list
+    $self->_merge_to_list( $data, 'item', 'L_' );
+
+    return $data;
+}
+
+## ----------------------------------------------------------------------------
+# internal helpers
+
+sub _merge_to_list {
+    my ($self, $data, $list_name, $prefix) = @_;
+
+    # get all the keys which start with this prefix
+    my @keys = grep { $prefix eq substr($_, 0, length $prefix)  } keys %$data;
+
+    # loop through all of these
+    foreach my $fullname ( @keys ) {
+        my $value = delete $data->{$fullname};
+
+        # get the name and index of this value
+        my ($name, $index) = $fullname =~ m{ \A $prefix ([A-Z]+) (\d+) \z }xms;
+
+        # set it into the right place
+        $data->{$list_name}[$index]{$name} = $value;
+    }
 }
 
 ## ----------------------------------------------------------------------------
