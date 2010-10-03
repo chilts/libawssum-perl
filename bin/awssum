@@ -7,7 +7,7 @@ use warnings;
 use Data::Dumper;
 use JSON; # has pretty printing
 use Config::Simple;
-use Getopt::Mixed "nextOption";
+use Getopt::Std;
 use AwsSum::Flickr;
 use AwsSum::PayPal;
 use AwsSum::RackspaceCloud::Authenticate;
@@ -25,15 +25,29 @@ my $services = {
     'Amazon:S3'                   => 1,
 };
 
-my $debug = 0;
-# my $debug = 1;
+my ($debug, $verbose);
 
 ## ----------------------------------------------------------------------------
 
 {
+    # process the incoming opts (for this executable, not for the commands)
+    my $opts = process_opts({ v => 0, d => 0, f => 1, h => 0 });
+    $debug = exists $opts->{d};
+    $verbose = exists $opts->{v};
+    my $config_filename = $opts->{f} || "$ENV{HOME}/.awssum";
+
+    if ( $opts->{h} ) {
+        usage();
+        exit 2;
+    }
+
     # take the first two parts off the input arguments
     my $service_name = shift;
     my $command = shift;
+
+    debug( qq{debug=$debug} );
+    debug( qq{verbose=$verbose} );
+    debug( qq{config_filename=$config_filename} );
 
     unless ( defined $service_name and exists $services->{$service_name} ) {
         usage( 'Please provide a valid service name.' );
@@ -42,7 +56,7 @@ my $debug = 0;
 
     # load up the config
     my $cfg = {};
-    Config::Simple->import_from( "$ENV{HOME}/.awssum", $cfg );
+    Config::Simple->import_from( $config_filename, $cfg );
 
     my $service;
     if ( $service_name eq 'Flickr' ) {
@@ -95,7 +109,7 @@ my $debug = 0;
     # parse the incoming args
     my $args = AwsSum::Input->process_args( $service_name, $command, @ARGV );
 
-    if ( $debug ) {
+    if ( $verbose ) {
         my $inputs = AwsSum::Input->get_inputs_for( $service_name, $command );
         dump_it('Opts Allowed', $inputs->{opts});
         dump_it('Boolean Opts', $inputs->{bools});
@@ -103,7 +117,8 @@ my $debug = 0;
     }
 
     # show this first, so the user can see what it thinks is correct
-    dump_it('Input Args', $args);
+    dump_it('Input Args', $args)
+        if $verbose;
 
     # do the command and pass it all the args (not worried about the return
     # value since it is in $service->data()
@@ -114,15 +129,70 @@ my $debug = 0;
     dump_it('URL', $service->url);
     dump_it('Headers', $service->headers);
     dump_it('Params', $service->params);
-    if ( $debug ) {
+
+    if ( $verbose ) {
         dump_it('HTTP Request', $service->req->as_string);
-        dump_it('Headers', $service->res->as_string);
+        dump_it('HTTP Response', $service->res->as_string);
     }
+
     dump_it('Data', $service->data);
     line();
 }
 
 ## ----------------------------------------------------------------------------
+
+sub process_opts {
+    my ($definition) = @_;
+
+    # to save them
+    my $opts = {};
+
+    # loop through all the args
+    my @remaining_args;
+    while ( @ARGV ) {
+        my $arg = shift @ARGV;
+        unless ( $arg =~ m{ \A - ([a-z]) \z }xms ) {
+            push @remaining_args, $arg;
+            next;
+        }
+
+        # save only the letter
+        $arg = $1;
+
+        unless ( exists $definition->{$arg} ) {
+            print STDERR "Error: unknown option '-$arg'\n";
+            exit 2;
+        }
+
+        # check if this definition is true or false
+        if ( $definition->{$arg} ) {
+            # requires an argument
+            $opts->{$arg} = shift @ARGV;
+            unless ( defined $opts->{$arg} ) {
+                print STDERR "Error: option '$arg' requires a argument\n";
+                exit 2;
+            }
+        }
+        else {
+            # boolean only
+            $opts->{$arg} = 1;
+        }
+    }
+
+    # put the remaining args back onto the global @ARGV
+    @ARGV = @remaining_args;
+    return $opts;
+}
+
+sub debug {
+    my ($msg) = @_;
+    print qq{DEBUG: $msg\n} if $debug;
+}
+
+sub verbose {
+    my ($msg) = @_;
+    print qq{$msg\n} if $verbose;
+}
 
 sub dump_it {
     my ($title, $thing) = @_;
@@ -150,38 +220,14 @@ sub line {
     print '=' x 79, "\n";
 }
 
-sub get_options {
-    my ($in_opts, $booleans) = @_;
-
-    my $args = {};
-    Getopt::Mixed::init( @$in_opts );
-    while( my($opt, $val) = nextOption() ) {
-        # if boolean, keep a count of how many there is only
-        if ( exists $booleans->{$opt} ) {
-            $args->{$opt}++;
-            next;
-        }
-        # normal 'string' value
-        if ( defined $args->{$opt} ) {
-            unless ( ref $args->{$opt} eq 'ARRAY' ) {
-                $args->{$opt} = [ $args->{$opt} ];
-            }
-            push @{$args->{$opt}}, $val;
-        }
-        else {
-            $args->{$opt} = $val;
-        }
-    }
-    Getopt::Mixed::cleanup();
-    return $args;
-}
-
 sub usage {
     my ($msg) = @_;
 
-    print STDERR <<"EOF";
-$msg
+    if ( defined $msg ) {
+        print "$msg\n\n";
+    }
 
+    print STDERR <<"EOF";
 Usage: $0 <service-name> <command> <opts...>
 
 Services:
