@@ -26,7 +26,9 @@ my $input = {
             },
         },
         # ModifyImageAttribute => {},
-        DescribeAvailabilityZones => {},
+        DescribeAvailabilityZones => {
+            opts => [ qw(Region) ],
+        },
         DescribeRegions => {},
         # AttachVolume => {},
         # CreateSnapshot => {},
@@ -79,12 +81,14 @@ my $input = {
             },
         },
         CreateKeyPair => {
-            opts => [ qw(KeyName) ],
+            opts => [ qw(KeyName Region) ],
         },
         DeleteKeyPair => {
-            opts => [ qw(KeyName) ],
+            opts => [ qw(KeyName Region) ],
         },
-        DescribeKeyPairs => {},
+        DescribeKeyPairs => {
+            opts => [ qw(KeyName Region) ],
+        },
         # ImportKeyPair => {},
         # MonitorInstances => {},
         # UnmonitorInstances => {},

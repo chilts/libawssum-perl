@@ -307,6 +307,7 @@ sub describe_availability_zones {
     my ($self, $param) = @_;
 
     $self->set_command( 'DescribeAvailabilityZones' );
+    $self->region( $param->{Region} ) if $param->{Region};
     return $self->send();
 }
 
@@ -406,7 +407,7 @@ sub run_instances {
     }
 
     $self->set_command( 'RunInstances' );
-    $self->region( $param->{Region} || 'us-east-1' );
+    $self->region( $param->{Region} ) if $param->{Region};
     $self->set_param( 'ImageId', $param->{ImageId} );
     $self->set_param( 'MinCount', $param->{MinCount} );
     $self->set_param( 'MaxCount', $param->{MaxCount} );
@@ -467,6 +468,7 @@ sub create_key_pair {
     }
 
     $self->set_command( 'CreateKeyPair' );
+    $self->region( $param->{Region} ) if $param->{Region};
     $self->set_param( 'KeyName', $param->{KeyName} );
     return $self->send();
 }
@@ -479,6 +481,7 @@ sub delete_key_pair {
     }
 
     $self->set_command( 'DeleteKeyPair' );
+    $self->region( $param->{Region} ) if $param->{Region};
     $self->set_param( 'KeyName', $param->{KeyName} );
     return $self->send();
 }
@@ -487,6 +490,7 @@ sub describe_key_pairs {
     my ($self, $param) = @_;
 
     $self->set_command( 'DescribeKeyPairs' );
+    $self->region( $param->{Region} ) if $param->{Region};
     my $data = $self->send();
 
     # keySet
