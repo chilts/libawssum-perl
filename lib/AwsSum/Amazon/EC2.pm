@@ -401,12 +401,21 @@ sub run_instances {
     }
 
     $self->set_command( 'RunInstances' );
+    $self->region( $param->{Region} || 'us-east-1' );
     $self->set_param( 'ImageId', $param->{ImageId} );
     $self->set_param( 'MinCount', $param->{MinCount} );
     $self->set_param( 'MaxCount', $param->{MaxCount} );
     $self->set_param( 'KeyName', $param->{KeyName} );
     $self->set_param( 'InstanceType', $param->{InstanceType} );
-    return $self->send();
+
+    my $data = $self->send();
+
+    # instancesSet
+    $self->_fix_hash_to_array( $data->{instancesSet} );
+    # groupSet
+    $self->_fix_hash_to_array( $data->{groupSet} );
+
+    return $data;
 }
 
 sub start_instances {
