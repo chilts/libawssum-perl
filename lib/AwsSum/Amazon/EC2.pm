@@ -579,34 +579,12 @@ sub _fix_hash_to_array {
 
     # use $_[1] to change the 'actual' thing passed in
     if ( exists $hash->{item} ) {
-        $_[1] = $self->_make_array( $hash->{item} );
+        $_[1] = $self->_make_array_from( $hash->{item} );
     }
     else {
         $_[1] = [];
     }
     return;
-}
-
-sub _make_array {
-    my ($self, $from) = @_;
-
-    # return an empty list if not defined
-    return [] unless defined $from;
-
-    # return as-is if already an array
-    return $from if ref $from eq 'ARRAY';
-
-    # if this is a HASH, firstly check if there is anything in there
-    if ( ref $from eq 'HASH' ) {
-        # if nothing there, return an empty array
-        return [] unless %$from;
-
-        # just return the hash as the first element of an array
-        return [ $from ];
-    }
-
-    # we probably have a scalar, so just return it as the first element of an array
-    return [ $from ];
 }
 
 ## ----------------------------------------------------------------------------

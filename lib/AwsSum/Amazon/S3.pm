@@ -172,7 +172,10 @@ sub list_buckets {
 
     $self->set_command( 'ListBuckets' );
 
-    return $self->send();
+    my $data = $self->send();
+
+    # fix this array
+    $data->{Buckets} = $self->_make_array_from( $data->{Buckets}{Bucket} );
 }
 
 sub create_bucket {
