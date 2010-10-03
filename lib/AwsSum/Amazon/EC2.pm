@@ -331,6 +331,11 @@ sub describe_volumes {
 
     # volumeSet
     $self->_fix_hash_to_array( $data->{volumeSet} );
+    foreach my $volume ( @{$data->{volumeSet}} ) {
+        # attachmentSet
+        $self->_fix_hash_to_array( $volume->{attachmentSet} );
+    }
+
     return $self->data;
 }
 
