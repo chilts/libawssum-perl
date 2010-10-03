@@ -344,6 +344,7 @@ sub allocate_address {
     my ($self, $param) = @_;
 
     $self->set_command( 'AllocateAddress' );
+    $self->region( $param->{Region} ) if $param->{Region};
     return $self->send();
 }
 
@@ -351,6 +352,7 @@ sub describe_addresses {
     my ($self, $param) = @_;
 
     $self->set_command( 'DescribeAddresses' );
+    $self->region( $param->{Region} ) if $param->{Region};
     my $data = $self->send();
 
     # addressesSet
@@ -366,6 +368,7 @@ sub release_address {
     }
 
     $self->set_command( 'ReleaseAddress' );
+    $self->region( $param->{Region} ) if $param->{Region};
     $self->set_param( 'PublicIp', $param->{PublicIp} );
     return $self->send();
 }
@@ -374,6 +377,7 @@ sub describe_instances {
     my ($self, $param) = @_;
 
     $self->set_command( 'DescribeInstances' );
+    $self->region( $param->{Region} ) if $param->{Region};
     my $data = $self->send();
 
     # reservationSet
@@ -428,6 +432,7 @@ sub start_instances {
     my ($self, $param) = @_;
 
     $self->set_command( 'StartInstances' );
+    $self->region( $param->{Region} ) if $param->{Region};
     $self->_amazon_add_flattened_array_to_params( 'InstanceId', $param->{InstanceId} );
     my $data = $self->send();
 
@@ -440,6 +445,7 @@ sub stop_instances {
     my ($self, $param) = @_;
 
     $self->set_command( 'StopInstances' );
+    $self->region( $param->{Region} ) if $param->{Region};
     $self->_amazon_add_flattened_array_to_params( 'InstanceId', $param->{InstanceId} );
     my $data = $self->send();
 
@@ -452,6 +458,7 @@ sub terminate_instances {
     my ($self, $param) = @_;
 
     $self->set_command( 'TerminateInstances' );
+    $self->region( $param->{Region} ) if $param->{Region};
     $self->_amazon_add_flattened_array_to_params( 'InstanceId', $param->{InstanceId} );
     my $data = $self->send();
 
@@ -511,6 +518,7 @@ sub authorize_security_group_ingress {
     }
 
     $self->set_command( 'AuthorizeSecurityGroupIngress' );
+    $self->region( $param->{Region} ) if $param->{Region};
     $self->set_param( 'GroupName', $param->{GroupName} );
     $self->_amazon_add_flattened_array_to_params( 'IpPermissions', $param->{IpPermissions} );
     return $self->send();
@@ -528,6 +536,7 @@ sub create_security_group {
     }
 
     $self->set_command( 'CreateSecurityGroup' );
+    $self->region( $param->{Region} ) if $param->{Region};
     $self->set_param( 'GroupName', $param->{GroupName} );
     $self->set_param( 'GroupDescription', $param->{GroupDescription} );
     return $self->send();
@@ -541,6 +550,7 @@ sub delete_security_group {
     }
 
     $self->set_command( 'DeleteSecurityGroup' );
+    $self->region( $param->{Region} ) if $param->{Region};
     $self->set_param( 'GroupName', $param->{GroupName} );
     return $self->send();
 }
@@ -549,6 +559,7 @@ sub describe_security_groups {
     my ($self, $param) = @_;
 
     $self->set_command( 'DescribeSecurityGroups' );
+    $self->region( $param->{Region} ) if $param->{Region};
     my $data = $self->send();
 
     # securityGroupInfo
@@ -579,6 +590,7 @@ sub revoke_security_group_ingress {
     }
 
     $self->set_command( 'RevokeSecurityGroupIngress' );
+    $self->region( $param->{Region} ) if $param->{Region};
     $self->set_param( 'GroupName', $param->{GroupName} );
     $self->_amazon_add_flattened_array_to_params( 'IpPermissions', $param->{IpPermissions} );
     return $self->send();

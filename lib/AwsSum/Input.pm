@@ -46,18 +46,24 @@ my $input = {
         # DetachVolume => {},
         # ModifySnapshotAttribute => {},
         # ResetSnapshotAttribute => {},
-        AllocateAddress => {},
+        AllocateAddress => {
+            opts => [ qw(Region) ],
+        },
         # AssociateAddress => {},
-        DescribeAddresses => {},
+        DescribeAddresses => {
+            opts => [ qw(Region) ],
+        },
         # DisassociateAddress => {},
         ReleaseAddress => {
-            opts => [ qw(PublicIp) ],
+            opts => [ qw(PublicIp Region) ],
         },
         # GetConsoleOutput => {},
         # RegisterImage => {},
         # ResetImageAttribute => {},
         # DescribeInstanceAttribute => {},
-        DescribeInstances => {},
+        DescribeInstances => {
+            opts => [ qw(Region) ],
+        },
         # ModifyInstanceAttribute => {},
         # RebootInstances => {},
         # ResetInstanceAttribute => {},
@@ -65,17 +71,19 @@ my $input = {
             opts => [ qw(Region ImageId MinCount MaxCount KeyName InstanceType) ],
         },
         StartInstances => {
+            opts => [ qw(Region) ],
             list => {
                 InstanceId => 1,
             },
         },
         StopInstances => {
-            opts => [ 'Force' ],
+            opts => [ qw(Force Region) ],
             list => {
                 InstanceId => 1,
             },
         },
         TerminateInstances => {
+            opts => [ qw(Region) ],
             list => {
                 InstanceId => 1,
             },
@@ -99,20 +107,22 @@ my $input = {
         # DescribeReservedInstancesOfferings => {},
         # PurchaseReservedInstancesOffering => {},
         AuthorizeSecurityGroupIngress => {
-            opts => [ qw(GroupName) ],
+            opts => [ qw(GroupName Region) ],
             list => {
                 IpPermissions => qr{ \A IpPermissions\. \z }xmsm,
             },
         },
         CreateSecurityGroup => {
-            opts => [ qw(GroupName GroupDescription) ],
+            opts => [ qw(GroupName GroupDescription Region) ],
         },
         DeleteSecurityGroup => {
-            opts => [ qw(GroupName) ],
+            opts => [ qw(GroupName Region) ],
         },
-        DescribeSecurityGroups => {},
+        DescribeSecurityGroups => {
+            opts => [ qw(Region) ],
+        },
         RevokeSecurityGroupIngress => {
-            opts => [ qw(GroupName) ],
+            opts => [ qw(GroupName Region) ],
             list => {
                 IpPermissions => qr{ \A IpPermissions\. \z }xms,
             },
