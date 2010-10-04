@@ -161,9 +161,17 @@ my $commands = {
         name           => 'AllocateAddress',
         method         => 'allocate_address',
     },
+    AssociateAddress => {
+        name           => 'AssociateAddress',
+        method         => 'associate_address',
+    },
     DescribeAddresses => {
         name           => 'DescribeAddresses',
         method         => 'describe_addresses',
+    },
+    DisassociateAddress => {
+        name           => 'DisassociateAddress',
+        method         => 'disassociate_address',
     },
     ReleaseAddress => {
         name           => 'ReleaseAddress',
@@ -361,6 +369,23 @@ sub allocate_address {
     return $self->send();
 }
 
+sub associate_address {
+    my ($self, $param) = @_;
+
+    unless ( defined $param->{PublicIp} ) {
+        croak "Provide a 'PublicIp' address to associate to an instance";
+    }
+    unless ( defined $param->{InstanceId} ) {
+        croak "Provide an 'InstanceId' address to associate an address to";
+    }
+
+    $self->set_command( 'AssociateAddress' );
+    $self->set_param( 'InstanceId', $param->{InstanceId} );
+    $self->set_param( 'PublicIp', $param->{PublicIp} );
+
+    return $self->send();
+}
+
 sub describe_addresses {
     my ($self, $param) = @_;
 
@@ -371,6 +396,19 @@ sub describe_addresses {
     # addressesSet
     $self->_fix_hash_to_array( $data->{addressesSet} );
     return $self->data;
+}
+
+sub disassociate_address {
+    my ($self, $param) = @_;
+
+    unless ( defined $param->{PublicIp} ) {
+        croak "Provide a 'PublicIp' address to disassociate";
+    }
+
+    $self->set_command( 'DisassociateAddress' );
+    $self->set_param( 'PublicIp', $param->{PublicIp} );
+
+    return $self->send();
 }
 
 sub release_address {

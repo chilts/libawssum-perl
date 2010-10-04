@@ -50,11 +50,15 @@ my $input = {
         AllocateAddress => {
             opts => [ qw(Region) ],
         },
-        # AssociateAddress => {},
+        AssociateAddress => {
+            opts => [ qw(PublicIp InstanceId) ],
+        },
         DescribeAddresses => {
             opts => [ qw(Region) ],
         },
-        # DisassociateAddress => {},
+        DisassociateAddress => {
+            opts => [ qw(PublicIp) ],
+        },
         ReleaseAddress => {
             opts => [ qw(PublicIp Region) ],
         },
