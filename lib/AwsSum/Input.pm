@@ -64,6 +64,9 @@ my $input = {
         # DescribeInstanceAttribute => {},
         DescribeInstances => {
             opts => [ qw(Region) ],
+            list => {
+                InstanceId => 1,
+            },
         },
         # ModifyInstanceAttribute => {},
         RebootInstances => {

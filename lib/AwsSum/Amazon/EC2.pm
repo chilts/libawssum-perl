@@ -383,6 +383,7 @@ sub describe_instances {
 
     $self->set_command( 'DescribeInstances' );
     $self->region( $param->{Region} ) if $param->{Region};
+    $self->_amazon_add_flattened_array_to_params( 'InstanceId', $param->{InstanceId} );
     my $data = $self->send();
 
     # reservationSet
