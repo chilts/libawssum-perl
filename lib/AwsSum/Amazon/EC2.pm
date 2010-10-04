@@ -175,6 +175,10 @@ my $commands = {
         name           => 'DescribeInstances',
         method         => 'describe_instances',
     },
+    RebootInstances => {
+        name           => 'RebootInstances',
+        method         => 'reboot_instances',
+    },
     RunInstances => {
         name           => 'RunInstances',
         method         => 'run_instances',
@@ -393,6 +397,20 @@ sub describe_instances {
             $self->_fix_hash_to_array( $instance->{blockDeviceMapping} );
         }
     }
+
+    return $self->data;
+}
+
+sub reboot_instances {
+    my ($self, $param) = @_;
+
+    $self->set_command( 'RebootInstances' );
+    $self->region( $param->{Region} ) if $param->{Region};
+    $self->_amazon_add_flattened_array_to_params( 'InstanceId', $param->{InstanceId} );
+    my $data = $self->send();
+
+    # instancesSet
+    # $self->_fix_hash_to_array( $data->{instancesSet} );
 
     return $self->data;
 }

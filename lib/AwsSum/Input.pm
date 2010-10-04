@@ -65,7 +65,12 @@ my $input = {
             opts => [ qw(Region) ],
         },
         # ModifyInstanceAttribute => {},
-        # RebootInstances => {},
+        RebootInstances => {
+            opts => [ qw(Region) ],
+            list => {
+                InstanceId => 1,
+            },
+        },
         # ResetInstanceAttribute => {},
         RunInstances => {
             opts => [ qw(Region ImageId MinCount MaxCount KeyName InstanceType) ],
