@@ -171,9 +171,17 @@ my $commands = {
     },
 
     # Instances
+    DescribeInstanceAttribute => {
+        name           => 'DescribeInstanceAttribute',
+        method         => 'describe_instance_attribute',
+    },
     DescribeInstances => {
         name           => 'DescribeInstances',
         method         => 'describe_instances',
+    },
+    ModifyInstanceAttribute => {
+        name           => 'ModifyInstanceAttribute',
+        method         => 'modify_instance_attribute',
     },
     RebootInstances => {
         name           => 'RebootInstances',
@@ -378,6 +386,24 @@ sub release_address {
     return $self->send();
 }
 
+sub describe_instance_attribute {
+    my ($self, $param) = @_;
+
+    unless ( $self->is_valid_something($param->{InstanceId}) ) {
+        croak "Provide an 'InstanceId' to describe";
+    }
+    # ToDo: check this against a list of valid attributes (for now, just let EC2 tell us we're wrong)
+    unless ( $self->is_valid_something($param->{Attribute}) ) {
+        croak "Provide an 'InstanceId' to describe";
+    }
+
+    $self->set_command( 'DescribeInstanceAttribute' );
+    $self->region( $param->{Region} ) if $param->{Region};
+    $self->set_param( 'InstanceId', $param->{InstanceId} );
+    $self->set_param( 'Attribute', $param->{Attribute} );
+    return $self->send();
+}
+
 sub describe_instances {
     my ($self, $param) = @_;
 
@@ -401,6 +427,28 @@ sub describe_instances {
     }
 
     return $self->data;
+}
+
+sub modify_instance_attribute {
+    my ($self, $param) = @_;
+
+    unless ( $self->is_valid_something($param->{InstanceId}) ) {
+        croak "Provide an 'InstanceId' to describe";
+    }
+    # ToDo: check this against a list of valid attributes (for now, just let EC2 tell us we're wrong)
+    unless ( $self->is_valid_something($param->{Attribute}) ) {
+        croak "Provide an 'InstanceId' to describe";
+    }
+    unless ( $self->is_valid_something($param->{Value}) ) {
+        croak "Provide an 'InstanceId' to describe";
+    }
+
+    $self->set_command( 'ModifyInstanceAttribute' );
+    $self->region( $param->{Region} ) if $param->{Region};
+    $self->set_param( 'InstanceId', $param->{InstanceId} );
+    $self->set_param( 'Attribute', $param->{Attribute} );
+    $self->set_param( 'Value', $param->{Value} );
+    return $self->send();
 }
 
 sub reboot_instances {

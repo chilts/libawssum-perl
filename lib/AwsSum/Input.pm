@@ -61,14 +61,18 @@ my $input = {
         # GetConsoleOutput => {},
         # RegisterImage => {},
         # ResetImageAttribute => {},
-        # DescribeInstanceAttribute => {},
+        DescribeInstanceAttribute => {
+            opts => [ qw(InstanceId Attribute Region) ],
+        },
         DescribeInstances => {
             opts => [ qw(Region) ],
             list => {
                 InstanceId => 1,
             },
         },
-        # ModifyInstanceAttribute => {},
+        ModifyInstanceAttribute => {
+            opts => [ qw(InstanceId Attribute Value Region) ],
+        },
         RebootInstances => {
             opts => [ qw(Region) ],
             list => {
