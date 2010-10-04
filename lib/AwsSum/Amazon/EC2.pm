@@ -330,6 +330,7 @@ sub describe_volumes {
     my ($self, $param) = @_;
 
     $self->set_command( 'DescribeVolumes' );
+    $self->region( $param->{Region} ) if $param->{Region};
     $self->_amazon_add_flattened_array_to_params( 'VolumeId', $param->{VolumeId} );
     $self->_amazon_add_flattened_array_to_params( 'Filter', $param->{Filter} );
     my $data = $self->send();

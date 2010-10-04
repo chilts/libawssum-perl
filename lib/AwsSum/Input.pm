@@ -38,6 +38,7 @@ my $input = {
         # DescribeSnapshotAttribute => {},
         # DescribeSnapshots => {},
         DescribeVolumes => {
+            opts => [ qw(Region) ],
             list => {
                 VolumeId => qr{ \A VolumeId\. \z }xmsm,
                 Filter => qr{ \A Filter\. \z }xmsm,
