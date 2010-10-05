@@ -86,6 +86,10 @@ my $input = {
         # ResetInstanceAttribute => {},
         RunInstances => {
             opts => [ qw(Region ImageId MinCount MaxCount KeyName InstanceType) ],
+            hash => {
+                Placement  => 1,
+                Monitoring => 1,
+            },
         },
         StartInstances => {
             opts => [ qw(Region) ],

@@ -524,6 +524,9 @@ sub run_instances {
     $self->set_param( 'KeyName', $param->{KeyName} );
     $self->set_param( 'InstanceType', $param->{InstanceType} );
 
+    $self->_amazon_add_flattened_hash_to_params( 'Placement', $param->{Placement} );
+    $self->_amazon_add_flattened_hash_to_params( 'Monitoring', $param->{Monitoring} );
+
     my $data = $self->send();
 
     # instancesSet
