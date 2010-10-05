@@ -8,6 +8,7 @@ use Data::Dumper;
 use JSON; # has pretty printing
 use Config::Simple;
 use Getopt::Std;
+use File::Slurp;
 use AwsSum::Flickr;
 use AwsSum::PayPal;
 use AwsSum::RackspaceCloud::Authenticate;
@@ -31,7 +32,13 @@ my ($debug, $verbose);
 
 {
     # process the incoming opts (for this executable, not for the commands)
-    my $opts = process_opts({ v => 0, d => 0, f => 1, h => 0 });
+    my $opts = process_opts({
+        v => 'bool',
+        d => 'bool',
+        f => 'arg',
+        i => 'array',
+        h => 'bool',
+    });
     $debug = exists $opts->{d};
     $verbose = exists $opts->{v} || exists $opts->{d};
     my $config_filename = $opts->{f} || "$ENV{HOME}/.awssum";
@@ -105,6 +112,12 @@ my ($debug, $verbose);
     # parse the incoming args
     my $args = AwsSum::Input->process_args( $service_name, $command, @ARGV );
 
+    # also, load up all of the input args (simple hash first)
+    foreach my $i ( @{$opts->{i}} ) {
+        my ($var, $filename) = split(':', $i, 2);
+        $args->{$var} = read_file($filename);
+    }
+
     my $inputs = AwsSum::Input->get_inputs_for( $service_name, $command );
     dump_it_debug('Opts Allowed', $inputs->{opts});
     dump_it_debug('Boolean Opts', $inputs->{bools});
@@ -113,7 +126,6 @@ my ($debug, $verbose);
 
     # show this first, so the user can see what it thinks is correct
     dump_it_verbose('Input Args', $args);
-
 
     # do the command and pass it all the args (not worried about the return
     # value since it is in $service->data()
@@ -158,7 +170,7 @@ sub process_opts {
         }
 
         # check if this definition is true or false
-        if ( $definition->{$arg} ) {
+        if ( $definition->{$arg} eq 'arg' ) {
             # requires an argument
             $opts->{$arg} = shift @ARGV;
             unless ( defined $opts->{$arg} ) {
@@ -166,7 +178,16 @@ sub process_opts {
                 exit 2;
             }
         }
-        else {
+        elsif ( $definition->{$arg} eq 'array' ) {
+            # requires an argument
+            my $v = shift @ARGV;
+            unless ( defined $v ) {
+                print STDERR "Error: option array '$arg' requires a argument\n";
+                exit 2;
+            }
+            push @{$opts->{$arg}}, $v;
+        }
+        elsif ( $definition->{$arg} eq 'bool' ) {
             # boolean only
             $opts->{$arg} = 1;
         }
@@ -251,7 +272,8 @@ Options:
 
   -v                     verbose, output more info
   -d                     debug, output even more info
-  -o spec:filename       (ToDo) saves this returned value to a file
+  -i var:filename        (ToDo) loads contents of this file into this variable
+  -o var:filename        (ToDo) saves this returned value to a file
   -s filename            (ToDo) saves the returned content to a file
   -h                     prints help then quits
   -V                     (ToDo) prints version information then quits
