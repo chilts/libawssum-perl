@@ -135,6 +135,18 @@ sub _amazon_add_flattened_array_to_params {
     }
 }
 
+# useful for EC2 (and maybe others)
+sub _amazon_add_flattened_hash_to_params {
+    my ($self, $name, $hash) = @_;
+
+    return unless ref $hash eq 'HASH';
+
+    # loop through all the keys
+    foreach my $key ( keys %$hash ) {
+        $self->set_param( "$name.$key", $hash->{$key} );
+    }
+}
+
 # takes something like undef, a scalar, {} or [] and forces it into a []
 sub _make_array_from {
     my ($self, $from) = @_;

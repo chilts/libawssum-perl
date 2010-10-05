@@ -244,6 +244,7 @@ sub process_args {
     # save them locally so it's easier
     my $opts = { map { $_ => 1 } @{$input->{$service}{$command}{opts}} };
     my $bools = $input->{$service}{$command}{bools};
+    my $hash = $input->{$service}{$command}{hash};
     my $list = $input->{$service}{$command}{list};
 
     # this is the dumping ground for what we find, either $args or the $rest
@@ -274,8 +275,12 @@ sub process_args {
             $args->{$param} = shift @args;
         }
         else {
-            # see if this is a list of some sort
-            if ( $param =~ m{ \A (\w+)\.(\d+) \z }xms and exists $list->{$1} ) {
+            # see if this is a list or hash of some sort
+            if ( $param =~ m{ \A (\w+)\.(\w+) \z }xms and exists $hash->{$1} ) {
+                # single hash
+                $args->{$1}{$2} = shift @args;
+            }
+            elsif ( $param =~ m{ \A (\w+)\.(\d+) \z }xms and exists $list->{$1} ) {
                 # sole array
                 $args->{$1}[$2] = shift @args;
             }
