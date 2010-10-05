@@ -233,16 +233,50 @@ sub usage {
     }
 
     print STDERR <<"EOF";
-Usage: $0 <service-name> <command> <opts...>
+Usage: $0 <service-name> <command> [opts...] [parameters...]
 
 Services:
- - flickr
- - paypal
- - ec2
+  - Flickr
+  - PayPal
+  - RackspaceCloud:Authenticate
+  - RackspaceCloud:CloudServers
+  - Amazon:EC2
+  - Amazon:S3
 
-See <http://github.com/appsattic/awssum/> for further information.
-Report bugs to <chilts -at- appsattic -dot- com>.
+Commands:
+  Commands are service dependent. Try 'awssum <service> -h' (ToDo).
 
+Options:
+  All options are service independent. All start with one dash.
+
+  -v                     verbose, output more info
+  -d                     debug, output even more info
+  -o spec:filename       (ToDo) saves this returned value to a file
+  -s filename            (ToDo) saves the returned content to a file
+  -h                     prints help then quits
+  -V                     (ToDo) prints version information then quits
+
+Parameters:
+  All parameters are service/command dependent. All start with two dashes.
+  They can be nested to a reasonable level (see examples).
+
+  i.e.
+    --Id i-12            sets 'Id' to the value 'i-12'
+    --Hash.Key hi        sets 'Hash{Key}' to 'hi'
+    --Hash.Key.Name val  sets 'Hash{Key}{Name}' to 'val' (ToDo)
+    --List.0 item        sets 'List[0]' to 'item'
+    --List.0.Key value   sets 'List[0]{Key}' to 'value'
+    --List.1.Key.0 value sets 'List[1]{Key}[0]' to 'value'
+    --List.2.K.1.P value sets 'List[2]{K}[1]{P}' to 'value'
+
+  e.g.
+    --KeyName 'DNS Server KeyPair'
+    --Monitoring.Enabled true
+    --InstanceId.0 i-610c050b --InstanceId.1 i-a9b2aac3
+    --IpPermissions.0.IpProtocol tcp --IpPermissions.0.ToPort 80
+
+See <http://github.com/andychilton/awssum/> for further information.
+Report bugs to <andychilton\@gmail.com>
 EOF
 }
 
