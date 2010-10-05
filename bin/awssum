@@ -33,7 +33,7 @@ my ($debug, $verbose);
     # process the incoming opts (for this executable, not for the commands)
     my $opts = process_opts({ v => 0, d => 0, f => 1, h => 0 });
     $debug = exists $opts->{d};
-    $verbose = exists $opts->{v};
+    $verbose = exists $opts->{v} || exists $opts->{d};
     my $config_filename = $opts->{f} || "$ENV{HOME}/.awssum";
 
     if ( $opts->{h} ) {
@@ -44,10 +44,6 @@ my ($debug, $verbose);
     # take the first two parts off the input arguments
     my $service_name = shift;
     my $command = shift;
-
-    debug( qq{debug=$debug} );
-    debug( qq{verbose=$verbose} );
-    debug( qq{config_filename=$config_filename} );
 
     unless ( defined $service_name and exists $services->{$service_name} ) {
         usage( 'Please provide a valid service name.' );
@@ -109,34 +105,31 @@ my ($debug, $verbose);
     # parse the incoming args
     my $args = AwsSum::Input->process_args( $service_name, $command, @ARGV );
 
-    if ( $verbose ) {
-        my $inputs = AwsSum::Input->get_inputs_for( $service_name, $command );
-        dump_it('Opts Allowed', $inputs->{opts});
-        dump_it('Boolean Opts', $inputs->{bools});
-        dump_it('List Opts', $inputs->{list});
-    }
+    my $inputs = AwsSum::Input->get_inputs_for( $service_name, $command );
+    dump_it_debug('Opts Allowed', $inputs->{opts});
+    dump_it_debug('Boolean Opts', $inputs->{bools});
+    dump_it_debug('Hash Opts', $inputs->{hash});
+    dump_it_debug('List Opts', $inputs->{list});
 
     # show this first, so the user can see what it thinks is correct
-    dump_it('Input Args', $args)
-        if $verbose;
+    dump_it_verbose('Input Args', $args);
+
 
     # do the command and pass it all the args (not worried about the return
     # value since it is in $service->data()
     $service->$method( $args );
 
     # output some info so we can see what was going on
-    dump_it('HTTP Verb', uc $service->verb);
-    dump_it('URL', $service->url);
-    dump_it('Headers', $service->headers);
-    dump_it('Params', $service->params);
+    dump_it_verbose('HTTP Verb', uc $service->verb);
+    dump_it_verbose('URL', $service->url);
+    dump_it_verbose('Headers', $service->headers);
+    dump_it_verbose('Params', $service->params);
 
-    if ( $verbose ) {
-        dump_it('HTTP Request', $service->req->as_string);
-        dump_it('HTTP Response', $service->res->as_string);
-    }
+    dump_it_debug('HTTP Request', $service->req->as_string);
+    dump_it_debug('HTTP Response', $service->res->as_string);
 
     dump_it('Data', $service->data);
-    line();
+    line() if $verbose;
 }
 
 ## ----------------------------------------------------------------------------
@@ -194,6 +187,18 @@ sub verbose {
     print qq{$msg\n} if $verbose;
 }
 
+sub dump_it_debug {
+    my ($title, $thing) = @_;
+    return unless $debug;
+    dump_it($title, $thing);
+}
+
+sub dump_it_verbose {
+    my ($title, $thing) = @_;
+    return unless $verbose;
+    dump_it($title, $thing);
+}
+
 sub dump_it {
     my ($title, $thing) = @_;
     line();
@@ -213,11 +218,11 @@ sub dump_it {
 
 sub title {
     my ($title) = @_;
-    print "--- $title ", '-' x (74 - length($title)), "\n";
+    print "--- $title ", '-' x (74 - length($title)), "\n" if $verbose;
 }
 
 sub line {
-    print '=' x 79, "\n";
+    print '=' x 79, "\n" if $verbose;
 }
 
 sub usage {
