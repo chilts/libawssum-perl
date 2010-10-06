@@ -118,7 +118,9 @@ my $input = {
         DescribeKeyPairs => {
             opts => [ qw(KeyName Region) ],
         },
-        # ImportKeyPair => {},
+        ImportKeyPair => {
+            opts => [ qw(KeyName PublicKeyMaterial) ],
+        },
         # MonitorInstances => {},
         # UnmonitorInstances => {},
         # CreatePlacementGroup => {},

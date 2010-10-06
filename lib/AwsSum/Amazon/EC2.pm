@@ -15,6 +15,7 @@ use List::Util qw( reduce );
 use Digest::SHA qw (hmac_sha1_base64 hmac_sha256_base64);
 use XML::Simple;
 use URI::Escape;
+use MIME::Base64;
 
 my $allowed = {
     # From: http://docs.amazonwebservices.com/AWSEC2/latest/DeveloperGuide/index.html?instance-types.html
@@ -225,7 +226,10 @@ my $commands = {
         name           => 'DescribeKeyPairs',
         method         => 'describe_key_pairs',
     },
-    # * ImportKeyPair
+    ImportKeyPair =>  {
+        name           => 'ImportKeyPair',
+        method         => 'import_key_pair',
+    },
 
     # Security Groups
     AuthorizeSecurityGroupIngress => {
@@ -613,6 +617,19 @@ sub describe_key_pairs {
     $self->_fix_hash_to_array( $data->{keySet} );
 
     return $self->data;
+}
+
+sub import_key_pair {
+    my ($self, $param) = @_;
+
+    unless ( $self->is_valid_something($param->{PublicKeyMaterial}) ) {
+        croak "Provide something for 'PublicKeyMaterial' for the imported KeyPair";
+    }
+
+    $self->set_command( 'ImportKeyPair' );
+    $self->set_param( 'KeyName', $param->{KeyName} );
+    $self->set_param( 'PublicKeyMaterial', encode_base64($param->{PublicKeyMaterial}) );
+    return $self->send();
 }
 
 sub authorize_security_group_ingress {
