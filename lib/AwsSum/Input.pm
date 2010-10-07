@@ -85,9 +85,10 @@ my $input = {
         },
         # ResetInstanceAttribute => {},
         RunInstances => {
-            opts => [ qw(Region ImageId MinCount MaxCount KeyName InstanceType) ],
+            opts => [ qw(Region ImageId MinCount MaxCount KeyName InstanceType DisableApiTermination InstanceInitiatedShutdownBehavior) ],
             list => {
                 SecurityGroup => 1,
+                BlockDeviceMapping => 1,
             },
             hash => {
                 Placement  => 1,

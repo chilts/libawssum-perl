@@ -541,11 +541,16 @@ sub run_instances {
     $self->set_param( 'MaxCount', $param->{MaxCount} );
     $self->set_param( 'KeyName', $param->{KeyName} );
     $self->set_param( 'InstanceType', $param->{InstanceType} );
+    $self->set_param( 'DisableapiTermination', $param->{DisableapiTermination} )
+        if $param->{DisableapiTermination};
+    $self->set_param( 'InstanceInitiatedShutdownBehavior', $param->{InstanceInitiatedShutdownBehavior} )
+        if $param->{InstanceInitiatedShutdownBehavior};
 
     $self->_amazon_add_flattened_hash_to_params( 'Placement', $param->{Placement} );
     $self->_amazon_add_flattened_hash_to_params( 'Monitoring', $param->{Monitoring} );
 
     $self->_amazon_add_flattened_array_to_params( 'SecurityGroup', $param->{SecurityGroup} );
+    $self->_amazon_add_flattened_array_to_params( 'BlockDeviceMapping', $param->{BlockDeviceMapping} );
 
     my $data = $self->send();
 
