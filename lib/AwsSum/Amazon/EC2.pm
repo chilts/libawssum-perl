@@ -450,7 +450,7 @@ sub describe_instance_attribute {
     }
     # ToDo: check this against a list of valid attributes (for now, just let EC2 tell us we're wrong)
     unless ( $self->is_valid_something($param->{Attribute}) ) {
-        croak "Provide an 'InstanceId' to describe";
+        croak "Provide an 'Attribute' to describe";
     }
 
     $self->set_command( 'DescribeInstanceAttribute' );
@@ -493,10 +493,10 @@ sub modify_instance_attribute {
     }
     # ToDo: check this against a list of valid attributes (for now, just let EC2 tell us we're wrong)
     unless ( $self->is_valid_something($param->{Attribute}) ) {
-        croak "Provide an 'InstanceId' to describe";
+        croak "Provide an 'Attribute' to modify";
     }
     unless ( $self->is_valid_something($param->{Value}) ) {
-        croak "Provide an 'InstanceId' to describe";
+        croak "Provide a 'Value' for the attribute";
     }
 
     $self->set_command( 'ModifyInstanceAttribute' );
