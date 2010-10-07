@@ -288,13 +288,14 @@ sub process_args {
         }
         else {
             # see if this is a list or hash of some sort
-            if ( $param =~ m{ \A (\w+)\.(\w+) \z }xms and exists $hash->{$1} ) {
-                # single hash
-                $args->{$1}{$2} = shift @args;
-            }
-            elsif ( $param =~ m{ \A (\w+)\.(\d+) \z }xms and exists $list->{$1} ) {
+            # Note: do the \d ones before \w (at the same level) since \d is wholly contained in \w
+            if ( $param =~ m{ \A (\w+)\.(\d+) \z }xms and exists $list->{$1} ) {
                 # sole array
                 $args->{$1}[$2] = shift @args;
+            }
+            elsif ( $param =~ m{ \A (\w+)\.(\w+) \z }xms and exists $hash->{$1} ) {
+                # single hash
+                $args->{$1}{$2} = shift @args;
             }
             elsif ( $param =~ m{ \A (\w+)\.(\d+)\.(\w+) \z }xms and exists $list->{$1} ) {
                 # array of hashes
