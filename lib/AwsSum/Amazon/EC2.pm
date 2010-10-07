@@ -686,6 +686,7 @@ sub describe_security_groups {
 
     $self->set_command( 'DescribeSecurityGroups' );
     $self->region( $param->{Region} ) if $param->{Region};
+    $self->_amazon_add_flattened_array_to_params( 'GroupName', $param->{GroupName} );
     my $data = $self->send();
 
     # securityGroupInfo

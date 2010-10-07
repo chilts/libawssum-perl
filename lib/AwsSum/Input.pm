@@ -143,6 +143,9 @@ my $input = {
         },
         DescribeSecurityGroups => {
             opts => [ qw(Region) ],
+            list => {
+                GroupName => 1,
+            },
         },
         RevokeSecurityGroupIngress => {
             opts => [ qw(GroupName Region) ],
