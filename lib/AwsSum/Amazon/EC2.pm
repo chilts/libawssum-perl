@@ -231,6 +231,20 @@ my $commands = {
         method         => 'import_key_pair',
     },
 
+    # Reserved Instances
+    DescribeReservedInstances => {
+        name           => 'DescribeReservedInstances',
+        method         => 'describe_reserved_instances',
+    },
+    DescribeReservedInstancesOfferings => {
+        name           => 'DescribeReservedInstancesOfferings',
+        method         => 'describe_reserved_instances_offerings',
+    },
+    PurchaseReservedInstancesOffering => {
+        name           => 'PurchaseReservedInstancesOffering',
+        method         => 'purchase_reserved_instances_offering',
+    },
+
     # Security Groups
     AuthorizeSecurityGroupIngress => {
         name           => 'AuthorizeSecurityGroupIngress',
@@ -631,6 +645,60 @@ sub import_key_pair {
     $self->set_command( 'ImportKeyPair' );
     $self->set_param( 'KeyName', $param->{KeyName} );
     $self->set_param( 'PublicKeyMaterial', encode_base64($param->{PublicKeyMaterial}) );
+    return $self->send();
+}
+
+sub describe_reserved_instances {
+    my ($self, $param) = @_;
+
+    $self->set_command( 'DescribeReservedInstances' );
+    $self->region( $param->{Region} ) if $param->{Region};
+    $self->_amazon_add_flattened_array_to_params( 'ReservedInstancesId', $param->{ReservedInstancesId} );
+    my $data = $self->send();
+
+    # reservedInstancesSet
+    $self->_fix_hash_to_array( $data->{reservedInstancesSet} );
+
+    return $data;
+}
+
+sub describe_reserved_instances_offerings {
+    my ($self, $param) = @_;
+
+    $self->set_command( 'DescribeReservedInstancesOfferings' );
+    $self->region( $param->{Region} ) if $param->{Region};
+
+    $self->set_param( 'InstanceType', $param->{InstanceType} )
+        if $param->{InstanceType};
+    $self->set_param( 'AvailabilityZone', $param->{AvailabilityZone} )
+        if $param->{AvailabilityZone};
+    $self->set_param( 'ProductDescription', $param->{ProductDescription} )
+        if $param->{ProductDescription};
+
+    $self->_amazon_add_flattened_array_to_params(
+        'ReservedInstancesOfferingId',
+        $param->{ReservedInstancesOfferingId}
+    );
+    $self->_amazon_add_flattened_array_to_params( 'Filter', $param->{Filter} );
+
+    my $data = $self->send();
+
+    # reservedInstancesOfferingsSet
+    $self->_fix_hash_to_array( $data->{reservedInstancesOfferingsSet} );
+
+    return $data;
+}
+
+sub purchase_reserved_instances_offering {
+    my ($self, $param) = @_;
+
+    $self->set_command( 'PurchaseReservedInstancesOffering' );
+    $self->region( $param->{Region} ) if $param->{Region};
+    $self->_amazon_add_flattened_array_to_params(
+        'ReservedInstancesOfferingId',
+        $param->{ReservedInstancesOfferingId}
+    );
+    $self->_amazon_add_flattened_array_to_params( 'InstanceCount', $param->{InstanceCount} );
     return $self->send();
 }
 

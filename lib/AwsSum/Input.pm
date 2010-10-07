@@ -129,9 +129,26 @@ my $input = {
         # CreatePlacementGroup => {},
         # DeletePlacementGroup => {},
         # DescribePlacementGroups => {},
-        # DescribeReservedInstances => {},
-        # DescribeReservedInstancesOfferings => {},
-        # PurchaseReservedInstancesOffering => {},
+        DescribeReservedInstances => {
+            opts => [ qw(Region) ],
+            list => {
+                ReservedInstancesId => 1,
+            },
+        },
+        DescribeReservedInstancesOfferings => {
+            opts => [ qw(InstanceType AvailabilityZone ProductDescription Region) ],
+            list => {
+                ReservedInstancesOfferingId => 1,
+                Filter => 1,
+            },
+        },
+        PurchaseReservedInstancesOffering => {
+            opts => [ qw(Region) ],
+            list => {
+                ReservedInstancesOfferingId => 1,
+                InstanceCount => 1,
+            },
+        },
         AuthorizeSecurityGroupIngress => {
             opts => [ qw(GroupName Region) ],
             list => {
