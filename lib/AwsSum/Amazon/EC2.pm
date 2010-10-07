@@ -531,6 +531,8 @@ sub run_instances {
     $self->_amazon_add_flattened_hash_to_params( 'Placement', $param->{Placement} );
     $self->_amazon_add_flattened_hash_to_params( 'Monitoring', $param->{Monitoring} );
 
+    $self->_amazon_add_flattened_array_to_params( 'SecurityGroup', $param->{SecurityGroup} );
+
     my $data = $self->send();
 
     # instancesSet
