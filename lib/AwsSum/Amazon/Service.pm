@@ -120,6 +120,9 @@ sub _amazon_add_flattened_array_to_params {
                 if ( ref $item->{$key} eq 'ARRAY' ) {
                     $self->_amazon_add_flattened_array_to_params( "$name.$i.$key", $item->{$key} );
                 }
+                elsif ( ref $item->{$key} eq 'HASH' ) {
+                    $self->_amazon_add_flattened_hash_to_params( "$name.$i.$key", $item->{$key} );
+                }
                 else {
                     # just add it
                     $self->set_param( "$name.$i.$key", $item->{$key} );

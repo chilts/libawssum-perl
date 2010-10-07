@@ -307,23 +307,36 @@ sub process_args {
             # see if this is a list or hash of some sort
             # Note: do the \d ones before \w (at the same level) since \d is wholly contained in \w
             if ( $param =~ m{ \A (\w+)\.(\d+) \z }xms and exists $list->{$1} ) {
-                # sole array
+                # e.g. --SecurityGroup.n
                 $args->{$1}[$2] = shift @args;
             }
             elsif ( $param =~ m{ \A (\w+)\.(\w+) \z }xms and exists $hash->{$1} ) {
-                # single hash
+                # e.g. --LaunchSpecification.ImageId
                 $args->{$1}{$2} = shift @args;
             }
             elsif ( $param =~ m{ \A (\w+)\.(\d+)\.(\w+) \z }xms and exists $list->{$1} ) {
-                # array of hashes
+                # e.g. --BlockDeviceMapping.n.DeviceName
                 $args->{$1}[$2]{$3} = shift @args;
             }
+            elsif ( $param =~ m{ \A (\w+)\.(\w+)\.(\w+) \z }xms and exists $hash->{$1} ) {
+                # e.g. --LaunchSpecification.Placement.AvailabilityZone
+                $args->{$1}{$2}{$3} = shift @args;
+            }
             elsif ( $param =~ m{ \A (\w+)\.(\d+)\.(\w+)\.(\d+) \z }xms and exists $list->{$1} ) {
-                # array of hashes with arrays
+                # e.g. --Filter.n.Value.m
                 $args->{$1}[$2]{$3}[$4] = shift @args;
             }
+            elsif ( $param =~ m{ \A (\w+)\.(\w+)\.(\d+)\.(\w+) \z }xms and exists $hash->{$1} ) {
+                # e.g. --LaunchSpecification.blockDeviceMapping.n.DeviceName
+                $args->{$1}{$2}[$3]{$4} = shift @args;
+            }
+            elsif ( $param =~ m{ \A (\w+)\.(\d+)\.(\w+)\.(\w+) \z }xms and exists $list->{$1} ) {
+                # e.g. --BlockDeviceMapping.n.Ebs.DeleteOnTermination
+                print "HERE 1=$1, 2=$2, 3=$3, 4=$4\n";
+                $args->{$1}[$2]{$3}{$4} = shift @args;
+            }
             elsif ( $param =~ m{ \A (\w+)\.(\d+)\.(\w+)\.(\d+)\.(\w+) \z }xms and exists $list->{$1} ) {
-                # multi-level structure
+                # e.g. --IpPermissions.n.Groups.m.GroupName
                 $args->{$1}[$2]{$3}[$4]{$5} = shift @args;
             }
             else {
