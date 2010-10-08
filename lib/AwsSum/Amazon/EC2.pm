@@ -479,6 +479,8 @@ sub describe_instances {
         foreach my $instance ( @{$reservation->{instancesSet}} ) {
             # blockDeviceMapping
             $self->_fix_hash_to_array( $instance->{blockDeviceMapping} );
+            # tagSet
+            $self->_fix_hash_to_array( $instance->{tagSet} );
         }
     }
 
