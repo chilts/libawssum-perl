@@ -333,7 +333,10 @@ sub sign {
 sub decode {
     my ($self) = @_;
 
-    $self->data( XMLin( $self->res->content() ));
+    $self->data(
+        # KeyAttr => [] to stop folding into a hash
+        XMLin( $self->res->content(), KeyAttr => [] )
+    );
 }
 
 ## ----------------------------------------------------------------------------
