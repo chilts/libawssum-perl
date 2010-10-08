@@ -266,6 +266,20 @@ my $commands = {
         name           => 'RevokeSecurityGroupIngress',
         method         => 'revoke_security_group_ingress',
     },
+
+    # Tags
+    CreateTags => {
+        name           => 'CreateTags',
+        method         => 'create_tags',
+    },
+    DeleteTags => {
+        name           => 'DeleteTags',
+        method         => 'delete_tags',
+    },
+    DescribeTags => {
+        name           => 'DescribeTags',
+        method         => 'describe_tags',
+    },
 };
 
 ## ----------------------------------------------------------------------------
@@ -798,6 +812,37 @@ sub revoke_security_group_ingress {
     $self->set_param( 'GroupName', $param->{GroupName} );
     $self->_amazon_add_flattened_array_to_params( 'IpPermissions', $param->{IpPermissions} );
     return $self->send();
+}
+
+sub create_tags {
+    my ($self, $param) = @_;
+
+    $self->set_command( 'CreateTags' );
+    $self->_amazon_add_flattened_array_to_params( 'ResourceId', $param->{ResourceId} );
+    $self->_amazon_add_flattened_array_to_params( 'Tag', $param->{Tag} );
+    return $self->send();
+}
+
+sub delete_tags {
+    my ($self, $param) = @_;
+
+    $self->set_command( 'DeleteTags' );
+    $self->_amazon_add_flattened_array_to_params( 'ResourceId', $param->{ResourceId} );
+    $self->_amazon_add_flattened_array_to_params( 'Tag', $param->{Tag} );
+    return $self->send();
+}
+
+sub describe_tags {
+    my ($self, $param) = @_;
+
+    $self->set_command( 'DescribeTags' );
+    $self->_amazon_add_flattened_array_to_params( 'Filter', $param->{Filter} );
+    my $data = $self->send();
+
+    # tagSet
+    $self->_fix_hash_to_array( $data->{tagSet} );
+
+    return $data;
 }
 
 ## ----------------------------------------------------------------------------

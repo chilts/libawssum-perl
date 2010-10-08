@@ -181,9 +181,23 @@ my $input = {
         # DescribeSpotInstanceRequests => {},
         # DescribeSpotPriceHistory => {},
         # RequestSpotInstances => {},
-        # CreateTags => {},
-        # DeleteTags => {},
-        # DescribeTags => {},
+        CreateTags => {
+            list => {
+                ResourceId => 1,
+                Tag => 1,
+            },
+        },
+        DeleteTags => {
+            list => {
+                ResourceId => 1,
+                Tag => 1,
+            },
+        },
+        DescribeTags => {
+            list => {
+                Filter => 1,
+            },
+        },
         # BundleInstance => {},
         # CancelBundleTask => {},
         # DescribeBundleTasks => {},
