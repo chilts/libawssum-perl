@@ -152,6 +152,10 @@ my $commands = {
     },
 
     # Elastic Block Store
+    DeleteVolume => {
+        name           => 'DeleteVolume',
+        method         => 'delete_volume',
+    },
     DescribeVolumes => {
         name           => 'DescribeVolumes',
         method         => 'describe_volumes',
@@ -375,6 +379,19 @@ sub describe_regions {
     # regionInfo
     $self->_fix_hash_to_array( $data->{regionInfo} );
     return $self->data;
+}
+
+sub delete_volume {
+    my ($self, $param) = @_;
+
+    unless ( $self->is_valid_something($param->{VolumeId}) ) {
+        croak "Provide a 'VolumeId' for the volume to be deleted";
+    }
+
+    $self->set_command( 'DeleteVolume' );
+    $self->region( $param->{Region} ) if $param->{Region};
+    $self->set_param( 'VolumeId', $param->{VolumeId} );
+    return $self->send();
 }
 
 sub describe_volumes {

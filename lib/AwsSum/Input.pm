@@ -34,7 +34,9 @@ my $input = {
         # CreateSnapshot => {},
         # CreateVolume => {},
         # DeleteSnapshot => {},
-        # DeleteVolume => {},
+        DeleteVolume => {
+            opts => [ qw(VolumeId Region) ],
+        },
         # DescribeSnapshotAttribute => {},
         # DescribeSnapshots => {},
         DescribeVolumes => {
