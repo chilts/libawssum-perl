@@ -41,7 +41,7 @@ my ($debug, $verbose);
     });
     $debug = exists $opts->{d};
     $verbose = exists $opts->{v} || exists $opts->{d};
-    my $config_filename = $opts->{f} || "$ENV{HOME}/.awssum";
+    my $config_filename = $opts->{f} || $ENV{AWSSUM_CFG} || "$ENV{HOME}/.awssum";
 
     if ( $opts->{h} ) {
         usage();
