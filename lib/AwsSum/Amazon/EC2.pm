@@ -432,6 +432,7 @@ sub associate_address {
     }
 
     $self->set_command( 'AssociateAddress' );
+    $self->region( $param->{Region} ) if $param->{Region};
     $self->set_param( 'InstanceId', $param->{InstanceId} );
     $self->set_param( 'PublicIp', $param->{PublicIp} );
 

@@ -53,7 +53,7 @@ my $input = {
             opts => [ qw(Region) ],
         },
         AssociateAddress => {
-            opts => [ qw(PublicIp InstanceId) ],
+            opts => [ qw(PublicIp InstanceId Region) ],
         },
         DescribeAddresses => {
             opts => [ qw(Region) ],
