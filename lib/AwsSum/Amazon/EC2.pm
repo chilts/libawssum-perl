@@ -685,6 +685,7 @@ sub import_key_pair {
     }
 
     $self->set_command( 'ImportKeyPair' );
+    $self->region( $param->{Region} ) if $param->{Region};
     $self->set_param( 'KeyName', $param->{KeyName} );
     $self->set_param( 'PublicKeyMaterial', encode_base64($param->{PublicKeyMaterial}) );
     return $self->send();

@@ -125,7 +125,7 @@ my $input = {
             opts => [ qw(KeyName Region) ],
         },
         ImportKeyPair => {
-            opts => [ qw(KeyName PublicKeyMaterial) ],
+            opts => [ qw(KeyName PublicKeyMaterial Region) ],
         },
         # MonitorInstances => {},
         # UnmonitorInstances => {},
