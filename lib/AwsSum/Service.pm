@@ -163,6 +163,22 @@ sub send {
         # send it and get the response
         $res = $ua->request( $req );
     }
+    elsif ( $verb eq 'delete' ) {
+        # we need to put the params into the URL
+        my $uri = URI->new( $url );
+        $uri->query_form( $self->params );
+
+        # now create the request
+        my $req = HTTP::Request->new(
+            uc $verb,
+            $uri,
+            [ %{$self->headers} ],
+            $content,
+        );
+
+        # send it and get the response
+        $res = $ua->request( $req );
+    }
     else {
         # currently unsupported
         croak "This HTTP Verb '$verb' is currently unsupported ... please help by adding it for me and sending me a patch :)";
