@@ -103,6 +103,12 @@ sub set_param {
     $self->params->{$name} = $value;
 }
 
+sub set_param_maybe {
+    my ($self, $name, $value) = @_;
+    return unless defined $value;
+    $self->params->{$name} = $value;
+}
+
 sub get_param {
     my ($self, $name) = @_;
     return $self->params->{$name};
