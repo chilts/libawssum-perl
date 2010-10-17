@@ -106,6 +106,13 @@ sub _location_constraint {
 ## ----------------------------------------------------------------------------
 # things to fill in to fulfill AwsSum::Service
 
+# * commands
+# * verb
+# * url
+# * code
+# * sign
+# * decode
+
 sub commands { $commands }
 
 sub verb {
