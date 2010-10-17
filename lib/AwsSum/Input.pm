@@ -226,6 +226,9 @@ my $input = {
         DeleteObject => {
             opts => [ qw(BucketName ObjectName) ],
         },
+        GetObject => {
+            opts => [ qw(BucketName ObjectName) ],
+        },
         CreateObject => {
             opts => [ qw(BucketName ObjectName Content) ],
         }

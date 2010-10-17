@@ -91,7 +91,14 @@ my $commands = {
         code           => 204,
     },
 
-    # * GET Object
+    GetObject => {
+        name           => 'GetObject',
+        amz_name       => 'GET Object',
+        method         => 'get_object',
+        verb           => 'get',
+        code           => 200,
+        has_content    => 1,
+    },
     # * GET Object acl
     # * GET Object torrent
     # * HEAD Object
@@ -258,18 +265,31 @@ sub decode {
     my ($self) = @_;
 
     my $data;
-    if ( $self->res->content ) {
-        $data = XMLin( $self->res->content(), KeyAttr => [] );
-    }
 
-    # see if this request passed the expected return code (this is the only
-    # check we do here)
+    # Firstly, check to see if we were successful or not (since this will
+    # depend on how we might or might not decode the content).
     if ( $self->res_code == $self->code ) {
+        # all ok, so decode the content
+        if ( $self->res->content ) {
+            # we have some content, now decide what to do with it
+            if ( $self->_command->{has_content} ) {
+                # plain content
+                $data->{Content} = $self->res->content();
+            }
+            else {
+                # this should be some XML to be decoded
+                $data = XMLin( $self->res->content(), KeyAttr => [] );
+            }
+        }
+
+        # let the outter program know everything was ok
         $data->{_awssum} = {
             'ok' => 1,
         }
     }
     else {
+        # didn't work out ok, so decode the content and set some internal stuff
+        $data = XMLin( $self->res->content(), KeyAttr => [] );
         $data->{_awssum} = {
             'ok'      => 0,
             'error'   => $data->{Code},
@@ -356,6 +376,27 @@ sub delete_object {
     }
 
     $self->set_command( 'DeleteObject' );
+    $self->_bucket_name( $param->{BucketName} );
+    $self->_object_name( $param->{ObjectName} );
+
+    # ToDo: add all the headers that we are able to send
+
+    return $self->send();
+}
+
+sub get_object {
+    my ($self, $param) = @_;
+
+    # GET Object - http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTObjectGET.html
+
+    unless ( defined $param->{BucketName} ) {
+        croak "Provide a 'BucketName' from which to retrieve this object";
+    }
+    unless ( defined $param->{ObjectName} ) {
+        croak "Provide an 'ObjectName' to retrieve";
+    }
+
+    $self->set_command( 'GetObject' );
     $self->_bucket_name( $param->{BucketName} );
     $self->_object_name( $param->{ObjectName} );
 
