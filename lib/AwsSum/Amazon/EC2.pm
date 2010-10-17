@@ -337,10 +337,27 @@ sub sign {
 sub decode {
     my ($self) = @_;
 
-    $self->data(
-        # KeyAttr => [] to stop folding into a hash
-        XMLin( $self->res->content(), KeyAttr => [] )
-    );
+    # With EC2, we _always_ get some XML back no matter what happened.
+    # Note: KeyAttr => [] is to stop folding into a hash
+    my $data = XMLin( $self->res->content(), KeyAttr => [] );
+
+    # see if this request passed the expected return code (this is the only
+    # check we do here)
+    if ( $self->res_code == $self->code ) {
+        $data->{_awssum} = {
+            'ok' => 1,
+        }
+    }
+    else {
+        $data->{_awssum} = {
+            'ok'      => 0,
+            'error'   => $data->{Errors}{Error}{Code},
+            'message' => $data->{Errors}{Error}{Message},
+        }
+    }
+
+    # save it for the outside world
+    $self->data( $data );
 }
 
 ## ----------------------------------------------------------------------------

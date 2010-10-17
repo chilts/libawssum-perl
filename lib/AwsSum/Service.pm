@@ -165,13 +165,12 @@ sub send {
     $self->req( $res->request );
     $self->res( $res );
 
-    # ToDo: check the the return HTTP code is the same as $self->code()
-
-    # if we failed, just return nothing
-    return unless $res->is_success;
-
-    # decode response should fill in 'data'
+    # decode response should fill in 'data' (independent of whether LWP regards
+    # the request as success or failure).
     $self->decode();
+
+    # ToDo: could check here if something went wrong, and throw an error?
+
     return $self->data;
 }
 
