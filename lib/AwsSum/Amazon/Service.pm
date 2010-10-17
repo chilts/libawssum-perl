@@ -10,39 +10,6 @@ use Carp;
 has 'access_key_id'    => ( is => 'rw', isa => 'Str' );
 has 'secret_access_key' => ( is => 'rw', isa => 'Str' );
 
-my $allowed = {
-    region => {
-        'us-east-1'      => 1,
-        'us-west-1'      => 1,
-        'eu-west-1'      => 1,
-        'ap-southeast-1' => 1,
-    },
-};
-
-# Service Info hierarchy goes on 'Service->Region->Property'
-my $service_info = {
-
-    # From: http://docs.amazonwebservices.com/AWSEC2/latest/DeveloperGuide/index.html?using-query-api.html
-    ec2 => {
-        'us-east-1' => {
-            'endpoint'            => 'https://ec2.us-east-1.amazonaws.com/',
-            'host'                => 'ec2.us-east-1.amazonaws.com',
-        },
-        'us-west-1' => {
-            'endpoint'            => 'https://ec2.us-west-1.amazonaws.com/',
-            'host'                => 'ec2.us-west-1.amazonaws.com',
-        },
-        'eu-west-1' => {
-            'endpoint'            => 'https://ec2.eu-west-1.amazonaws.com/',
-            'host'                => 'ec2.eu-west-1.amazonaws.com',
-        },
-        'ap-southeast-1' => {
-            'endpoint'            => 'https://ec2.ap-southeast-1.amazonaws.com/',
-            'host'                => 'ec2.ap-southeast-1.amazonaws.com',
-        },
-    },
-};
-
 # setup the all of the regions in AWS
 enum 'Region' => qw(us-east-1 us-west-1 eu-west-1 ap-southeast-1);
 has 'region' => ( is => 'rw', isa => 'Region', default => 'us-east-1' );

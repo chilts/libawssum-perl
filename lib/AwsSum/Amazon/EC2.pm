@@ -286,21 +286,25 @@ my $commands = {
     },
 };
 
+sub _host {
+    my ($self) = @_;
+    return q{ec2.} . $self->region . q{.amazonaws.com};
+}
+
 ## ----------------------------------------------------------------------------
 # things to fill in to fulfill AwsSum::Service
 
 sub commands { $commands }
+
 sub verb { 'get' }
+
 sub url {
     my ($self) = @_;
 
     # From: http://docs.amazonwebservices.com/AWSEC2/latest/DeveloperGuide/index.html?using-query-api.html
-    return q{https://ec2.} . $self->region . q{.amazonaws.com/};
+    return q{https://} . $self->_host . q{/};
 }
-sub host {
-    my ($self) = @_;
-    return q{ec2.} . $self->region . q{.amazonaws.com};
-}
+
 sub code { 200 }
 
 sub sign {
@@ -321,7 +325,7 @@ sub sign {
     # sign the request (remember this is SignatureVersion '2')
     my $str_to_sign = '';
     $str_to_sign .= uc($self->verb) . "\n";
-    $str_to_sign .= $self->host . "\n";
+    $str_to_sign .= $self->_host . "\n";
     $str_to_sign .= "/\n";
 
     my $param = $self->params();
