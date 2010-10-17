@@ -194,10 +194,6 @@ sub sign {
 sub decode {
     my ($self) = @_;
 
-    print '-' x 20;
-    print "HERE\n";
-    print '-' x 20;
-
     my $data;
     if ( $self->res->content ) {
         $data = XMLin( $self->res->content(), KeyAttr => [] );
@@ -205,7 +201,6 @@ sub decode {
 
     # see if this request passed the expected return code (this is the only
     # check we do here)
-    print "expected=" . $self->code . ", got=" . $self->res_code;
     if ( $self->res_code == $self->code ) {
         $data->{_awssum} = {
             'ok' => 1,
