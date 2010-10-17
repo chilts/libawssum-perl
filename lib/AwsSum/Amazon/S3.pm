@@ -62,6 +62,47 @@ my $allowed = {
     },
 };
 
+my $service_info = {
+    'us-east-1' => {
+        'endpoint'            => 'https://s3.amazonaws.com',
+        'host'                => 's3.amazonaws.com',
+        'location-constraint' => undef, # no such thing
+    },
+    'us-west-1' => {
+        'endpoint'            => 'https://s3-us-west-1.amazonaws.com',
+        'host'                => 's3-us-west-1.amazonaws.com',
+        'location-constraint' => 'us-west-1',
+    },
+    'eu-west-1' => {
+        'endpoint'            => 'https://s3-eu-west-1.amazonaws.com',
+        'host'                => 's3-eu-west-1.amazonaws.com',
+        'location-constraint' => 'EU',
+    },
+    'ap-southeast-1' => {
+        'endpoint'            => 'https://s3-ap-southeast-1.amazonaws.com',
+        'host'                => 's3-ap-southeast-1.amazonaws.com',
+        'location-constraint' => 'ap-southeast-1',
+    },
+};
+
+sub _host {
+    my ($self) = @_;
+
+    # start with the "BucketName." (for everything except ListBuckets)
+    my $host = $self->_bucket_name . '.'
+        unless $self->_command->{name} eq 'ListBuckets';
+
+    # add the region host
+    $host .= $service_info->{$self->region}{host};
+
+    return $host;
+}
+
+sub _location_constraint {
+    my ($self) = @_;
+    return $service_info->{$self->region}{'location-constraint'};
+}
+
 ## ----------------------------------------------------------------------------
 # things to fill in to fulfill AwsSum::Service
 
@@ -75,28 +116,20 @@ sub verb {
 sub url {
     my ($self) = @_;
 
-    my $url;
+    # make the base url
+    my $url = q{https://} . $self->_host() . q{/};
 
-    # firstly, create the URL (add bucket if not ListBuckets)
-    $url = $self->s3_host( $self->region );
-    $url = $self->_bucket_name . '.' . $url
-        unless $self->_command->{name} eq 'ListBuckets';
-    $url = "https://$url/";
-
-    # add the object_name
+    # add the object_name if there is one
     $url .= $self->_object_name()
         if $self->_object_name();
 
     return $url;
 }
 
-sub host {
+sub code {
     my ($self) = @_;
-    die "ToDo: host()";
-    return q{ec2.} . $self->region . q{.amazonaws.com};
+    return $self->_command->{code};
 }
-
-sub code { 200 }
 
 sub sign {
     my ($self) = @_;
@@ -161,17 +194,45 @@ sub sign {
 sub decode {
     my ($self) = @_;
 
-    $self->data( XMLin( $self->res->content() ));
+    print '-' x 20;
+    print "HERE\n";
+    print '-' x 20;
+
+    my $data;
+    if ( $self->res->content ) {
+        $data = XMLin( $self->res->content(), KeyAttr => [] );
+    }
+
+    # see if this request passed the expected return code (this is the only
+    # check we do here)
+    print "expected=" . $self->code . ", got=" . $self->res_code;
+    if ( $self->res_code == $self->code ) {
+        $data->{_awssum} = {
+            'ok' => 1,
+        }
+    }
+    else {
+        $data->{_awssum} = {
+            'ok'      => 0,
+            'error'   => $data->{Code},
+            'message' => $data->{Message},
+        }
+    }
+
+    # save it for the outside world
+    $self->data( $data );
 }
 
 ## ----------------------------------------------------------------------------
 # all our lovely commands
 
 sub list_buckets {
-    my ($self, $params) = @_;
+    my ($self, $param) = @_;
+
+    # "Get Service" - http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTServiceGET.html
 
     $self->set_command( 'ListBuckets' );
-
+    $self->region( $param->{Region} ) if $param->{Region};
     my $data = $self->send();
 
     # fix this array
@@ -179,24 +240,22 @@ sub list_buckets {
 }
 
 sub create_bucket {
-    my ($self, $params) = @_;
+    my ($self, $param) = @_;
 
-    unless ( defined $params->{BucketName} ) {
+    # "PUT Bucket" - http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTBucketPUT.html
+
+    unless ( defined $param->{BucketName} ) {
         croak "Provide a 'BucketName' to create";
     }
 
-    $params->{LocationConstraint} ||= 'us-east-1';
-    unless ( $self->is_valid_region($params->{LocationConstraint}) ) {
-        croak "Provide a valid 'LocationConstraint' to create the bucket in";
-    }
-
     $self->set_command( 'CreateBucket' );
-    $self->_bucket_name( $params->{BucketName} );
+    $self->region( $param->{Region} ) if $param->{Region};
+    $self->_bucket_name( $param->{BucketName} );
 
-    # set the location constraint, but not if it is the normal region
-    my $loc_value = $self->s3_location_constraint( $params->{LocationConstraint} );
-    if ( $loc_value ) {
-        $self->content( "<CreateBucketConfiguration><LocationConstraint>$loc_value</LocationConstraint></CreateBucketConfiguration>" );
+    # depending on the Region, set the location constraint
+    my $location_constraint = $self->_location_constraint();
+    if ( $location_constraint ) {
+        $self->content( "<CreateBucketConfiguration><LocationConstraint>$location_constraint</LocationConstraint></CreateBucketConfiguration>" );
     }
 
     return $self->send();

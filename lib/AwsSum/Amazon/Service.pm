@@ -41,30 +41,6 @@ my $service_info = {
             'host'                => 'ec2.ap-southeast-1.amazonaws.com',
         },
     },
-
-    s3 => {
-        'us-east-1' => {
-            'endpoint'            => 'https://s3.amazonaws.com',
-            'host'                => 's3.amazonaws.com',
-            'location-constraint' => undef, # no such thing
-        },
-        'us-west-1' => {
-            'endpoint'            => 'https://s3-us-west-1.amazonaws.com',
-            'host'                => 's3-us-west-1.amazonaws.com',
-            'location-constraint' => 'us-west-1',
-        },
-        'eu-west-1' => {
-            'endpoint'            => 'https://s3-eu-west-1.amazonaws.com',
-            'host'                => 's3-eu-west-1.amazonaws.com',
-            'location-constraint' => 'EU',
-        },
-        'ap-southeast-1' => {
-            'endpoint'            => 'https://s3-ap-southeast-1.amazonaws.com',
-            'host'                => 's3-ap-southeast-1.amazonaws.com',
-            'location-constraint' => 'ap-southeast-1',
-        },
-    },
-
 };
 
 # setup the all of the regions in AWS
@@ -78,30 +54,6 @@ sub is_valid_region {
     my ($self, $region) = @_;
     return 1 if exists $allowed->{region}{$region};
     return 0;
-}
-
-sub s3_endpoint {
-    my ($self, $region) = @_;
-
-    croak "Unknown region '$region'" unless exists $allowed->{region}{$region};
-
-    return $service_info->{s3}{$region}{endpoint};
-}
-
-sub s3_host {
-    my ($self, $region) = @_;
-
-    croak "Unknown region '$region'" unless exists $allowed->{region}{$region};
-
-    return $service_info->{s3}{$region}{host};
-}
-
-sub s3_location_constraint {
-    my ($self, $region) = @_;
-
-    croak "Unknown region '$region'" unless exists $allowed->{region}{$region};
-
-    return $service_info->{s3}{$region}{'location-constraint'};
 }
 
 # useful for EC2 and SimpleDB (and maybe others)
