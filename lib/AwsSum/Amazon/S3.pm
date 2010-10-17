@@ -184,15 +184,13 @@ sub sign {
         $str_to_sign .= $header_value . "\n";
     }
 
-    # add the CanonicalizedResource
+    # add the CanonicalizedResource (bucket, path and sub-resource)
     $str_to_sign .= '/';
     if ( $self->_bucket_name ) {
         $str_to_sign .= $self->_bucket_name . '/';
     }
-    if ( exists $param->{ObjectName} ) {
-        # this should be URI Escaped, but the new URI::Escape is too aggressive
-        # since it encodes '/' into '%2F' which is not required
-        $str_to_sign .= $self->key;
+    if ( $self->_object_name ) {
+        $str_to_sign .= $self->_object_name;
     }
     # ToDo: fix this to the new way of doing things
     #if ( $self->sub_resource ) {
