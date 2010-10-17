@@ -81,8 +81,16 @@ my $commands = {
     # * PUT Bucket notification
     # * PUT Bucket requestPayment
     # * PUT Bucket versioning
+
     # Operations on Objects
-    # * DELETE Object
+    DeleteObject => {
+        name           => 'DeleteObject',
+        amz_name       => 'DELETE Object',
+        method         => 'delete_object',
+        verb           => 'delete',
+        code           => 204,
+    },
+
     # * GET Object
     # * GET Object acl
     # * GET Object torrent
@@ -331,6 +339,27 @@ sub create_bucket {
     if ( $location_constraint ) {
         $self->content( "<CreateBucketConfiguration><LocationConstraint>$location_constraint</LocationConstraint></CreateBucketConfiguration>" );
     }
+
+    return $self->send();
+}
+
+sub delete_object {
+    my ($self, $param) = @_;
+
+    # DELETE Object - http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTObjectDELETE.html
+
+    unless ( defined $param->{BucketName} ) {
+        croak "Provide a 'BucketName' from which to delete this object";
+    }
+    unless ( defined $param->{ObjectName} ) {
+        croak "Provide an 'ObjectName' to delete";
+    }
+
+    $self->set_command( 'DeleteObject' );
+    $self->_bucket_name( $param->{BucketName} );
+    $self->_object_name( $param->{ObjectName} );
+
+    # ToDo: add all the headers that we are able to send
 
     return $self->send();
 }

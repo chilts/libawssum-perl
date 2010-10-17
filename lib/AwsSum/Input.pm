@@ -223,6 +223,9 @@ my $input = {
             opts => [ qw(BucketName Delimiter Marker MaxKeys Prefix) ],
         },
         # Operations on Objects
+        DeleteObject => {
+            opts => [ qw(BucketName ObjectName) ],
+        },
         CreateObject => {
             opts => [ qw(BucketName ObjectName Content) ],
         }
