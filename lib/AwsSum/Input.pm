@@ -213,10 +213,12 @@ my $input = {
     'Amazon:S3' => {
         # Operations on the Service
         ListBuckets => {
+            amz_name => 'GET Service',
             opts => [ qw(Region) ],
         },
         # Operations on Buckets
         CreateBucket => {
+            amz_name => 'PUT Bucket',
             opts => [ qw(BucketName Region) ],
         },
         # Operations on Objects
