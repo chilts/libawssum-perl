@@ -49,6 +49,12 @@ my $commands = {
         verb           => 'put',
         code           => 200,
     },
+    ListObjects => {
+        name           => 'ListObjects',
+        method         => 'list_objects',
+        verb           => 'get',
+        code           => 200,
+    },
 };
 
 my $allowed = {
@@ -259,6 +265,25 @@ sub create_bucket {
     if ( $location_constraint ) {
         $self->content( "<CreateBucketConfiguration><LocationConstraint>$location_constraint</LocationConstraint></CreateBucketConfiguration>" );
     }
+
+    return $self->send();
+}
+
+sub list_objects {
+    my ($self, $param) = @_;
+
+    # GET Bucket - http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTBucketGET.html
+
+    unless ( defined $param->{BucketName} ) {
+        croak "Provide a 'BucketName' to list objects from";
+    }
+
+    $self->set_command( 'ListObjects' );
+    $self->_bucket_name( $param->{BucketName} );
+    $self->set_param_maybe( 'delimiter', $param->{Delimiter} );
+    $self->set_param_maybe( 'marker', $param->{Market} );
+    $self->set_param_maybe( 'max-keys', $param->{MaxKeys} );
+    $self->set_param_maybe( 'prefix', $param->{Prefix} );
 
     return $self->send();
 }

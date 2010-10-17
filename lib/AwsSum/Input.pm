@@ -221,6 +221,10 @@ my $input = {
             amz_name => 'PUT Bucket',
             opts => [ qw(BucketName Region) ],
         },
+        ListObjects => {
+            amz_name => 'GET Bucket',
+            opts => [ qw(BucketName Delimiter Marker MaxKeys Prefix) ],
+        },
         # Operations on Objects
     },
 
