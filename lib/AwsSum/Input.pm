@@ -123,6 +123,10 @@ my $input = {
         },
         DescribeKeyPairs => {
             opts => [ qw(KeyName Region) ],
+            list => {
+                KeyName => 1,
+                Filter => 1,
+            },
         },
         ImportKeyPair => {
             opts => [ qw(KeyName PublicKeyMaterial Region) ],

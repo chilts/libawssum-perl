@@ -669,6 +669,8 @@ sub describe_key_pairs {
 
     $self->set_command( 'DescribeKeyPairs' );
     $self->region( $param->{Region} ) if $param->{Region};
+    $self->_amazon_add_flattened_array_to_params( 'KeyName', $param->{KeyName} );
+    $self->_amazon_add_flattened_array_to_params( 'Filter', $param->{Filter} );
     my $data = $self->send();
 
     # keySet
