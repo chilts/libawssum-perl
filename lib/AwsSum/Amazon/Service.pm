@@ -50,12 +50,6 @@ has 'region' => ( is => 'rw', isa => 'Region', default => 'us-east-1' );
 ## ----------------------------------------------------------------------------
 # helper functions specifically for Amazon services (not necessarily all of them)
 
-sub is_valid_region {
-    my ($self, $region) = @_;
-    return 1 if exists $allowed->{region}{$region};
-    return 0;
-}
-
 # useful for EC2 and SimpleDB (and maybe others)
 sub _amazon_add_flattened_array_to_params {
     my ($self, $name, $array) = @_;
