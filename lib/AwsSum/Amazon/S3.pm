@@ -37,13 +37,13 @@ has '_command' => ( is => 'rw', isa => 'HashRef' );
 # constants
 
 my $commands = {
-    'ListBuckets' => {
+    ListBuckets => {
         name           => 'ListBuckets',
         method         => 'list_buckets',
         verb           => 'get',
         code           => 200,
     },
-    'CreateBucket' => {
+    CreateBucket => {
         name           => 'CreateBucket',
         method         => 'create_bucket',
         verb           => 'put',
