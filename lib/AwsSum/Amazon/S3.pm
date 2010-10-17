@@ -37,24 +37,68 @@ has '_command' => ( is => 'rw', isa => 'HashRef' );
 # constants
 
 my $commands = {
+    # Operations on the Service
     ListBuckets => {
         name           => 'ListBuckets',
+        amz_name       => 'GET Service',
         method         => 'list_buckets',
         verb           => 'get',
         code           => 200,
     },
-    CreateBucket => {
-        name           => 'CreateBucket',
-        method         => 'create_bucket',
-        verb           => 'put',
-        code           => 200,
-    },
+
+    # Operations on Buckets
+    # * DELETE Bucket
+    # * DELETE Bucket policy
+
     ListObjects => {
         name           => 'ListObjects',
+        amz_name       => 'GET Bucket (List Objects)',
         method         => 'list_objects',
         verb           => 'get',
         code           => 200,
     },
+
+    # * GET Bucket acl
+    # * GET Bucket policy
+    # * GET Bucket location
+    # * GET Bucket logging
+    # * GET Bucket notification
+    # * GET Bucket Object versions
+    # * GET Bucket requestPayment
+    # * GET Bucket versioning
+
+    CreateBucket => {
+        name           => 'CreateBucket',
+        amz_name       => 'PUT Bucket',
+        method         => 'create_bucket',
+        verb           => 'put',
+        code           => 200,
+    },
+
+    # * PUT Bucket acl
+    # * PUT Bucket policy
+    # * PUT Bucket logging
+    # * PUT Bucket notification
+    # * PUT Bucket requestPayment
+    # * PUT Bucket versioning
+    # Operations on Objects
+    # * DELETE Object
+    # * GET Object
+    # * GET Object acl
+    # * GET Object torrent
+    # * HEAD Object
+    # * POST Object
+
+    CreateObject => {
+        name           => 'CreateObject',
+        amz_name       => 'PUT Object',
+        method         => 'create_object',
+        verb           => 'put',
+        code           => 200,
+    },
+
+    # * PUT Object acl
+    # * PUT Object (Copy)
 };
 
 my $allowed = {
@@ -245,6 +289,25 @@ sub list_buckets {
     $data->{Buckets} = $self->_make_array_from( $data->{Buckets}{Bucket} );
 }
 
+sub list_objects {
+    my ($self, $param) = @_;
+
+    # GET Bucket - http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTBucketGET.html
+
+    unless ( defined $param->{BucketName} ) {
+        croak "Provide a 'BucketName' to list objects from";
+    }
+
+    $self->set_command( 'ListObjects' );
+    $self->_bucket_name( $param->{BucketName} );
+    $self->set_param_maybe( 'delimiter', $param->{Delimiter} );
+    $self->set_param_maybe( 'marker', $param->{Market} );
+    $self->set_param_maybe( 'max-keys', $param->{MaxKeys} );
+    $self->set_param_maybe( 'prefix', $param->{Prefix} );
+
+    return $self->send();
+}
+
 sub create_bucket {
     my ($self, $param) = @_;
 
@@ -267,21 +330,24 @@ sub create_bucket {
     return $self->send();
 }
 
-sub list_objects {
+sub create_object {
     my ($self, $param) = @_;
 
-    # GET Bucket - http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTBucketGET.html
+    # PUT Object - http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTObjectPUT.html
 
     unless ( defined $param->{BucketName} ) {
-        croak "Provide a 'BucketName' to list objects from";
+        croak "Provide a 'BucketName' to put this object into";
+    }
+    unless ( defined $param->{ObjectName} ) {
+        croak "Provide an 'ObjectName' to create";
     }
 
-    $self->set_command( 'ListObjects' );
+    $self->set_command( 'CreateObject' );
     $self->_bucket_name( $param->{BucketName} );
-    $self->set_param_maybe( 'delimiter', $param->{Delimiter} );
-    $self->set_param_maybe( 'marker', $param->{Market} );
-    $self->set_param_maybe( 'max-keys', $param->{MaxKeys} );
-    $self->set_param_maybe( 'prefix', $param->{Prefix} );
+    $self->_object_name( $param->{ObjectName} );
+    $self->content( $param->{Content} );
+
+    # ToDo: add all the headers that we are able to send
 
     return $self->send();
 }

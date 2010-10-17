@@ -213,19 +213,19 @@ my $input = {
     'Amazon:S3' => {
         # Operations on the Service
         ListBuckets => {
-            amz_name => 'GET Service',
             opts => [ qw(Region) ],
         },
         # Operations on Buckets
         CreateBucket => {
-            amz_name => 'PUT Bucket',
             opts => [ qw(BucketName Region) ],
         },
         ListObjects => {
-            amz_name => 'GET Bucket',
             opts => [ qw(BucketName Delimiter Marker MaxKeys Prefix) ],
         },
         # Operations on Objects
+        CreateObject => {
+            opts => [ qw(BucketName ObjectName Content) ],
+        }
     },
 
     PayPal => {
