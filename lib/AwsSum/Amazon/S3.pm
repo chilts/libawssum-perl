@@ -305,7 +305,12 @@ sub list_objects {
     $self->set_param_maybe( 'max-keys', $param->{MaxKeys} );
     $self->set_param_maybe( 'prefix', $param->{Prefix} );
 
-    return $self->send();
+    my $data = $self->send();
+
+    # fix up the Contents array
+    $self->_fix_to_array( $data->{Contents} );
+
+    return $data;
 }
 
 sub create_bucket {
@@ -350,6 +355,17 @@ sub create_object {
     # ToDo: add all the headers that we are able to send
 
     return $self->send();
+}
+
+## ----------------------------------------------------------------------------
+# internal methods
+
+sub _fix_to_array {
+    my ($self, $item) = @_;
+
+    # use $_[1] to change the 'actual' thing passed in
+    $_[1] = $self->_make_array_from( $item );
+    return;
 }
 
 ## ----------------------------------------------------------------------------
