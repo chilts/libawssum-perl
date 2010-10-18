@@ -437,11 +437,18 @@ sub create_object {
     unless ( defined $param->{ObjectName} ) {
         croak "Provide an 'ObjectName' to create";
     }
+    unless ( defined $param->{Content} or defined $self->content ) {
+        croak q{Provide some content for this object (either via a 'Content' parameter or via $s3->content(...)};
+    }
 
     $self->set_command( 'CreateObject' );
     $self->_bucket_name( $param->{BucketName} );
     $self->_object_name( $param->{ObjectName} );
-    $self->content( $param->{Content} );
+
+    # the locally passed 'Content' will override the already existing content()
+    if ( defined $param->{Content} ) {
+        $self->content( $param->{Content} );
+    }
 
     # ToDo: add all the headers that we are able to send
 
