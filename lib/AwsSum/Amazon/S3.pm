@@ -317,6 +317,28 @@ sub list_buckets {
     $data->{Buckets} = $self->_make_array_from( $data->{Buckets}{Bucket} );
 }
 
+sub create_bucket {
+    my ($self, $param) = @_;
+
+    # "PUT Bucket" - http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTBucketPUT.html
+
+    unless ( defined $param->{BucketName} ) {
+        croak "Provide a 'BucketName' to create";
+    }
+
+    $self->set_command( 'CreateBucket' );
+    $self->region( $param->{Region} ) if $param->{Region};
+    $self->_bucket_name( $param->{BucketName} );
+
+    # depending on the Region, set the location constraint
+    my $location_constraint = $self->_location_constraint();
+    if ( $location_constraint ) {
+        $self->content( "<CreateBucketConfiguration><LocationConstraint>$location_constraint</LocationConstraint></CreateBucketConfiguration>" );
+    }
+
+    return $self->send();
+}
+
 sub list_objects {
     my ($self, $param) = @_;
 
@@ -339,28 +361,6 @@ sub list_objects {
     $self->_fix_to_array( $data->{Contents} );
 
     return $data;
-}
-
-sub create_bucket {
-    my ($self, $param) = @_;
-
-    # "PUT Bucket" - http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTBucketPUT.html
-
-    unless ( defined $param->{BucketName} ) {
-        croak "Provide a 'BucketName' to create";
-    }
-
-    $self->set_command( 'CreateBucket' );
-    $self->region( $param->{Region} ) if $param->{Region};
-    $self->_bucket_name( $param->{BucketName} );
-
-    # depending on the Region, set the location constraint
-    my $location_constraint = $self->_location_constraint();
-    if ( $location_constraint ) {
-        $self->content( "<CreateBucketConfiguration><LocationConstraint>$location_constraint</LocationConstraint></CreateBucketConfiguration>" );
-    }
-
-    return $self->send();
 }
 
 sub delete_object {
