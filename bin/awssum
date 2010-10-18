@@ -115,7 +115,14 @@ my ($debug, $verbose);
     # also, load up all of the input args (simple hash first)
     foreach my $i ( @{$opts->{i}} ) {
         my ($var, $filename) = split(':', $i, 2);
-        $args->{$var} = read_file($filename);
+        if ( $var eq '' ) {
+            # load as the content
+            $service->content( scalar read_file($filename) );
+        }
+        else {
+            # load into a variable
+            $args->{$var} = read_file($filename);
+        }
     }
 
     my $inputs = AwsSum::Input->get_inputs_for( $service_name, $command );
@@ -272,7 +279,8 @@ Options:
 
   -v                     verbose, output more info
   -d                     debug, output even more info
-  -i var:filename        (ToDo) loads contents of this file into this variable
+  -i var:filename        loads contents of this file into this variable
+  -i :filename           loads this file into the content of the HTTP Request
   -o var:filename        (ToDo) saves this returned value to a file
   -s filename            (ToDo) saves the returned content to a file
   -h                     prints help then quits
