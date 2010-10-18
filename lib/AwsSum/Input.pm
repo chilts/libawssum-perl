@@ -216,6 +216,9 @@ my $input = {
             opts => [ qw(Region) ],
         },
         # Operations on Buckets
+        DeleteBucket => {
+            opts => [ qw(BucketName) ],
+        },
         CreateBucket => {
             opts => [ qw(BucketName Region) ],
         },

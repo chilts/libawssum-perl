@@ -47,7 +47,13 @@ my $commands = {
     },
 
     # Operations on Buckets
-    # * DELETE Bucket
+    DeleteBucket => {
+        name           => 'DeleteBucket',
+        amz_name       => 'DELETE Bucket',
+        method         => 'delete_bucket',
+        verb           => 'delete',
+        code           => 204,
+    },
     # * DELETE Bucket policy
 
     ListObjects => {
@@ -315,6 +321,21 @@ sub list_buckets {
 
     # fix this array
     $data->{Buckets} = $self->_make_array_from( $data->{Buckets}{Bucket} );
+}
+
+sub delete_bucket {
+    my ($self, $param) = @_;
+
+    # DELETE Bucket - http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTBucketDELETE.html
+
+    unless ( defined $param->{BucketName} ) {
+        croak "Provide a 'BucketName' to delete";
+    }
+
+    $self->set_command( 'DeleteBucket' );
+    $self->_bucket_name( $param->{BucketName} );
+
+    return $self->send();
 }
 
 sub create_bucket {
