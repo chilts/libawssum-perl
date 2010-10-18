@@ -219,11 +219,15 @@ my $input = {
         DeleteBucket => {
             opts => [ qw(BucketName) ],
         },
+        ListObjects => {
+            opts => [ qw(BucketName Delimiter Marker MaxKeys Prefix) ],
+        },
+        DescribeBucketVersioning => {
+            opts => [ qw(BucketName) ],
+        },
         CreateBucket => {
             opts => [ qw(BucketName Region) ],
         },
-        ListObjects => {
-            opts => [ qw(BucketName Delimiter Marker MaxKeys Prefix) ],
         },
         # Operations on Objects
         DeleteObject => {

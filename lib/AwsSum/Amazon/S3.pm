@@ -26,6 +26,7 @@ has 'secret_access_key' => ( is => 'rw', isa => 'Str' );
 # $params->{ObjectName}
 has '_bucket_name' => ( is => 'rw', isa => 'Str' );
 has '_object_name' => ( is => 'rw', isa => 'Str' );
+has '_sub_resource' => ( is => 'rw', isa => 'Str' );
 
 # constants
 sub version { '' }
@@ -71,7 +72,14 @@ my $commands = {
     # * GET Bucket notification
     # * GET Bucket Object versions
     # * GET Bucket requestPayment
-    # * GET Bucket versioning
+
+    DescribeBucketVersioning => {
+        name           => 'DescribeBucketVersioning',
+        amz_name       => 'GET Bucket versioning',
+        method         => 'describe_bucket_versioning',
+        verb           => 'get',
+        code           => 200,
+    },
 
     CreateBucket => {
         name           => 'CreateBucket',
@@ -201,6 +209,10 @@ sub url {
     $url .= $self->_object_name()
         if $self->_object_name();
 
+    # if we have a sub resource, add that on
+    $url .= q{?} . $self->_sub_resource
+        if $self->_sub_resource;
+
     return $url;
 }
 
@@ -258,9 +270,9 @@ sub sign {
         $str_to_sign .= $self->_object_name;
     }
     # ToDo: fix this to the new way of doing things
-    #if ( $self->sub_resource ) {
-    #    $str_to_sign .= '?' . $self->sub_resource;
-    #}
+    if ( $self->_sub_resource ) {
+        $str_to_sign .= '?' . $self->_sub_resource;
+    }
 
     # finally, set the 'Authorization' header
     my $digest = hmac_sha1_base64( $str_to_sign, $self->secret_access_key );
@@ -334,6 +346,22 @@ sub delete_bucket {
 
     $self->set_command( 'DeleteBucket' );
     $self->_bucket_name( $param->{BucketName} );
+
+    return $self->send();
+}
+
+sub describe_bucket_versioning {
+    my ($self, $param) = @_;
+
+    # GET Bucket versioning - http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTBucketGETversioningStatus.html
+
+    unless ( defined $param->{BucketName} ) {
+        croak "Provide a 'BucketName' to describe it's versioning";
+    }
+
+    $self->set_command( 'DescribeBucketVersioning' );
+    $self->_bucket_name( $param->{BucketName} );
+    $self->_sub_resource( 'versioning' );
 
     return $self->send();
 }
