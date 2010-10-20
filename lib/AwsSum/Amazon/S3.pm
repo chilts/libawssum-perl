@@ -91,7 +91,15 @@ my $commands = {
 
     # * PUT Bucket acl
     # * PUT Bucket policy
-    # * PUT Bucket logging
+
+    ModifyBucketLogging => {
+        name           => 'ModifyBucketLogging',
+        amz_name       => 'PUT Bucket logging',
+        method         => 'modify_bucket_logging',
+        verb           => 'put',
+        code           => 200,
+    },
+
     # * PUT Bucket notification
     # * PUT Bucket requestPayment
     # * PUT Bucket versioning
@@ -410,6 +418,50 @@ sub list_objects {
     $self->_fix_to_array( $data->{Contents} );
 
     return $data;
+}
+
+sub modify_bucket_logging {
+    my ($self, $param) = @_;
+
+    # PUT Bucket logging - http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTBucketPUTlogging.html
+
+    unless ( defined $param->{BucketName} ) {
+        croak "Provide a 'BucketName' to modify it's logging";
+    }
+
+    $self->set_command( 'ModifyBucketLogging' );
+    $self->_bucket_name( $param->{BucketName} );
+
+    # ToDo: create the XML we need to send
+
+    return $self->send();
+}
+
+sub modify_bucket_versioning {
+    my ($self, $param) = @_;
+
+    # PUT Bucket versioning - http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTBucketPUTVersioningStatus.html
+
+    unless ( defined $param->{BucketName} ) {
+        croak "Provide a 'BucketName' to modify it's versioning";
+    }
+    # ToDo: check both Status and MfaDelete have valid values
+
+    $self->set_command( 'ModifyBucketVersioning' );
+    $self->_bucket_name( $param->{BucketName} );
+
+    # create the XML we need to send
+    my $xml = q{<VersioningConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">};
+    $xml .= qq{<Status>$param->{Status}</Status>}
+        if $param->{Status};
+    $xml .= qq{<MfaDelete>$param->{MfaDelete}</MfaDelete>}
+        if $param->{MfaDelete};
+    $xml .= q{</VersioningConfiguration>};
+    $self->content( $xml );
+
+    # ToDo: add all the headers that we are able to send
+
+    return $self->send();
 }
 
 sub delete_object {

@@ -228,6 +228,11 @@ my $input = {
         CreateBucket => {
             opts => [ qw(BucketName Region) ],
         },
+        ModifyBucketLogging => {
+            opts => [ qw(BucketName EmailAddress Permission TargetBucket TargetPrefix) ],
+        },
+        ModifyBucketVersioning => {
+            opts => [ qw(BucketName Status MfaDelete) ],
         },
         # Operations on Objects
         DeleteObject => {
