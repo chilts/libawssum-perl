@@ -23,7 +23,7 @@ Services
 The ones I'm currently working on are:
 
 * Flickr
-* Amazon Web Services (EC2, S3, SNS, SQS, CloudFront, etc)
+* Amazon Web Services (EC2, ELB, S3, SNS, SQS, CloudFront, etc)
 * RackspaceCloud (CloudServers, CloudFiles)
 * PayPal
 * Twitter

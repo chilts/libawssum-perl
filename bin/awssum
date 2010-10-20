@@ -14,6 +14,7 @@ use AwsSum::PayPal;
 use AwsSum::RackspaceCloud::Authenticate;
 use AwsSum::RackspaceCloud::CloudServers;
 use AwsSum::Amazon::EC2;
+use AwsSum::Amazon::ELB;
 use AwsSum::Amazon::S3;
 use AwsSum::Input;
 
@@ -23,6 +24,7 @@ my $services = {
     'RackspaceCloud:Authenticate' => 1,
     'RackspaceCloud:CloudServers' => 1,
     'Amazon:EC2'                  => 1,
+    'Amazon:ELB'                  => 1,
     'Amazon:S3'                   => 1,
 };
 
@@ -90,6 +92,12 @@ my ($debug, $verbose);
         $service->access_key_id( $cfg->{'Amazon-AwsAccessKeyId'} );
         $service->secret_access_key( $cfg->{'Amazon-AwsSecretAccessKey'} );
         $service->region( $cfg->{'Amazon-EC2-Region'} );
+    }
+    elsif ( $service_name eq 'Amazon:ELB' ) {
+        $service = AwsSum::Amazon::ELB->new();
+        $service->access_key_id( $cfg->{'Amazon-AwsAccessKeyId'} );
+        $service->secret_access_key( $cfg->{'Amazon-AwsSecretAccessKey'} );
+        $service->region( $cfg->{'Amazon-ELB-Region'} );
     }
     elsif ( $service_name eq 'Amazon:S3' ) {
         $service = AwsSum::Amazon::S3->new();

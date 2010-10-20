@@ -210,6 +210,13 @@ my $input = {
         # GetPasswordData => {},
     },
 
+    'Amazon:ELB' => {
+        # Descriptive Actions (LoadBalancers)
+        DescribeLoadBalancers => {
+            opts => [ qw(Region) ],
+        },
+    },
+
     'Amazon:S3' => {
         # Operations on the Service
         ListBuckets => {
