@@ -47,7 +47,7 @@ has 'content' => (
 # this is the data returned from the service (no default)
 has 'data' => (
     is => 'rw',
-    isa => 'HashRef',
+    isa => 'Any',
 );
 
 # these are functions so that we can return what was sent and received
