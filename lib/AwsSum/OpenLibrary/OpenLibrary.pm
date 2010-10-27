@@ -23,6 +23,10 @@ my $commands = {
         name           => 'Author',
         method         => 'author',
     },
+    Book => {
+        name           => 'Book',
+        method         => 'book',
+    },
 };
 
 ## ----------------------------------------------------------------------------
@@ -62,6 +66,18 @@ sub author {
         croak "Provide an 'AuthorName' to query";
     }
     $self->_this_path( 'authors/' . $param->{AuthorName} . '.json' );
+
+    return $self->send();
+}
+
+sub book {
+    my ($self, $param) = @_;
+
+    $self->set_command( 'Book' );
+    unless ( defined $param->{BookName} ) {
+        croak "Provide a 'BookName' to query";
+    }
+    $self->_this_path( 'books/' . $param->{BookName} . '.json' );
 
     return $self->send();
 }

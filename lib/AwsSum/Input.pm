@@ -307,6 +307,9 @@ my $input = {
         Author => {
             opts => [ qw(AuthorName) ],
         },
+        Book => {
+            opts => [ qw(BookName) ],
+        },
     },
 
 };
