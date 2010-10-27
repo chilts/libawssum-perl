@@ -31,6 +31,10 @@ my $commands = {
         name           => 'RecentChanges',
         method         => 'recent_changes',
     },
+    Books => {
+        name           => 'Books',
+        method         => 'books',
+    },
 };
 
 ## ----------------------------------------------------------------------------
@@ -91,6 +95,20 @@ sub recent_changes {
 
     $self->set_command( 'RecentChanges' );
     $self->_this_path( 'recentchanges.json' );
+
+    return $self->send();
+}
+
+sub books {
+    my ($self, $param) = @_;
+
+    $self->set_command( 'Books' );
+    $self->set_param( 'format', 'json' );
+    foreach my $param_name ( qw(bibkeys format callback jscmd) ) {
+        $self->set_param( $param_name, $param->{$param_name} )
+            if $param->{$param_name};
+    }
+    $self->_this_path( 'api/books' );
 
     return $self->send();
 }

@@ -311,6 +311,9 @@ my $input = {
             opts => [ qw(BookName) ],
         },
         RecentChanges => {},
+        Books => {
+            opts => [ qw(bibkeys format callback jscmd) ],
+        },
     },
 
 };
