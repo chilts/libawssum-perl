@@ -310,6 +310,7 @@ my $input = {
         Book => {
             opts => [ qw(BookName) ],
         },
+        RecentChanges => {},
     },
 
 };

@@ -27,6 +27,10 @@ my $commands = {
         name           => 'Book',
         method         => 'book',
     },
+    RecentChanges => {
+        name           => 'RecentChanges',
+        method         => 'recent_changes',
+    },
 };
 
 ## ----------------------------------------------------------------------------
@@ -78,6 +82,15 @@ sub book {
         croak "Provide a 'BookName' to query";
     }
     $self->_this_path( 'books/' . $param->{BookName} . '.json' );
+
+    return $self->send();
+}
+
+sub recent_changes {
+    my ($self, $param) = @_;
+
+    $self->set_command( 'RecentChanges' );
+    $self->_this_path( 'recentchanges.json' );
 
     return $self->send();
 }
