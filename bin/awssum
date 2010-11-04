@@ -16,6 +16,7 @@ use AwsSum::RackspaceCloud::CloudServers;
 use AwsSum::Amazon::EC2;
 use AwsSum::Amazon::ELB;
 use AwsSum::Amazon::S3;
+use AwsSum::Amazon::SQS;
 use AwsSum::Amazon::RDS;
 use AwsSum::OpenLibrary::OpenLibrary;
 use AwsSum::Input;
@@ -28,6 +29,7 @@ my $services = {
     'Amazon:EC2'                  => 1,
     'Amazon:ELB'                  => 1,
     'Amazon:S3'                   => 1,
+    'Amazon:SQS'                  => 1,
     'Amazon:RDS'                  => 1,
     'OpenLibrary'                 => 1,
 };
@@ -97,23 +99,33 @@ my ($debug, $verbose);
         $service->secret_access_key( $cfg->{'Amazon-AwsSecretAccessKey'} );
         $service->region( $cfg->{'Amazon-EC2-Region'} )
             if $cfg->{'Amazon-EC2-Region'};
+        $service->account_number( $cfg->{'Amazon-AccountNumber'} );
     }
     elsif ( $service_name eq 'Amazon:ELB' ) {
         $service = AwsSum::Amazon::ELB->new();
         $service->access_key_id( $cfg->{'Amazon-AwsAccessKeyId'} );
         $service->secret_access_key( $cfg->{'Amazon-AwsSecretAccessKey'} );
         $service->region( $cfg->{'Amazon-ELB-Region'} );
+        $service->account_number( $cfg->{'Amazon-AccountNumber'} );
     }
     elsif ( $service_name eq 'Amazon:S3' ) {
         $service = AwsSum::Amazon::S3->new();
         $service->access_key_id( $cfg->{'Amazon-AwsAccessKeyId'} );
         $service->secret_access_key( $cfg->{'Amazon-AwsSecretAccessKey'} );
         $service->region( $cfg->{'Amazon-S3-Region'} );
+        $service->account_number( $cfg->{'Amazon-AccountNumber'} );
+    }
+    elsif ( $service_name eq 'Amazon:SQS' ) {
+        $service = AwsSum::Amazon::SQS->new();
+        $service->access_key_id( $cfg->{'Amazon-AwsAccessKeyId'} );
+        $service->secret_access_key( $cfg->{'Amazon-AwsSecretAccessKey'} );
+        $service->account_number( $cfg->{'Amazon-AccountNumber'} );
     }
     elsif ( $service_name eq 'Amazon:RDS' ) {
         $service = AwsSum::Amazon::RDS->new();
         $service->access_key_id( $cfg->{'Amazon-AwsAccessKeyId'} );
         $service->secret_access_key( $cfg->{'Amazon-AwsSecretAccessKey'} );
+        $service->account_number( $cfg->{'Amazon-AccountNumber'} );
     }
     elsif ( $service_name eq 'OpenLibrary' ) {
         $service = AwsSum::OpenLibrary::OpenLibrary->new();
@@ -161,7 +173,7 @@ my ($debug, $verbose);
         $service->$method( $args );
     };
     if ( $@ ) {
-        print Dumper($service);
+        print $@;
     }
 
     # output some info so we can see what was going on
