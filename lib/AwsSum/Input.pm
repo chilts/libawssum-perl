@@ -253,6 +253,12 @@ my $input = {
         }
     },
 
+    'Amazon:RDS' => {
+        DescribeDBInstances => {
+            opts => [ qw(DBInstanceIdentifier MaxRecords Marker) ],
+        },
+    },
+
     PayPal => {
         GetBalance => {
             bools => {
