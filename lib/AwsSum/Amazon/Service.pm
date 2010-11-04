@@ -9,6 +9,7 @@ use Carp;
 # some things required from the user
 has 'access_key_id'    => ( is => 'rw', isa => 'Str' );
 has 'secret_access_key' => ( is => 'rw', isa => 'Str' );
+has 'account_number' => ( is => 'rw', isa => 'Str' );
 
 # setup the all of the regions in AWS
 enum 'Region' => qw(us-east-1 us-west-1 eu-west-1 ap-southeast-1);

@@ -262,6 +262,24 @@ my $input = {
         },
     },
 
+    'Amazon:SQS' => {
+        ListQueues => {
+            opts => [ qw(QueueNamePrefix) ],
+        },
+        DeleteQueue => {
+            opts => [ qw(QueueName) ],
+        },
+        CreateQueue => {
+            opts => [ qw(QueueName DefaultVisibilityTimeout) ],
+        },
+        ReceiveMessage => {
+            opts => [ qw(QueueName MaxNumberOfMessages VisibilityTimeout) ],
+            list => {
+                AttributeName => 1,
+            },
+        },
+    },
+
     PayPal => {
         GetBalance => {
             bools => {
