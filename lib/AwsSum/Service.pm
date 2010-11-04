@@ -109,6 +109,14 @@ sub set_param_maybe {
     $self->params->{$name} = $value;
 }
 
+sub set_params_if_defined {
+    my ($self, $hash, @names) = @_;
+
+    # loop through them all and maybe set them
+    $self->set_param_maybe( $_, $hash->{$_} )
+        for @names;
+}
+
 sub get_param {
     my ($self, $name) = @_;
     return $self->params->{$name};
