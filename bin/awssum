@@ -157,7 +157,12 @@ my ($debug, $verbose);
 
     # do the command and pass it all the args (not worried about the return
     # value since it is in $service->data()
-    $service->$method( $args );
+    eval {
+        $service->$method( $args );
+    };
+    if ( $@ ) {
+        print Dumper($service);
+    }
 
     # output some info so we can see what was going on
     dump_it_verbose('HTTP Verb', uc $service->verb);
@@ -238,14 +243,12 @@ sub verbose {
 
 sub dump_it_debug {
     my ($title, $thing) = @_;
-    return unless $debug;
-    dump_it($title, $thing);
+    dump_it($title, $thing) if $debug;
 }
 
 sub dump_it_verbose {
     my ($title, $thing) = @_;
-    return unless $verbose;
-    dump_it($title, $thing);
+    dump_it($title, $thing) if $verbose;
 }
 
 sub dump_it {
