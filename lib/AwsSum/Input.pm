@@ -22,7 +22,10 @@ my $input = {
         # DescribeImageAttribute => {},
         DescribeImages => {
             list => {
-                ImageId => 1,
+                ImageId      => 1,
+                Owner        => 1,
+                ExecutableBy => 1,
+                Filter       => 1,
             },
         },
         # ModifyImageAttribute => {},

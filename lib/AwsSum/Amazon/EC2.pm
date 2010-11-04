@@ -378,7 +378,9 @@ sub describe_images {
     my ($self, $param) = @_;
 
     $self->set_command( 'DescribeImages' );
-    $self->_amazon_add_flattened_array_to_params( 'ImageId', $param->{ImageId} );
+    foreach ( qw(ImageId Owner ExecutableBy Filter) ) {
+        $self->_amazon_add_flattened_array_to_params( $_, $param->{$_} );
+    }
     my $data = $self->send();
 
     # imagesSet, productCodes and blockDeviceMapping
