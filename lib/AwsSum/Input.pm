@@ -272,11 +272,17 @@ my $input = {
         CreateQueue => {
             opts => [ qw(QueueName DefaultVisibilityTimeout) ],
         },
+        SendMessage => {
+            opts => [ qw(QueueName MessageBody) ],
+        },
         ReceiveMessage => {
             opts => [ qw(QueueName MaxNumberOfMessages VisibilityTimeout) ],
             list => {
                 AttributeName => 1,
             },
+        },
+        DeleteMessage => {
+            opts => [ qw(QueueName ReceiptHandle) ],
         },
     },
 

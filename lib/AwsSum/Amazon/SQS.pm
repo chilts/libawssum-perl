@@ -74,11 +74,23 @@ my $commands = {
     },
 
     # Actions for Messages
+    SendMessage => {
+        name      => 'SendMessage',
+        method    => 'send_message',
+        req_queue => 1,
+        verb      => 'get',
+    },
     ReceiveMessage => {
         name      => 'ReceiveMessage',
         method    => 'receive_message',
         req_queue => 1,
-        verb      => 'get'
+        verb      => 'get',
+    },
+    DeleteMessage => {
+        name      => 'DeleteMessage',
+        method    => 'delete_message',
+        req_queue => 1,
+        verb      => 'get',
     },
 };
 
@@ -155,7 +167,7 @@ sub sign {
     }
 
     my $param = $self->params();
-    $str_to_sign .= join('&', map { "$_=" . uri_escape($param->{$_}) } sort keys %$param);
+    $str_to_sign .= join('&', map { "$_=" . uri_escape_utf8($param->{$_}, q{^A-Za-z0-9._~-} ) } sort keys %$param);
 
     # sign the $str_to_sign
     my $signature = ( $self->signature_method eq 'HmacSHA1' )
@@ -231,6 +243,22 @@ sub list_queues {
     return $data;
 }
 
+sub send_message {
+    my ($self, $param) = @_;
+
+    unless ( $self->is_valid_something($param->{QueueName}) ) {
+        croak q{Provide a 'QueueName' to send a message to};
+    }
+    unless ( $self->is_valid_something($param->{MessageBody}) ) {
+        croak q{Provide a 'MessageBody' to send to the queue};
+    }
+
+    $self->set_command( 'SendMessage' );
+    $self->_queue_name( $param->{QueueName} );
+    $self->set_param( 'MessageBody', $param->{MessageBody} );
+    return $self->send();
+}
+
 sub receive_message {
     my ($self, $param) = @_;
 
@@ -240,6 +268,30 @@ sub receive_message {
 
     $self->set_command( 'ReceiveMessage' );
     $self->_queue_name( $param->{QueueName} );
+    $self->set_param_maybe( 'MaxNumberOfMessages', $param->{MaxNumberOfMessages} );
+    $self->set_param_maybe( 'VisibilityTimeout', $param->{VisibilityTimeout} );
+    $self->_amazon_add_flattened_array_to_params( 'AttributeName', $param->{AttributeName} );
+
+    my $data = $self->send();
+
+    $data->{ReceiveMessageResult}{Message} = $self->_make_array_from( $data->{ReceiveMessageResult}{Message} );
+
+    return $data;
+}
+
+sub delete_message {
+    my ($self, $param) = @_;
+
+    unless ( $self->is_valid_something($param->{QueueName}) ) {
+        croak q{Provide a 'QueueName' for the queue the message is in};
+    }
+    unless ( $self->is_valid_something($param->{ReceiptHandle}) ) {
+        croak q{Provide a 'ReceiptHandle' for the message being deleted};
+    }
+
+    $self->set_command( 'DeleteMessage' );
+    $self->_queue_name( $param->{QueueName} );
+    $self->set_param( 'ReceiptHandle', $param->{ReceiptHandle} );
     return $self->send();
 }
 
