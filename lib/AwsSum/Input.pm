@@ -286,6 +286,12 @@ my $input = {
         },
     },
 
+    'Amazon:SimpleDB' => {
+        ListDomains => {
+            opts => [ qw(MaxNumberOfDomains NextToken) ],
+        },
+    },
+
     PayPal => {
         GetBalance => {
             bools => {

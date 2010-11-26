@@ -18,6 +18,7 @@ use AwsSum::Amazon::ELB;
 use AwsSum::Amazon::S3;
 use AwsSum::Amazon::SQS;
 use AwsSum::Amazon::RDS;
+use AwsSum::Amazon::SimpleDB;
 use AwsSum::OpenLibrary::OpenLibrary;
 use AwsSum::Input;
 
@@ -31,6 +32,7 @@ my $services = {
     'Amazon:S3'                   => 1,
     'Amazon:SQS'                  => 1,
     'Amazon:RDS'                  => 1,
+    'Amazon:SimpleDB'             => 1,
     'OpenLibrary'                 => 1,
 };
 
@@ -127,6 +129,13 @@ my ($debug, $verbose);
     }
     elsif ( $service_name eq 'Amazon:RDS' ) {
         $service = AwsSum::Amazon::RDS->new();
+        $service->access_key_id( $cfg->{'Amazon-AwsAccessKeyId'} );
+        $service->secret_access_key( $cfg->{'Amazon-AwsSecretAccessKey'} );
+        $service->account_number( $cfg->{'Amazon-AccountNumber'} )
+            if $cfg->{'Amazon-AccountNumber'};;
+    }
+    elsif ( $service_name eq 'Amazon:SimpleDB' ) {
+        $service = AwsSum::Amazon::SimpleDB->new();
         $service->access_key_id( $cfg->{'Amazon-AwsAccessKeyId'} );
         $service->secret_access_key( $cfg->{'Amazon-AwsSecretAccessKey'} );
         $service->account_number( $cfg->{'Amazon-AccountNumber'} )
