@@ -28,6 +28,13 @@ sub is_valid_boolean {
     return 0;
 }
 
+sub is_valid_boolean_string {
+    my ($self, $boolean) = @_;
+    return 0 unless defined $boolean;
+    return 1 if ( $boolean eq 'true' or $boolean eq 'false' );
+    return 0;
+}
+
 sub is_valid_datetime {
     my ($self, $datetime) = @_;
     return 0 unless defined $datetime;
