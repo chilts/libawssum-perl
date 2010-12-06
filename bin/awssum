@@ -196,8 +196,10 @@ my ($debug, $verbose);
     dump_it_verbose('Headers', $service->headers);
     dump_it_verbose('Params', $service->params);
 
-    dump_it_debug('HTTP Request', $service->req->as_string);
-    dump_it_debug('HTTP Response', $service->res->as_string);
+    dump_it_debug('HTTP Request', $service->req->as_string)
+        if $service->req;
+    dump_it_debug('HTTP Response', $service->res->as_string)
+        if $service->res;
 
     dump_it('Data', $service->data);
     line() if $verbose;
