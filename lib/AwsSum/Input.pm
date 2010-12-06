@@ -292,6 +292,12 @@ my $input = {
         },
     },
 
+    'Amazon:Route53' => {
+        ListHostedZones => {
+            opts => [ qw(Marker MaxItems) ],
+        },
+    },
+
     PayPal => {
         GetBalance => {
             bools => {
