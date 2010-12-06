@@ -171,21 +171,12 @@ __PACKAGE__->meta->make_immutable();
 
 =head1 NAME
 
-AwsSum::Amazon::EC2 - interface to Amazon's EC2 web service
+AwsSum::Amazon::SimpleDB - interface to Amazon's SimpleDB web service
 
 =head1 SYNOPSIS
 
-    $ec2 = AwsSum::Amazon::EC2->new();
-    $ec2->access_key_id( 'abc' );
-    $ec2->secret_access_key( 'xyz' );
-
-    # reserve an IP address
-    $ec2->allocate_address();
-
-    # list IP addresses
-    $ec2->describe_addresses();
-
-    # release an IP
-    $ec2->release_address({ PublicIp => '1.2.3.4' });
+    $sdb = AwsSum::Amazon::EC2->new();
+    $sdb->access_key_id( 'abc' );
+    $sdb->secret_access_key( 'xyz' );
 
 =cut
