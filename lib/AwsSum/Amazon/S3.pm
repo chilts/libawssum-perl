@@ -332,6 +332,7 @@ sub decode {
 
 sub list_buckets {
     my ($self, $param) = @_;
+    $self->clear();
 
     # "Get Service" - http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTServiceGET.html
 
@@ -345,6 +346,7 @@ sub list_buckets {
 
 sub delete_bucket {
     my ($self, $param) = @_;
+    $self->clear();
 
     # DELETE Bucket - http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTBucketDELETE.html
 
@@ -360,6 +362,7 @@ sub delete_bucket {
 
 sub describe_bucket_versioning {
     my ($self, $param) = @_;
+    $self->clear();
 
     # GET Bucket versioning - http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTBucketGETversioningStatus.html
 
@@ -376,6 +379,7 @@ sub describe_bucket_versioning {
 
 sub create_bucket {
     my ($self, $param) = @_;
+    $self->clear();
 
     # "PUT Bucket" - http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTBucketPUT.html
 
@@ -398,6 +402,7 @@ sub create_bucket {
 
 sub list_objects {
     my ($self, $param) = @_;
+    $self->clear();
 
     # GET Bucket - http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTBucketGET.html
 
@@ -422,6 +427,7 @@ sub list_objects {
 
 sub modify_bucket_logging {
     my ($self, $param) = @_;
+    $self->clear();
 
     # PUT Bucket logging - http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTBucketPUTlogging.html
 
@@ -439,6 +445,7 @@ sub modify_bucket_logging {
 
 sub modify_bucket_versioning {
     my ($self, $param) = @_;
+    $self->clear();
 
     # PUT Bucket versioning - http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTBucketPUTVersioningStatus.html
 
@@ -466,6 +473,7 @@ sub modify_bucket_versioning {
 
 sub delete_object {
     my ($self, $param) = @_;
+    $self->clear();
 
     # DELETE Object - http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTObjectDELETE.html
 
@@ -487,6 +495,7 @@ sub delete_object {
 
 sub get_object {
     my ($self, $param) = @_;
+    $self->clear();
 
     # GET Object - http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTObjectGET.html
 
@@ -508,6 +517,7 @@ sub get_object {
 
 sub create_object {
     my ($self, $param) = @_;
+    $self->clear();
 
     # PUT Object - http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTObjectPUT.html
 

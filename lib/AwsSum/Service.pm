@@ -31,6 +31,11 @@ has 'params' => (
     default => sub { {} },
 );
 
+sub clear_params {
+    my ($self) = @_;
+    $self->params({});
+}
+
 # the headers to be sent to the service for this request
 has 'headers' => (
     is => 'rw',
@@ -38,22 +43,30 @@ has 'headers' => (
     default => sub { {} },
 );
 
+sub clear_headers {
+    my ($self) = @_;
+    $self->headers({});
+}
+
 # the content to be sent to the service for this request
 has 'content' => (
     is => 'rw',
     isa => 'Str',
+    clearer => 'clear_content',
 );
 
 # this is the data returned from the service (no default)
 has 'data' => (
     is => 'rw',
     isa => 'Any',
+    clearer => 'clear_data',
 );
 
 # these are functions so that we can return what was sent and received
 has 'req' => (
     is  => 'rw',
     isa => 'HTTP::Request',
+    clearer => 'clear_req',
 );
 
 sub req_url {
@@ -79,6 +92,7 @@ sub req_content {
 has 'res' => (
     is  => 'rw',
     isa => 'HTTP::Response',
+    clearer => 'clear_res',
 );
 
 sub res_code {
@@ -94,6 +108,16 @@ sub res_headers {
 sub res_content {
     my ($self) = @_;
     return $self->res->content();
+}
+
+sub clear {
+    my ($self) = @_;
+    $self->clear_params();
+    $self->clear_headers();
+    $self->clear_content();
+    $self->clear_data();
+    $self->clear_req();
+    $self->clear_res();
 }
 
 ## ----------------------------------------------------------------------------

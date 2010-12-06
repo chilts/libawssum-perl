@@ -141,6 +141,7 @@ sub decode {
 
 sub list_domains {
     my ($self, $param) = @_;
+    $self->clear();
 
     $self->set_command( 'ListDomains' );
     $self->set_params_if_defined(
