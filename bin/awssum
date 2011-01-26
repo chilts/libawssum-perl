@@ -179,7 +179,7 @@ my ($debug, $verbose);
     # also, load up all of the input args (simple hash first)
     foreach my $i ( @{$opts->{i}} ) {
         my ($var, $filename) = split(':', $i, 2);
-        if ( $var eq '' ) {
+        if ( $var eq q{} ) {
             # load as the content
             $service->content( scalar read_file($filename) );
         }
