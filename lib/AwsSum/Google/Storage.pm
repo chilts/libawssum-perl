@@ -10,7 +10,7 @@ with qw(
 );
 use Carp;
 use Digest::SHA qw (hmac_sha1_base64);
-use Digest::MD5 qw(md5_hex);
+use Digest::MD5 qw(md5_base64);
 use XML::Simple;
 
 ## ----------------------------------------------------------------------------
@@ -47,6 +47,27 @@ my $commands = {
         method => q{delete_bucket},
         verb   => q{delete},
         code   => 204,
+    },
+
+    # Object Requests
+    GetObject => {
+        name           => 'GetObject',
+        method         => 'get_object',
+        verb           => 'get',
+        code           => 200,
+        has_content    => 1,
+    },
+    PutObject => {
+        name           => 'PutObject',
+        method         => 'put_object',
+        verb           => 'put',
+        code           => 200,
+    },
+    DeleteObject => {
+        name           => 'DeleteObject',
+        method         => 'delete_object',
+        verb           => 'delete',
+        code           => 204,
     },
 };
 
@@ -123,6 +144,11 @@ sub sign {
     my $date = DateTime->now( time_zone => 'UTC' )->strftime("%a, %d %b %Y %H:%M:%S %z");
     $self->set_header( 'Date', $date );
 
+    # if we have content, set the type and MD5
+    if ( $self->content ) {
+        $self->set_header( q{Content-MD5}, md5_base64($self->content) );
+    }
+
     # See: https://code.google.com/apis/storage/docs/developer-guide.html#authentication
     # Authorization: GOOG1 google_storage_access_key:signature
     # Signature = Base64-Encoding-Of(HMAC-SHA1(UTF-8-Encoding-Of(YourGoogleStorageSecretKey, MessageToBeSigned)))
@@ -133,7 +159,7 @@ sub sign {
     # Canonical Headers
     my $canonical_headers = q{};
     $canonical_headers .= uc($self->verb) . $NL;
-    $canonical_headers .= $self->content ? md5_hex($self->content) . $NL : $NL;
+    $canonical_headers .= ($headers->{'Content-MD5'} // $EMPTY) . $NL;
     $canonical_headers .= ($headers->{'Content-Type'} // $EMPTY) . $NL;
     $canonical_headers .= qq{$date$NL};
 
@@ -146,7 +172,7 @@ sub sign {
     my $canonical_resource = $EMPTY;
     $canonical_resource .= q{/} . $self->_bucket_name
         if $self->_bucket_name;
-    $canonical_resource .= $self->_object_name ? $self->_object_name : q{/};
+    $canonical_resource .= q{/} . ($self->_object_name // $EMPTY);
     $canonical_resource .= q{?} . $self->_sub_resource
         if $self->_sub_resource;
 
@@ -250,7 +276,6 @@ sub delete_bucket {
     return $self->send();
 }
 
-
 sub list_objects {
     my ($self, $param) = @_;
     $self->clear();
@@ -274,6 +299,79 @@ sub list_objects {
     $self->_fix_to_array( $data->{Contents} );
 
     return $data;
+}
+
+sub get_object {
+    my ($self, $param) = @_;
+    $self->clear();
+
+    # GET Object - https://code.google.com/apis/storage/docs/reference-methods.html#getobject
+
+    unless ( defined $param->{BucketName} ) {
+        croak "Provide a 'BucketName' from which to retrieve this object";
+    }
+    unless ( defined $param->{ObjectName} ) {
+        croak "Provide an 'ObjectName' to retrieve";
+    }
+
+    $self->set_command( 'GetObject' );
+    $self->_bucket_name( $param->{BucketName} );
+    $self->_object_name( $param->{ObjectName} );
+
+    # ToDo: add all the headers that we are able to send
+
+    return $self->send();
+}
+
+sub put_object {
+    my ($self, $param) = @_;
+
+    # PUT Object - https://code.google.com/apis/storage/docs/reference-methods.html#putobject
+
+    unless ( defined $param->{BucketName} ) {
+        croak "Provide a 'BucketName' to put this object into";
+    }
+    unless ( defined $param->{ObjectName} ) {
+        croak "Provide an 'ObjectName' to create";
+    }
+    unless ( defined $param->{Content} or defined $self->content ) {
+        croak q{Provide some content for this object (either via a 'Content' parameter or via $s3->content(...)};
+    }
+
+    $self->set_command( 'PutObject' );
+    $self->_bucket_name( $param->{BucketName} );
+    $self->_object_name( $param->{ObjectName} );
+
+    # the locally passed 'Content' will override the already existing content()
+    if ( defined $param->{Content} ) {
+        $self->content( $param->{Content} );
+    }
+
+    # ToDo: add all the headers that we are able to send
+
+    return $self->send();
+}
+
+sub delete_object {
+    my ($self, $param) = @_;
+    $self->clear();
+
+    # DELETE Object - https://code.google.com/apis/storage/docs/reference-methods.html#deleteobject
+
+    unless ( defined $param->{BucketName} ) {
+        croak "Provide a 'BucketName' from which to delete this object";
+    }
+    unless ( defined $param->{ObjectName} ) {
+        croak "Provide an 'ObjectName' to delete";
+    }
+
+    $self->set_command( 'DeleteObject' );
+    $self->_bucket_name( $param->{BucketName} );
+    $self->_object_name( $param->{ObjectName} );
+
+    # ToDo: add all the headers that we are able to send
+
+    return $self->send();
 }
 
 ## ----------------------------------------------------------------------------

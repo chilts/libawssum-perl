@@ -377,7 +377,15 @@ my $input = {
         },
 
         # Operations on Objects
-        # ToDo
+        DeleteObject => {
+            opts => [ qw(BucketName ObjectName) ],
+        },
+        GetObject => {
+            opts => [ qw(BucketName ObjectName) ],
+        },
+        PutObject => {
+            opts => [ qw(BucketName ObjectName Content) ],
+        }
     },
 };
 
