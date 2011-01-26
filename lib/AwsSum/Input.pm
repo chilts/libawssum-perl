@@ -361,6 +361,24 @@ my $input = {
         },
     },
 
+    'Google:Storage' => {
+        # Operations on the Service
+        ListBuckets => {},
+
+        # Operations on Buckets
+        CreateBucket => {
+            opts => [ qw(BucketName ACL) ],
+        },
+        ListObjects => {
+            opts => [ qw(BucketName) ],
+        },
+        DeleteBucket => {
+            opts => [ qw(BucketName) ],
+        },
+
+        # Operations on Objects
+        # ToDo
+    },
 };
 
 ## ----------------------------------------------------------------------------
