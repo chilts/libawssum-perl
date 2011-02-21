@@ -296,6 +296,15 @@ my $input = {
         ListHostedZones => {
             opts => [ qw(Marker MaxItems) ],
         },
+        GetHostedZone => {
+            opts => [ qw(ZoneId) ],
+        },
+        CreateHostedZone => {
+            opts => [ qw(ZoneName CallerReference Comment) ],
+        },
+        ListResourceRecordSets => {
+            opts => [ qw(ZoneId) ],
+        },
     },
 
     PayPal => {
