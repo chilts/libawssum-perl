@@ -1,0 +1,9 @@
+Format-Specification: http://svn.debian.org/wsvn/dep/web/deps/dep5.mdwn?op=file&rev=135
+Name: AwsSum
+Maintainer: Andrew Chilton <chilts@appsattic.com>
+Source: https://github.com/appsattic/awssum
+
+Files: *
+Copyright: 2010-2011, Apps Attic Ltd <http://www.appsattic.com/>
+License: Artistic v2
+  See the file LICENSE for the entire license text.
