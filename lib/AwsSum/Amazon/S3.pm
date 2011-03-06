@@ -170,6 +170,11 @@ my $service_info = {
         'host'                => 's3-ap-southeast-1.amazonaws.com',
         'location-constraint' => 'ap-southeast-1',
     },
+    'ap-northeast-1' => {
+        'endpoint'            => 'https://s3-ap-northeast-1.amazonaws.com',
+        'host'                => 's3-ap-northeast-1.amazonaws.com',
+        'location-constraint' => 'ap-northeast-1',
+    },
 };
 
 sub _host {
