@@ -17,6 +17,7 @@ use URI;
 
 requires qw(
     commands
+    cmd_attr
     verb
     url
     code

@@ -28,6 +28,12 @@ my $commands = {
 # things to fill in to fulfill AwsSum::Service
 
 sub commands { $commands }
+
+sub cmd_attr {
+    my ($self, $attr) = @_;
+    return $self->_command->{$attr};
+}
+
 sub verb     { 'get' }
 sub url      { q{https://auth.api.rackspacecloud.com/v1.0} }
 sub code     { 204 }

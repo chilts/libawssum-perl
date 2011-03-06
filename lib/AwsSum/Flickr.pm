@@ -52,6 +52,12 @@ my $commands = {
 # things to fill in to fulfill AwsSum::Service
 
 sub commands { $commands }
+
+sub cmd_attr {
+    my ($self, $attr) = @_;
+    return $self->_command->{$attr};
+}
+
 sub verb {
     my ($self) = @_;
     return $self->_command->{verb};

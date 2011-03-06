@@ -48,6 +48,11 @@ my $commands = {
 
 sub commands { $commands }
 
+sub cmd_attr {
+    my ($self, $attr) = @_;
+    return $self->_command->{$attr};
+}
+
 sub verb { 'post' }
 
 sub url {

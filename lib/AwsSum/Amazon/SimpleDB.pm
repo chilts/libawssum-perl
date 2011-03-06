@@ -70,6 +70,11 @@ sub _host {
 
 sub commands { $commands }
 
+sub cmd_attr {
+    my ($self, $attr) = @_;
+    return $self->_command->{$attr};
+}
+
 sub verb { 'get' }
 
 sub url {
