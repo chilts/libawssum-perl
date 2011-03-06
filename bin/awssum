@@ -120,9 +120,10 @@ my ($debug, $verbose);
         $service = AwsSum::Amazon::S3->new();
         $service->access_key_id( $cfg->{'Amazon-AwsAccessKeyId'} );
         $service->secret_access_key( $cfg->{'Amazon-AwsSecretAccessKey'} );
-        $service->region( $cfg->{'Amazon-S3-Region'} );
+        $service->region( $cfg->{'Amazon-S3-Region'} )
+            if $cfg->{'Amazon-S3-Region'};
         $service->account_number( $cfg->{'Amazon-AccountNumber'} )
-            if $cfg->{'Amazon-AccountNumber'};;
+            if $cfg->{'Amazon-AccountNumber'};
     }
     elsif ( $service_name eq 'Amazon:SQS' ) {
         $service = AwsSum::Amazon::SQS->new();
