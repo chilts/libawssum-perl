@@ -1,0 +1,63 @@
+h1. New Release
+
+h2. Tagging the Repo
+
+Find all the changes since the last release. For example, if the last release
+was 'v0.1.1' and you're on master (ie. v0.1.1..master (master is optional)):
+
+    git tag -l
+
+    # now change these
+    export PREV_REL=0.0.0
+    export RELEASE=0.1.0
+
+    git commit -m "Prepare for new release of AwsSum (v$RELEASE)" PACKAGING
+    git show
+    git push origin master
+
+    git log v${PREV_REL}..master | grep '^    ' | tac | sed 's/^   /  */' | xclip
+    git diff v${PREV_REL}..master
+
+Update debian/changelog:
+
+    DEBEMAIL=andychilton@gmail.com dch -v $RELEASE -D lucid
+
+    git commit -m "Update changelog for release v$RELEASE" debian/changelog
+    git show
+
+    git push origin master
+
+Test build it and release it (see below).
+
+Then tag the release;
+
+    git tag -m "Release v$RELEASE" v$RELEASE
+    git tag -l
+    git push origin v$RELEASE
+
+h2. Making the Packages and Pushing them to the Debian Repository
+
+Test build:
+
+    make build
+
+Add it to the repo:
+
+    cd ../../appsattic/packages
+    git fetch
+    git rebase origin/master
+    ./add-packages.sh ubuntu ../libawssum-perl_${RELEASE}_all.deb
+    ./add-packages.sh ubuntu ../awssum_${RELEASE}_all.deb
+    find . -name "*awssum-*${RELEASE}_all.deb" | xargs git add
+    git status
+
+Review the updates, rm the files we no longer need, add the new ones and commit:
+
+    git commit -a -m "New release (v$RELEASE) of AwsSum" # also deletes the ones missing
+    git push origin master
+
+    make rsync
+
+    cd -
+
+(Ends)
