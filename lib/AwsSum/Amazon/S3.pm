@@ -3,7 +3,6 @@
 package AwsSum::Amazon::S3;
 
 use Moose;
-with 'AwsSum::Service';
 with qw(
     AwsSum::Service
     AwsSum::Amazon::Service
