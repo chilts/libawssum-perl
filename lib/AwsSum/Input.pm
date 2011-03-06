@@ -307,6 +307,18 @@ my $input = {
         },
     },
 
+    'Amazon:CloudFront' => {
+        CreateDistribution => {
+            opts => [ qw(S3Origin CustomOrigin DNSName CustomOrigin OriginProtocolPolicy CallerReference Enabled Region) ],
+        },
+        GetDistributionList => {
+            opts => [ qw(Marker MaxItems) ],
+        },
+        GetDistribution => {
+            opts => [ qw(DistributionId) ],
+        },
+    },
+
     PayPal => {
         GetBalance => {
             bools => {
