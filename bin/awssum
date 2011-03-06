@@ -75,12 +75,19 @@ my ($debug, $verbose);
     my $cfg = {};
     Config::Simple->import_from( $config_filename, $cfg );
 
+    # load up the temporary file (ie. tokens) which are saved by the program,
+    # e.g. for OAuth tokens
+    my $user = getpwuid($<);
+    my $tokens = {};
+    Config::Simple->import_from( qq{/tmp/awssum-$user.cfg}, $tokens );
+
     my $service;
     if ( $service_name eq 'Flickr' ) {
         $service = AwsSum::Flickr->new();
         $service->api_key( $cfg->{'Flickr-Key'} );
         $service->api_secret( $cfg->{'Flickr-Secret'} );
-        $service->auth_token( $cfg->{'Flickr-AuthToken'} );
+        $service->auth_token( $tokens->{'Flickr-AuthToken'} )
+            if $tokens->{'Flickr-AuthToken'};
     }
     elsif ( $service_name eq 'PayPal' ) {
         $service = AwsSum::PayPal->new();
