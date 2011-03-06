@@ -9,15 +9,14 @@ Homepage: http://www.appsattic.com/open-source/awssum/
 Package: libawssum-perl
 Architecture: all
 Depends: ${misc:Depends}, libjson-any-perl, libdigest-hmac-perl, libdigest-sha1-perl, libmoose-perl, libxml-simple-perl, libwww-perl, liburi-perl, libstring-random-perl, libdate-simple-perl, libdatetime-perl
-Description: some helper modules which exclusively use a config file for configuration
- Projectus is a group of modules which can be re-used from project to  project. They
- exclusively use a config file to determine the best possible action, whether that is
- a log directory, a database connection or anything else.
+Description: AwsSum is a set of Perl libraries which interface to Web APIs.
+ AwsSum interfaces to many RESTful Web APIs including Amazon (S3, EC2,
+ SimpleDB, Route53, RDS, CloudFront, ELB, SQS), Google Storage, Flickr,
+ Twitter, PayPal, RackspaceCloud (Servers, Files) and others.
 
 Package: awssum
 Architecture: all
 Depends: ${misc:Depends}, libconfig-simple-perl, liblog-log4perl-perl, libmoose-perl, libawssum-perl (= ${Source-Version})
-Description: some helper modules which exclusively use a config file for configuration
- Projectus is a group of modules which can be re-used from project to  project. They
- exclusively use a config file to determine the best possible action, whether that is
- a log directory, a database connection or anything else.
+Description: example command line tool to interface to any Web API that libawssum-perl can
+ The awssum program can interface to any API that libawssum-perl implements. It
+ is an example of what can be done with the AwsSum library.
