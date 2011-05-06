@@ -188,7 +188,8 @@ sub list_hosted_zones {
     );
 
     my $data = $self->send();
-    # $self->_force_array( $data->{ListDomainsResult}{DomainName} );
+    $self->_force_array( $data->{HostedZones}{HostedZone} );
+    $data->{HostedZones} = $data->{HostedZones}{HostedZone};
     return $data;
 }
 
