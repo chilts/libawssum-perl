@@ -190,6 +190,10 @@ sub list_hosted_zones {
     my $data = $self->send();
     $self->_force_array( $data->{HostedZones}{HostedZone} );
     $data->{HostedZones} = $data->{HostedZones}{HostedZone};
+    foreach ( @{$data->{HostedZones}} ) {
+        # just get the ID itself
+        ($_->{Id}) = $_->{Id} =~ m{ ([^/]+) \z }xms;
+    }
     return $data;
 }
 
