@@ -269,15 +269,34 @@ sub list_resource_record_sets {
     # flatten this bit
     $data->{ResourceRecordSets} = $data->{ResourceRecordSets}{ResourceRecordSet};
 
+    # to save a new and nice version of the resource records
+    my @records;
+
     foreach my $set ( @{$data->{ResourceRecordSets}} ) {
-        print "her\n";
         $set->{ResourceRecords} = $set->{ResourceRecords}{ResourceRecord};
         $self->_force_array( $set->{ResourceRecords} );
+
         # far out, I hate XML - now make all the ResourceRecords Values just strings in the array
+
+        # create a nice, almost blank, record
+        my $record = {
+            Name => $set->{Name},
+            TTL => $set->{TTL},
+            Type => $set->{Type},
+            ResourceRecords => [],
+        };
+
+        # add the values onto it
         foreach my $rr ( @{$set->{ResourceRecords}} ) {
-            $rr = $rr->{Value};
+            push @{$record->{Values}}, $rr->{Value};
         }
+
+        push @records, $record;
     }
+
+    # set these records on the data
+    $data->{ResourceRecords} = \@records;
+    delete $data->{ResourceRecordSets};
 
     return $data;
 
