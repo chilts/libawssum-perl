@@ -402,7 +402,12 @@ sub describe_availability_zones {
 
     $self->set_command( 'DescribeAvailabilityZones' );
     $self->region( $param->{Region} ) if $param->{Region};
-    return $self->send();
+
+    my $data = $self->send();
+
+    $data->{availabilityZoneInfo} = $data->{availabilityZoneInfo}{item};
+
+    return $data;
 }
 
 sub describe_regions {
