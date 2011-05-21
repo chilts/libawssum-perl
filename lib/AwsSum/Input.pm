@@ -527,7 +527,8 @@ sub process_args {
             }
             else {
                 # looks like an option, but we don't know about it
-                print STDERR "Warning: Unknown option '$this'\n";
+                print STDERR "Warning: Unknown option '$this' for command '$service:$command'\n";
+                exit 2;
             }
         }
     }
