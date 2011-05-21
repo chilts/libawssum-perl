@@ -121,7 +121,8 @@ my ($debug, $verbose);
         $service = AwsSum::Amazon::ELB->new();
         $service->access_key_id( $cfg->{'Amazon-AwsAccessKeyId'} );
         $service->secret_access_key( $cfg->{'Amazon-AwsSecretAccessKey'} );
-        $service->region( $cfg->{'Amazon-ELB-Region'} );
+        $service->region( $cfg->{'Amazon-ELB-Region'} )
+            if $cfg->{'Amazon-ELB-Region'};
         $service->account_number( $cfg->{'Amazon-AccountNumber'} )
             if $cfg->{'Amazon-AccountNumber'};
     }
