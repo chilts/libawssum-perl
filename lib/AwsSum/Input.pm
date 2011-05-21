@@ -287,8 +287,35 @@ my $input = {
     },
 
     'Amazon:SimpleDB' => {
+        BatchDeleteAttributes => {
+            opts => [ qw(DomainName Item) ],
+        },
+        BatchPutAttributes => {
+            opts => [ qw(DomainName Item) ],
+        },
+        CreateDomain => {
+            opts => [ qw(DomainName) ],
+        },
+        DeleteAttributes => {
+            opts => [ qw(DomainName Items) ],
+        },
+        DeleteDomain => {
+            opts => [ qw(DomainName) ],
+        },
+        DomainMetadata => {
+            opts => [ qw(DomainName) ],
+        },
+        GetAttributes => {
+            opts => [ qw(DomainName ItemName AttributeName ConsistentRead) ],
+        },
         ListDomains => {
             opts => [ qw(MaxNumberOfDomains NextToken) ],
+        },
+        PutAttributes => {
+            opts => [ qw(DomainName ItemName Add Replace) ],
+        },
+        Select => {
+            opts => [ qw(SelectExpression ConsistentRead NextToken) ],
         },
     },
 

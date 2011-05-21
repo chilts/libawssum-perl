@@ -8,7 +8,7 @@ with qw(
     AwsSum::Service
     AwsSum::Amazon::Service
 );
-
+use Data::Dump qw(pp);
 use Carp;
 use DateTime;
 use List::Util qw( reduce );
@@ -36,18 +36,46 @@ has '_command' => ( is => 'rw', isa => 'HashRef' );
 my $commands = {
     # In order of: http://docs.amazonwebservices.com/AmazonSimpleDB/latest/DeveloperGuide/SDB_API_Operations.html
 
-    # BatchPutAttributes
-    # CreateDomain
-    # DeleteAttributes
-    # DeleteDomain
-    # DomainMetadata
-    # GetAttributes
-    ListDomains => {
-        name           => 'ListDomains',
-        method         => 'list_domains',
+    BatchDeleteAttributes => {
+        name   => 'BatchDeleteAttributes',
+        method => 'batch_delete_attributes',
     },
-    # PutAttributes
-    # Select
+    BatchPutAttributes => {
+        name   => 'BatchPutAttributes',
+        method => 'batch_put_attributes',
+    },
+    CreateDomain => {
+        name   => 'CreateDomain',
+        method => 'create_domain',
+    },
+    DeleteAttributes => {
+        name   => 'DeleteAttributes',
+        method => 'delete_attributes',
+    },
+    DeleteDomain => {
+        name   => 'DeleteDomain',
+        method => 'delete_domain',
+    },
+    DomainMetadata => {
+        name   => 'DomainMetadata',
+        method => 'domain_metadata',
+    },
+    GetAttributes => {
+        name   => 'GetAttributes',
+        method => 'get_attributes',
+    },
+    ListDomains => {
+        name   => 'ListDomains',
+        method => 'list_domains',
+    },
+    PutAttributes => {
+        name   => 'PutAttributes',
+        method => 'put_attributes',
+    },
+    Select => {
+        name   => 'Select',
+        method => 'select',
+    },
 };
 
 sub _host {
@@ -105,8 +133,9 @@ sub sign {
     $str_to_sign .= $self->_host . "\n";
     $str_to_sign .= "/\n";
 
+    # do the params ourselves, since it seems quite fussy regarding various chars
     my $param = $self->params();
-    $str_to_sign .= join('&', map { "$_=" . uri_escape($param->{$_}) } sort keys %$param);
+    $str_to_sign .= join('&', map { "$_=" . uri_escape($param->{$_}, q{^A-Za-z0-9_.~-} ) } sort keys %$param);
 
     # sign the $str_to_sign
     my $signature = ( $self->signature_method eq 'HmacSHA1' )
@@ -144,6 +173,315 @@ sub decode {
 ## ----------------------------------------------------------------------------
 # all our lovely commands
 
+sub batch_delete_attributes {
+    my ($self, $param) = @_;
+    $self->clear();
+
+    # ok, this is going to be interesing
+
+    # check we have a domain
+    unless ( defined $param->{DomainName} ) {
+        croak "Provide a 'DomainName' to query";
+    }
+
+    unless ( defined $param->{Items} and ref $param->{Items} eq 'ARRAY' ) {
+        croak "Provide an array of 'Items' to save";
+    }
+
+    # all ok, now fill in the params
+    $self->set_command( 'BatchDeleteAttributes' );
+    $self->set_param( qw(DomainName), $param->{DomainName} );
+
+    # now loop through all the items
+    my $item_num = 0;
+    foreach my $item ( @{$param->{Items}} ) {
+        # set this item name
+        $self->set_param( qq{Item.$item_num.ItemName}, $item->{Name} );
+
+        # now do the adds
+        my $count = 0;
+        foreach my $key ( keys %{$item->{Attribute}} ) {
+            if ( ref $item->{Attribute}{$key} eq 'ARRAY' ) {
+                foreach my $value ( @{$item->{Attribute}{$key}} ) {
+                    $self->set_param( qq{Item.$item_num.Attribute.$count.Name}, $key );
+                    $self->set_param( qq{Item.$item_num.Attribute.$count.Value}, $value );
+                    $count++;
+                }
+            }
+            else {
+                # just one value
+                $self->set_param( qq{Item.$item_num.Attribute.$count.Name}, $key );
+                $self->set_param( qq{Item.$item_num.Attribute.$count.Value}, $item->{Attribute}{$key} );
+                $count++;
+            }
+        }
+
+        # increment the item number
+        $item_num++;
+    }
+
+    return $self->send();
+}
+
+sub batch_put_attributes {
+    my ($self, $param) = @_;
+    $self->clear();
+
+    # ok, this is going to be interesing
+
+    # check we have a domain
+    unless ( defined $param->{DomainName} ) {
+        croak "Provide a 'DomainName' to query";
+    }
+
+    unless ( defined $param->{Items} and ref $param->{Items} eq 'ARRAY' ) {
+        croak "Provide an array of 'Items' to save";
+    }
+
+    # all ok, now fill in the params
+    $self->set_command( 'BatchPutAttributes' );
+    $self->set_param( qw(DomainName), $param->{DomainName} );
+
+    # now loop through all the items
+    my $item_num = 0;
+    foreach my $item ( @{$param->{Items}} ) {
+        # set this item name
+        $self->set_param( qq{Item.$item_num.ItemName}, $item->{Name} );
+
+        # now do the adds
+        my $count = 0;
+        foreach my $key ( keys %{$item->{Add}} ) {
+            if ( ref $item->{Add}{$key} eq 'ARRAY' ) {
+                foreach my $value ( @{$item->{Add}{$key}} ) {
+                    $self->set_param( qq{Item.$item_num.Attribute.$count.Name}, $key );
+                    $self->set_param( qq{Item.$item_num.Attribute.$count.Value}, $value );
+                    $count++;
+                }
+            }
+            else {
+                # just one value
+                $self->set_param( qq{Item.$item_num.Attribute.$count.Name}, $key );
+                $self->set_param( qq{Item.$item_num.Attribute.$count.Value}, $item->{Add}{$key} );
+                $count++;
+            }
+        }
+
+        # do all the replaces
+        foreach my $key ( keys %{$item->{Replace}} ) {
+            if ( ref $item->{Replace}{$key} eq 'ARRAY' ) {
+                foreach my $value ( @{$item->{Replace}{$key}} ) {
+                    $self->set_param( qq{Item.$item_num.Attribute.$count.Name}, $key );
+                    $self->set_param( qq{Item.$item_num.Attribute.$count.Value}, $value );
+                    $self->set_param( qq{Item.$item_num.Attribute.$count.Replace}, 'true' );
+                    $count++;
+                }
+            }
+            else {
+                # just one value
+                $self->set_param( qq{Item.$item_num.Attribute.$count.Name}, $key );
+                $self->set_param( qq{Item.$item_num.Attribute.$count.Value}, $item->{Replace}{$key} );
+                $self->set_param( qq{Item.$item_num.Attribute.$count.Replace}, 'true' );
+                $count++;
+            }
+        }
+        $item_num++;
+    }
+
+    return $self->send();
+}
+
+sub create_domain {
+    my ($self, $param) = @_;
+    $self->clear();
+
+    # check we have a domain
+    unless ( defined $param->{DomainName} ) {
+        croak "Provide a 'DomainName' to create";
+    }
+
+    $self->set_command( 'CreateDomain' );
+    $self->set_params_if_defined(
+        $param,
+        qw(DomainName)
+    );
+
+    return $self->send();
+}
+
+sub delete_attributes {
+    my ($self, $param) = @_;
+    $self->clear();
+
+    # check we have a domain
+    unless ( defined $param->{DomainName} ) {
+        croak "Provide a 'DomainName'";
+    }
+
+    # check we have an item
+    unless ( defined $param->{ItemName} ) {
+        croak "Provide a 'ItemName' to delete attributes from";
+    }
+
+    $param->{Delete} ||= {};
+
+    unless ( ref $param->{Delete} eq 'HASH' ) {
+        croak "'Delete' should be a hash";
+    }
+    if ( defined $param->{Expected} ) {
+        unless ( ref $param->{Expected} eq 'HASH' ) {
+            croak "'Exists' should be a hash";
+        }
+
+        # make sure we have a name and a value
+        unless ( defined $param->{Expected}{Name} ) {
+            croak "'Expected' must contain a 'Name'";
+        }
+        unless ( defined $param->{Expected}{Value} ) {
+            croak "'Expected' must contain a 'Value'";
+        }
+    }
+    if ( defined $param->{NotExists} ) {
+        # should be a scalar value
+        if ( ref $param->{NotExists} ) {
+            croak "'NotExists' should be a scalar value (a 'Name')";
+        }
+    }
+    if ( defined $param->{Expected} and defined $param->{NotExists} ) {
+        croak "You may only either 'Expected' or 'NotExists'";
+    }
+
+    # all ok, now fill in the params
+    $self->set_command( 'DeleteAttributes' );
+    $self->set_params_if_defined(
+        $param,
+        qw(DomainName ItemName)
+    );
+
+    # do all the deletes
+    my $count = 0;
+    foreach my $key ( keys %{$param->{Delete}} ) {
+        if ( ref $param->{Delete}{$key} eq 'ARRAY' ) {
+            foreach my $value ( @{$param->{Delete}{$key}} ) {
+                $self->set_param( qq{Attribute.$count.Name}, $key );
+                $self->set_param( qq{Attribute.$count.Value}, $value );
+                $count++;
+            }
+        }
+        else {
+            # just one value
+            $self->set_param( qq{Attribute.$count.Name}, $key );
+            $self->set_param( qq{Attribute.$count.Value}, $param->{Delete}{$key} );
+            $count++;
+        }
+    }
+
+    # do the expected value
+    if ( $param->{Expected} ) {
+        $self->set_param( qq{Expected.$count.Name}, $param->{Expected}{Name} );
+        $self->set_param( qq{Expected.$count.Value}, $param->{Expected}{Value} );
+        $self->set_param( qq{Expected.$count.Exists}, 'true' );
+        $count++;
+    }
+
+    # do all the not exists
+    if ( defined $param->{NotExists} ) {
+        $self->set_param( qq{Expected.$count.Name}, $param->{NotExists} );
+        $self->set_param( qq{Expected.$count.Exists}, 'false' );
+        $count++;
+    }
+
+    return $self->send();
+}
+
+sub delete_domain {
+    my ($self, $param) = @_;
+    $self->clear();
+
+    # check we have a domain
+    unless ( defined $param->{DomainName} ) {
+        croak "Provide a 'DomainName' to delete";
+    }
+
+    $self->set_command( 'DeleteDomain' );
+    $self->set_params_if_defined(
+        $param,
+        qw(DomainName)
+    );
+
+    my $data = $self->send();
+    return $data;
+}
+
+sub domain_metadata {
+    my ($self, $param) = @_;
+    $self->clear();
+
+    # check we have a domain
+    unless ( defined $param->{DomainName} ) {
+        croak "Provide a 'DomainName' to query";
+    }
+
+    $self->set_command( 'DomainMetadata' );
+    $self->set_params_if_defined(
+        $param,
+        qw(DomainName)
+    );
+
+    my $data = $self->send();
+    if ( exists $data->{DomainMetadataResult} ) {
+        $data->{DomainMetadata} = delete $data->{DomainMetadataResult};
+    }
+    return $data;
+}
+
+sub get_attributes {
+    my ($self, $param) = @_;
+    $self->clear();
+
+    # check we have a domain
+    unless ( defined $param->{DomainName} ) {
+        croak "Provide a 'DomainName' to query";
+    }
+
+    # check we have an item
+    unless ( defined $param->{ItemName} ) {
+        croak "Provide a 'ItemName' to query";
+    }
+
+    $self->set_command( 'GetAttributes' );
+    $self->set_params_if_defined(
+        $param,
+        qw(DomainName ItemName AttributeName ConsistentRead)
+    );
+
+    my $data = $self->send();
+    if ( exists $data->{GetAttributesResult}{Attribute} ) {
+        my $attr = {};
+        foreach my $pair ( @{$data->{GetAttributesResult}{Attribute}} ) {
+            # either push onto the array, make a new array or just set the value
+            if ( ref $attr->{$pair->{Name}} eq 'ARRAY' ) {
+                push @{$attr->{$pair->{Name}}}, $pair->{Value};
+            }
+            elsif ( exists $attr->{$pair->{Name}} ) {
+                $attr->{$pair->{Name}} = [ $attr->{$pair->{Name}} ];
+                push @{$attr->{$pair->{Name}}}, $pair->{Value};
+            }
+            else {
+                $attr->{$pair->{Name}} = $pair->{Value};
+            }
+        }
+
+        $data->{Item}{Attribute} = $attr;
+        $data->{Item}{Name} = $param->{ItemName};
+    }
+    else {
+        $data->{Item} = undef;
+    }
+    delete $data->{GetAttributesResult};
+
+    return $data;
+}
+
 sub list_domains {
     my ($self, $param) = @_;
     $self->clear();
@@ -154,8 +492,183 @@ sub list_domains {
         qw(MaxNumberOfDomains NextToken)
     );
 
+    # get the data
     my $data = $self->send();
-    $self->_force_array( $data->{ListDomainsResult}{DomainName} );
+
+    # do some munging and return
+    if ( exists $data->{ListDomainsResult} ) {
+        $self->_force_array( $data->{ListDomainsResult}{DomainName} );
+        $data->{DomainNames} = delete $data->{ListDomainsResult}{DomainName};
+        delete $data->{ListDomainsResult};
+    }
+    return $data;
+}
+
+sub put_attributes {
+    my ($self, $param) = @_;
+    $self->clear();
+
+    # check we have a domain
+    unless ( defined $param->{DomainName} ) {
+        croak "Provide a 'DomainName' to query";
+    }
+
+    # check we have an item
+    unless ( defined $param->{ItemName} ) {
+        croak "Provide a 'ItemName' to query";
+    }
+
+    # now, we're going to have a 'Put' or a 'Replace' hash
+    unless ( defined $param->{Add} or defined $param->{Replace} ) {
+        croak "Provide either a 'Add' or 'Replace' hash";
+    }
+
+    $param->{Add} ||= {};
+    $param->{Replace} ||= {};
+
+    unless ( ref $param->{Add} eq 'HASH' ) {
+        croak "'Add' should be a hash";
+    }
+    unless ( ref $param->{Replace} eq 'HASH' ) {
+        croak "'Replace' should be a hash";
+    }
+    if ( defined $param->{Expected} ) {
+        unless ( ref $param->{Expected} eq 'HASH' ) {
+            croak "'Exists' should be a hash";
+        }
+
+        # make sure we have a name and a value
+        unless ( defined $param->{Expected}{Name} ) {
+            croak "'Expected' must contain a 'Name'";
+        }
+        unless ( defined $param->{Expected}{Value} ) {
+            croak "'Expected' must contain a 'Value'";
+        }
+    }
+    if ( defined $param->{NotExists} ) {
+        # should be a scalar value
+        if ( ref $param->{NotExists} ) {
+            croak "'NotExists' should be a scalar value (a 'Name')";
+        }
+    }
+
+    if ( defined $param->{Expected} and defined $param->{NotExists} ) {
+        croak "You may only either 'Expected' or 'NotExists'";
+    }
+
+    # all ok, now fill in the params
+    $self->set_command( 'PutAttributes' );
+    $self->set_params_if_defined(
+        $param,
+        qw(DomainName ItemName)
+    );
+
+    # do all the puts
+    my $count = 0;
+    foreach my $key ( keys %{$param->{Add}} ) {
+        if ( ref $param->{Add}{$key} eq 'ARRAY' ) {
+            foreach my $value ( @{$param->{Add}{$key}} ) {
+                $self->set_param( qq{Attribute.$count.Name}, $key );
+                $self->set_param( qq{Attribute.$count.Value}, $value );
+                $count++;
+            }
+        }
+        else {
+            # just one value
+            $self->set_param( qq{Attribute.$count.Name}, $key );
+            $self->set_param( qq{Attribute.$count.Value}, $param->{Add}{$key} );
+            $count++;
+        }
+    }
+
+    # do all the replaces
+    foreach my $key ( keys %{$param->{Replace}} ) {
+        if ( ref $param->{Replace}{$key} eq 'ARRAY' ) {
+            foreach my $value ( @{$param->{Replace}{$key}} ) {
+                $self->set_param( qq{Attribute.$count.Name}, $key );
+                $self->set_param( qq{Attribute.$count.Value}, $value );
+                $self->set_param( qq{Attribute.$count.Replace}, 'true' );
+                $count++;
+            }
+        }
+        else {
+            # just one value
+            $self->set_param( qq{Attribute.$count.Name}, $key );
+            $self->set_param( qq{Attribute.$count.Value}, $param->{Replace}{$key} );
+            $self->set_param( qq{Attribute.$count.Replace}, 'true' );
+            $count++;
+        }
+    }
+
+    # do the expected value
+    if ( $param->{Expected} ) {
+        $self->set_param( qq{Expected.$count.Name}, $param->{Expected}{Name} );
+        $self->set_param( qq{Expected.$count.Value}, $param->{Expected}{Value} );
+        $self->set_param( qq{Expected.$count.Exists}, 'true' );
+        $count++;
+    }
+
+    # do all the not exists
+    if ( defined $param->{NotExists} ) {
+        $self->set_param( qq{Expected.$count.Name}, $param->{NotExists} );
+        $self->set_param( qq{Expected.$count.Exists}, 'false' );
+        $count++;
+    }
+
+    return $self->send();
+}
+
+sub select {
+    my ($self, $param) = @_;
+    $self->clear();
+
+    # check we have a domain
+    unless ( defined $param->{SelectExpression} ) {
+        croak "Provide a 'SelectExpression' to query";
+    }
+
+    $self->set_command( 'Select' );
+    $self->set_params_if_defined(
+        $param,
+        qw(SelectExpression ConsistenRead NextToken)
+    );
+
+    my $data = $self->send();
+
+    # do some munging
+    if ( exists $data->{SelectResult} ) {
+        if ( exists $data->{SelectResult}{Item} ) {
+            $data->{Result} = delete $data->{SelectResult};
+            $self->_force_array( $data->{Result}{Item} );
+            $data->{Result}{Items} = delete $data->{Result}{Item};
+
+            # munge each item
+            foreach my $item ( @{$data->{Result}{Items}} ) {
+                my $attr = {};
+                foreach my $pair ( @{$item->{Attribute}} ) {
+                    # either push onto the array, make a new array or just set the value
+                    if ( ref $attr->{$pair->{Name}} eq 'ARRAY' ) {
+                        push @{$attr->{$pair->{Name}}}, $pair->{Value};
+                    }
+                    elsif ( exists $attr->{$pair->{Name}} ) {
+                        $attr->{$pair->{Name}} = [ $attr->{$pair->{Name}} ];
+                        push @{$attr->{$pair->{Name}}}, $pair->{Value};
+                    }
+                    else {
+                        $attr->{$pair->{Name}} = $pair->{Value};
+                    }
+                }
+
+                # set this new hash, rather than an array
+                $item->{Attribute} = $attr;
+            }
+        }
+        else {
+            $data->{Result} = undef;
+            delete $data->{SelectResult};
+        }
+    }
+
     return $data;
 }
 
@@ -180,7 +693,7 @@ AwsSum::Amazon::SimpleDB - interface to Amazon's SimpleDB web service
 
 =head1 SYNOPSIS
 
-    $sdb = AwsSum::Amazon::EC2->new();
+    $sdb = AwsSum::Amazon::SimpleDB->new();
     $sdb->access_key_id( 'abc' );
     $sdb->secret_access_key( 'xyz' );
 

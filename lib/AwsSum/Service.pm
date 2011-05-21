@@ -11,6 +11,7 @@ use LWP::UserAgent;
 use HTTP::Request::Common qw(POST);
 use HTTP::Request;
 use URI;
+use URI::Escape;
 
 ## ----------------------------------------------------------------------------
 # set the things that the implementing class should do
@@ -168,9 +169,9 @@ sub send {
     my $content = $self->content();
     my $res;
     if ( $verb eq 'get' ) {
-        $url = URI->new( $url );
-        $url->query_form( %{$self->params} );
-        $res = $ua->get( $url, %{$self->headers} );
+        my $param = $self->params;
+        my $address = URI->new( $url ) . '?' . join( '&', map { "$_=" . uri_escape($param->{$_}, q{^A-Za-z0-9_.~-}) } sort keys %$param );
+        $res = $ua->get( $address, %{$self->headers} );
     }
     elsif ( $verb eq 'post' ) {
         $res = $ua->post(
