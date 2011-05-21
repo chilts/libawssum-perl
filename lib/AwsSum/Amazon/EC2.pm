@@ -340,8 +340,9 @@ sub sign {
     $str_to_sign .= $self->_host . "\n";
     $str_to_sign .= "/\n";
 
+    # do the params ourselves, since it seems quite fussy regarding various chars
     my $param = $self->params();
-    $str_to_sign .= join('&', map { "$_=" . uri_escape($param->{$_}) } sort keys %$param);
+    $str_to_sign .= join('&', map { "$_=" . uri_escape($param->{$_}, q{^A-Za-z0-9_.~-} ) } sort keys %$param);
 
     # sign the $str_to_sign
     my $signature = ( $self->signature_method eq 'HmacSHA1' )
