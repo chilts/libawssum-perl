@@ -1,3 +1,23 @@
+libawssum-perl (0.2.0) lucid; urgency=low
+
+  * Fix packaging up again
+  * Fix up package description for awssum and libawssum-perl
+  * Fix packaging up (yet again)
+  * Fix up error handling for Route53
+  * Make the HostedZones a proper array
+  * Make the ResourceRecords a much nicer list
+  * Return only the ID regarding the HostedZone
+  * Add the ChangeResourceRecordSets for Amazon:Route53
+  * Lots of updates for Route53
+  * Add a complete module for AwsSum::Amazon::SimpleDB
+  * Make sure the ELB only loads up the region if it is set
+  * Munge some return data for EC2's DescribeAvailabilityZones
+  * Do own own URI escape, since things like () aren't done properly
+  * Quit when an option isn't known about, instead of just ignoring it
+  * Prepare for new release of AwsSum (v0.2.0)
+
+ -- Andrew Chilton <andychilton@gmail.com>  Mon, 23 May 2011 10:09:46 +1200
+
 libawssum-perl (0.1.0) unstable; urgency=low
 
   * Initial Release.
