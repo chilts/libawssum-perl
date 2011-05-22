@@ -8,15 +8,15 @@ was 'v0.1.1' and you're on master (ie. v0.1.1..master (master is optional)):
     git tag -l
 
     # now change these
-    export PREV_REL=0.0.0
-    export RELEASE=0.1.0
+    export BRANCH=master
+    export PREV_REL=0.1.0
+    export RELEASE=0.2.0
 
     git commit -m "Prepare for new release of AwsSum (v$RELEASE)" PACKAGING
     git show
-    git push origin master
+    git push origin $BRANCH
 
-    git log v${PREV_REL}..master | grep '^    ' | tac | sed 's/^   /  */' | xclip
-    git diff v${PREV_REL}..master
+    git log v${PREV_REL}..HEAD | grep '^    ' | tac | sed 's/^   /  */' | xclip
 
 Update debian/changelog:
 
@@ -25,7 +25,7 @@ Update debian/changelog:
     git commit -m "Update changelog for release v$RELEASE" debian/changelog
     git show
 
-    git push origin master
+    git push origin $BRANCH
 
 Test build it and release it (see below).
 
@@ -38,6 +38,11 @@ Then tag the release;
 h2. Making the Packages and Pushing them to the Debian Repository
 
 Test build:
+
+    ssh ash.appsattic.com
+
+    cd ~/cloudbridge/easybc/
+    git fetch && git rebase origin/$BRANCH && make build
 
     dpkg-buildpackage -us -uc -tc -t -b
 
