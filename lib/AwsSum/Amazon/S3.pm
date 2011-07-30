@@ -422,7 +422,7 @@ sub list_objects {
     $self->set_command( 'ListObjects' );
     $self->_bucket_name( $param->{BucketName} );
     $self->set_param_maybe( 'delimiter', $param->{Delimiter} );
-    $self->set_param_maybe( 'marker', $param->{Market} );
+    $self->set_param_maybe( 'marker', $param->{Marker} );
     $self->set_param_maybe( 'max-keys', $param->{MaxKeys} );
     $self->set_param_maybe( 'prefix', $param->{Prefix} );
 
