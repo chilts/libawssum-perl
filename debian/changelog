@@ -1,3 +1,10 @@
+libawssum-perl (0.3.0) lucid; urgency=low
+
+  * Fix the parameter name for Amazon S3's ListObjects
+  * Prepare for new release of AwsSum (v0.3.0)
+
+ -- Andrew Chilton <chilts@appsattic.com>  Sun, 31 Jul 2011 13:47:12 +1200
+
 libawssum-perl (0.2.0) lucid; urgency=low
 
   * Fix packaging up again
