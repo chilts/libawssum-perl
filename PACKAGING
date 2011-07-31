@@ -9,8 +9,8 @@ was 'v0.1.1' and you're on master (ie. v0.1.1..master (master is optional)):
 
     # now change these
     export BRANCH=master
-    export PREV_REL=0.1.0
-    export RELEASE=0.2.0
+    export PREV_REL=0.2.0
+    export RELEASE=0.3.0
 
     git commit -m "Prepare for new release of AwsSum (v$RELEASE)" PACKAGING
     git show
@@ -20,7 +20,7 @@ was 'v0.1.1' and you're on master (ie. v0.1.1..master (master is optional)):
 
 Update debian/changelog:
 
-    DEBEMAIL=andychilton@gmail.com dch -v $RELEASE -D lucid
+    DEBEMAIL=chilts@appsattic.com dch -v $RELEASE -D lucid
 
     git commit -m "Update changelog for release v$RELEASE" debian/changelog
     git show
