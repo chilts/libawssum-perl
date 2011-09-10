@@ -68,6 +68,13 @@ my $commands = {
         code   => 200,
     },
     # * DELETE DeleteHostedZone
+    DeleteHostedZone => {
+        name   => q{DeleteHostedZone},
+        method => q{delete_hosted_zone},
+        verb   => q{delete},
+        path   => q{hostedzone},
+        code   => 200,
+    },
     ListHostedZones => {
         name   => q{ListHostedZones},
         method => q{list_hosted_zones},
@@ -289,6 +296,25 @@ EOF
 
     # set this XML as the content of the request
     $self->content($xml);
+
+    my $data = $self->send();
+    # $self->_force_array( $data->{ListDomainsResult}{DomainName} );
+    return $data;
+}
+
+sub delete_hosted_zone {
+    my ($self, $param) = @_;
+    $self->clear();
+
+    $self->set_command( 'DeleteHostedZone' );
+
+    # make sure we were given some things
+    unless ( $self->is_valid_something($param->{ZoneId}) ) {
+        croak "Provide a 'ZoneId' to query";
+    }
+
+    # set the path
+    $self->path( $self->version . q{/hostedzone/} . $param->{ZoneId} );
 
     my $data = $self->send();
     # $self->_force_array( $data->{ListDomainsResult}{DomainName} );
